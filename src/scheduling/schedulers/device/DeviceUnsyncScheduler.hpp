@@ -12,24 +12,19 @@
 #include "scheduling/schedulers/UnsyncScheduler.hpp"
 
 class DeviceUnsyncScheduler : public UnsyncScheduler {
+private:
+	size_t _totalDevices;
+	Container::vector<ReadyQueue *> _readyTasksDevice;
+
 public:
-	DeviceUnsyncScheduler(SchedulingPolicy policy, bool enablePriority, bool enableImmediateSuccessor)
-		: UnsyncScheduler(policy, enablePriority, enableImmediateSuccessor)
-	{
-		_numQueues = 1;
-		_queues = (ReadyQueue **) MemoryAllocator::alloc(sizeof(ReadyQueue *));
+	DeviceUnsyncScheduler(
+		SchedulingPolicy policy,
+		bool enablePriority,
+		bool enableImmediateSuccessor,
+		size_t totalDevices
+	);
 
-		// Create a single queue at the first position
-		if (enablePriority) {
-			_queues[0] = new ReadyQueueMap(policy);
-		} else {
-			_queues[0] = new ReadyQueueDeque(policy);
-		}
-	}
-
-	virtual ~DeviceUnsyncScheduler()
-	{
-	}
+	virtual ~DeviceUnsyncScheduler();
 
 	//! \brief Get a ready task for execution
 	//!
@@ -37,6 +32,14 @@ public:
 	//!
 	//! \returns a ready task or nullptr
 	Task *getReadyTask(ComputePlace *computePlace);
+
+	//! \brief Add a (ready) task that has been created or freed
+	//!
+	//! \param[in] task the task to be added
+	//! \param[in] computePlace the hardware place of the creator or the liberator
+	//! \param[in] hint a hint about the relation of the task to the current task
+	void addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint) override;
+
 };
 
 

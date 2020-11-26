@@ -13,7 +13,7 @@
 
 class DeviceScheduler : public SyncScheduler {
 private:
-	// FIXME: currently unused
+
 	size_t _totalDevices;
 
 	std::string _name;
@@ -32,7 +32,7 @@ public:
 		_totalDevices = HardwareInfo::getComputePlaceCount(deviceType);
 
 		// Immediate successor support for devices is not available yet
-		_scheduler = new DeviceUnsyncScheduler(policy, enablePriority, false);
+		_scheduler = new DeviceUnsyncScheduler(policy, enablePriority, false, _totalDevices);
 	}
 
 	inline Task *getReadyTask(ComputePlace *computePlace)
