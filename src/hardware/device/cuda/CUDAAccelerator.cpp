@@ -5,6 +5,7 @@
 */
 
 #include "CUDAAccelerator.hpp"
+#include "CUDAAcceleratorEvent.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 #include "scheduling/Scheduler.hpp"
@@ -14,47 +15,7 @@
 #include <DataAccessRegistrationImplementation.hpp>
 
 
-ConfigVariable<bool> CUDAAccelerator::_pinnedPolling("devices.cuda.polling.pinned");
-ConfigVariable<size_t> CUDAAccelerator::_usPollingPeriod("devices.cuda.polling.period_us");
 
-thread_local Task* CUDAAccelerator::_currentTask;
-
-
-void CUDAAccelerator::acceleratorServiceLoop()
-{
-	const size_t sleepTime = _usPollingPeriod.getValue();
-
-	while (!shouldStopService()) {
-		bool activeDevice = false;
-		do {
-			// Launch as many ready device tasks as possible
-			while (_streamPool.streamAvailable()) {
-				Task *task = Scheduler::getReadyTask(_computePlace);
-				if (task == nullptr)
-					break;
-
-				runTask(task);
-			}
-
-			// Only set the active device if there have been tasks launched
-			// Setting the device during e.g. bootstrap caused issues
-			if (!_activeEvents.empty()) {
-				if (!activeDevice) {
-					activeDevice = true;
-					setActiveDevice();
-				}
-
-				// Process the active events
-				processCUDAEvents();
-			}
-
-			// Iterate while there are running tasks and pinned polling is enabled
-		} while (_pinnedPolling && !_activeEvents.empty());
-
-		// Sleep for a configured amount of microseconds
-		BlockingAPI::waitForUs(sleepTime);
-	}
-}
 
 // For each CUDA device task a CUDA stream is required for the asynchronous
 // launch; To ensure kernel completion a CUDA event is 'recorded' on the stream
@@ -63,18 +24,36 @@ void CUDAAccelerator::acceleratorServiceLoop()
 // has finished.
 
 // Get a new CUDA event and queue it in the stream the task has launched
-void CUDAAccelerator::postRunTask(Task *task)
+void CUDAAccelerator::postRunTask(Task *)
 {
-	nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
-	CUDAFunctions::recordEvent(env.event, env.stream);
-	_activeEvents.push_back({env.event, task});
+}
+
+
+
+AcceleratorEvent *CUDAAccelerator::createEvent(std::function<void()> onCompletion)
+{
+	nanos6_cuda_device_environment_t &env =	getCurrentTask()->getDeviceEnvironment().cuda;
+
+	return (AcceleratorEvent *)new CUDAAcceleratorEvent(onCompletion,  env.stream, _cudaStreamPool);
+}
+
+void CUDAAccelerator::destroyEvent(AcceleratorEvent* event)
+{
+	delete (CUDAAcceleratorEvent *) event;
+}
+
+
+void CUDAAccelerator::callBody(Task * task)
+{
+	size_t tableSize = 0;
+	nanos6_address_translation_entry_t stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
+	nanos6_address_translation_entry_t *translationTable =	SymbolTranslation::generateTranslationTable(task, _computePlace, stackTranslationTable,	tableSize);
+	task->body(translationTable);
+	if (tableSize > 0)	MemoryAllocator::free(translationTable, tableSize);
 }
 
 void CUDAAccelerator::preRunTask(Task *task)
 {
-	// set the thread_local static var to be used by nanos6_get_current_cuda_stream()
-	CUDAAccelerator::_currentTask = task;
-
 	// Prefetch available memory locations to the GPU
 	nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
 
@@ -91,19 +70,3 @@ void CUDAAccelerator::preRunTask(Task *task)
 		}
 	);
 }
-
-// Query the events issued to detect task completion
-void CUDAAccelerator::processCUDAEvents()
-{
-	_preallocatedEvents.clear();
-	std::swap(_preallocatedEvents, _activeEvents);
-
-	for (CUDAEvent &ev : _preallocatedEvents) {
-		if (CUDAFunctions::cudaEventFinished(ev.event)) {
-			finishTask(ev.task);
-		} else {
-			_activeEvents.push_back(ev);
-		}
-	}
-}
-

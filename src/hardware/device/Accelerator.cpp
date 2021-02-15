@@ -5,7 +5,6 @@
 */
 
 #include "Accelerator.hpp"
-#include "dependencies/SymbolTranslation.hpp"
 #include "executors/threads/TaskFinalization.hpp"
 #include "hardware/HardwareInfo.hpp"
 #include "scheduling/Scheduler.hpp"
@@ -14,36 +13,63 @@
 
 #include <DataAccessRegistration.hpp>
 
+
+thread_local Task* Accelerator::_currentTask;
+
+
 void Accelerator::runTask(Task *task)
 {
-	nanos6_address_translation_entry_t stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
-
 	assert(task != nullptr);
+
+	_currentTask = task;
+	AcceleratorStream* acceleratorStream = _streamPool.getStream();
 	task->setComputePlace(_computePlace);
 	task->setMemoryPlace(_memoryPlace);
+	task->setAcceleratorStream(acceleratorStream);
 
-	setActiveDevice();
 	generateDeviceEvironment(task);
+
+
+	AcceleratorEvent *event_copies = createEvent([]{});
+	event_copies->record(acceleratorStream);
+
+	//if preRunTask passes through the directory,
+	//it will add new operations into the stream,
+	//so the new event will have a correct result.
+	//If not, the prerun will run synchronous, so
+	//the next event will have again a correct result.
 	preRunTask(task);
 
-	size_t tableSize = 0;
-	nanos6_address_translation_entry_t *translationTable =
-		SymbolTranslation::generateTranslationTable(
-			task, _computePlace, stackTranslationTable,
-			tableSize);
+	AcceleratorEvent *event_pre_run = createEvent([]{});
+	event_pre_run->record(acceleratorStream);
 
-	task->body(translationTable);
+	callBody(task);
 
-	if (tableSize > 0)
-		MemoryAllocator::free(translationTable, tableSize);
+	AcceleratorEvent *event_post_run = createEvent([]{});
+	event_post_run->record(acceleratorStream);
 
-	postRunTask(task);
+	acceleratorStream->addOperation([&, event_copies, event_pre_run, event_post_run, task, acceleratorStream]
+	{
+		float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
+		float execution_time = event_pre_run->getTimeBetweenEvents_ms(event_post_run);
+
+		//Future CTF Common Events
+
+		destroyEvent(event_copies);
+		destroyEvent(event_pre_run);
+		destroyEvent(event_post_run);
+
+		finishTask(task);
+		_streamPool.releaseStream(acceleratorStream);
+		return true;
+	});
+
+
 }
 
 void Accelerator::finishTask(Task *task)
 {
 	finishTaskCleanup(task);
-
 	WorkerThread *currThread = WorkerThread::getCurrentWorkerThread();
 
 	CPU *cpu = nullptr;

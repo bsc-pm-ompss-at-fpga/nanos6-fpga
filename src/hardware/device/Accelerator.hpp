@@ -7,8 +7,12 @@
 #ifndef ACCELERATOR_HPP
 #define ACCELERATOR_HPP
 
+#include "scheduling/Scheduler.hpp"
+#include "dependencies/SymbolTranslation.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
+#include "AcceleratorStreamPool.hpp"
+#include "AcceleratorEvent.hpp"
 #include "tasks/Task.hpp"
 
 
@@ -23,21 +27,31 @@ private:
 	std::atomic<bool> _stopService;
 	std::atomic<bool> _finishedService;
 
+	thread_local static Task* _currentTask;
+
+
 protected:
 	// Used also to denote the device number
 	int _deviceHandler;
 	nanos6_device_t _deviceType;
 	MemoryPlace *_memoryPlace;
 	ComputePlace *_computePlace;
+	AcceleratorStreamPool       _streamPool;
 
-	Accelerator(int handler, nanos6_device_t type) :
+	size_t _pollingPeriodUs;
+	bool _isPinnedPolling;
+
+	Accelerator(int handler, nanos6_device_t type, uint32_t numOfStreams, size_t pollingPeriodUs, bool isPinnedPolling) :
 		_stopService(false),
 		_finishedService(false),
 		_deviceHandler(handler),
-		_deviceType(type)
+		_deviceType(type),
+		_memoryPlace(new MemoryPlace(_deviceHandler, _deviceType)),
+		_computePlace(new ComputePlace(_deviceHandler, _deviceType)),
+		_streamPool(numOfStreams),
+		_pollingPeriodUs(pollingPeriodUs),
+		_isPinnedPolling(isPinnedPolling)
 	{
-		_memoryPlace = new MemoryPlace(_deviceHandler, _deviceType);
-		_computePlace = new ComputePlace(_deviceHandler, _deviceType);
 		_computePlace->addMemoryPlace(_memoryPlace);
 	}
 
@@ -49,7 +63,32 @@ protected:
 	// Set the current instance as the selected/active device for subsequent operations
 	virtual void setActiveDevice() = 0;
 
-	virtual void acceleratorServiceLoop() = 0;
+
+	void acceleratorServiceLoop()
+	{
+		while (!shouldStopService()) {
+			setActiveDevice();
+			do {
+				// Launch as many ready device tasks as possible
+				while (_streamPool.streamAvailable())
+				{
+					Task *task = Scheduler::getReadyTask(_computePlace);
+					if (task == nullptr)
+						break;
+
+					runTask(task);
+				}
+
+				_streamPool.processStreams();
+
+				// Iterate while there are running tasks and pinned polling is enabled
+			} while (_isPinnedPolling && !_streamPool.ongoingStreams());
+
+			// Sleep for a configured amount of microseconds
+			BlockingAPI::waitForUs(_pollingPeriodUs);
+		}
+	}
+
 
 	// Each device may use these methods to prepare or conclude task launch if needed
 	virtual inline void preRunTask(Task *)
@@ -72,6 +111,8 @@ protected:
 	virtual inline void generateDeviceEvironment(Task *)
 	{
 	}
+
+	virtual void callBody(Task * task) = 0;
 
 	virtual void finishTask(Task *task);
 
@@ -118,11 +159,26 @@ public:
 	// Return the FIFO for re-use after task has finished.
 	virtual void releaseAsyncHandle(void *asyncHandle) = 0;
 
+	static inline Task *getCurrentTask()
+	{
+		return _currentTask;
+	}
+
+
 private:
 	static void serviceFunction(void *data);
 
 	static void serviceCompleted(void *data);
+
+	virtual AcceleratorEvent* createEvent(std::function<void()> onCompletion)
+	{
+		return new AcceleratorEvent(onCompletion);
+	};
+	virtual void destroyEvent(AcceleratorEvent* event)
+	{
+		delete event;
+	}
+
 };
 
 #endif // ACCELERATOR_HPP
-

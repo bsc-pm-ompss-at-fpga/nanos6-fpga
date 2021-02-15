@@ -27,44 +27,44 @@ private:
 
 	std::list<CUDAEvent> _activeEvents, _preallocatedEvents;
 	cudaDeviceProp _deviceProperties;
-	CUDAStreamPool _streamPool;
-
-	// Whether the device service should run while there are running tasks
-	static ConfigVariable<bool> _pinnedPolling;
-
-	// The time period in microseconds between device service runs
-	static ConfigVariable<size_t> _usPollingPeriod;
+	CUDAStreamPool _cudaStreamPool;
 
 	// To be used in order to obtain the current task in nanos6_get_current_cuda_stream() call
-	thread_local static Task* _currentTask;
 
 	inline void generateDeviceEvironment(Task *task) override
 	{
 		// The Accelerator::runTask() function has already set the device so it's safe to proceed
 		nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
-		env.stream = _streamPool.getCUDAStream();
-		env.event = _streamPool.getCUDAEvent();
+		env.stream = _cudaStreamPool.getCUDAStream();
 	}
 
 	inline void finishTaskCleanup(Task *task) override
 	{
 		nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
-		_streamPool.releaseCUDAEvent(env.event);
-		_streamPool.releaseCUDAStream(env.stream);
+		_cudaStreamPool.releaseCUDAStream(env.stream);
 	}
 
-	void acceleratorServiceLoop() override;
 
 	void processCUDAEvents();
 
 	void preRunTask(Task *task) override;
 
+	void callBody(Task * task) override;
+
 	void postRunTask(Task *task) override;
+
+	AcceleratorEvent* createEvent(std::function<void()> onCompletion) override;
+	void destroyEvent(AcceleratorEvent* event) override;
 
 public:
 	CUDAAccelerator(int cudaDeviceIndex) :
-		Accelerator(cudaDeviceIndex, nanos6_cuda_device),
-		_streamPool(cudaDeviceIndex)
+		Accelerator( cudaDeviceIndex,
+					 nanos6_cuda_device,
+					 ConfigVariable<uint32_t>("devices.cuda.streams"),
+					 ConfigVariable<size_t>("devices.cuda.polling.period_us"),
+					 ConfigVariable<bool>("devices.cuda.polling.pinned")
+					),
+		_cudaStreamPool(cudaDeviceIndex)
 	{
 		CUDAFunctions::getDeviceProperties(_deviceProperties, _deviceHandler);
 	}
@@ -82,18 +82,14 @@ public:
 	// In CUDA, the async FIFOs used are CUDA streams
 	inline void *getAsyncHandle() override
 	{
-		return (void *)_streamPool.getCUDAStream();
+		return (void *)_cudaStreamPool.getCUDAStream();
 	}
 
 	inline void releaseAsyncHandle(void *stream) override
 	{
-		_streamPool.releaseCUDAStream((cudaStream_t)stream);
+		_cudaStreamPool.releaseCUDAStream((cudaStream_t)stream);
 	}
 
-	static inline Task *getCurrentTask()
-	{
-		return _currentTask;
-	}
 
 };
 

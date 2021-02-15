@@ -27,7 +27,6 @@ extern "C" {
 
 typedef struct {
 	cudaStream_t stream;
-	cudaEvent_t  event;
 } nanos6_cuda_device_environment_t;
 
 cudaStream_t nanos6_get_current_cuda_stream(void);
@@ -39,4 +38,3 @@ cudaStream_t nanos6_get_current_cuda_stream(void);
 #pragma GCC visibility pop
 
 #endif /* NANOS6_CUDA_DEVICE_H */
-

@@ -32,6 +32,7 @@ class MemoryPlace;
 class TaskStatistics;
 class TasktypeData;
 class WorkerThread;
+class AcceleratorStream;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wunused-result"
@@ -141,6 +142,9 @@ private:
 
 	//! Nesting level of the task
 	int _nestingLevel;
+
+	//! Device Accelerator Stream
+	AcceleratorStream* _deviceAcceleratorStream;
 public:
 	inline Task(
 		void *argsBlock,
@@ -166,6 +170,9 @@ public:
 	);
 
 	virtual inline ~Task();
+
+	AcceleratorStream* getAcceleratorStream()  {return _deviceAcceleratorStream;}
+	void  setAcceleratorStream(AcceleratorStream* stream)  { _deviceAcceleratorStream = stream;}
 
 	//! Set the address of the arguments block
 	inline void setArgsBlock(void *argsBlock)
@@ -858,4 +865,3 @@ public:
 
 
 #endif // TASK_HPP
-

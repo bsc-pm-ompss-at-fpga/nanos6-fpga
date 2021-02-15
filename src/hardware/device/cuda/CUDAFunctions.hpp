@@ -137,6 +137,14 @@ public:
 			cudaEventQuery(event), "While querying event");
 	}
 
+	static float cudaEventElaspedTime_ms(cudaEvent_t &event_1, cudaEvent_t &event_2)
+	{
+		float ms;
+		CUDAErrorHandler::warn(cudaEventElapsedTime(&ms, event_1, event_2));
+		return ms;
+
+	}
+
 	static void cudaDevicePrefetch(void *pHost, size_t size, int device, cudaStream_t &stream, bool readOnly)
 	{
 		if (size == 0)
