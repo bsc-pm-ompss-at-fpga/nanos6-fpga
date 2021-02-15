@@ -53,22 +53,22 @@ public:
 
 
 
-  float getTimeBetweenEvents_ms(AcceleratorEvent &end) {
+  virtual float getTimeBetweenEvents_ms(AcceleratorEvent &end) {
     assert(_completed != false);
     assert(end._completed != false);
-    return std::chrono::duration_cast<std::chrono::milliseconds>(end._fini_time - _fini_time).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(end._fini_time - _fini_time).count();
   }
 
 
-  float getTimeBetweenEvents_ms(AcceleratorEvent *end) {
+  virtual float getTimeBetweenEvents_ms(AcceleratorEvent *end) {
     return getTimeBetweenEvents_ms(*end);
   }
 
 
 
-  float eventCreationUntilExecution_ms() {
+ virtual float eventCreationUntilExecution_ms() {
     assert(_completed != false);
-    return std::chrono::duration_cast<std::chrono::milliseconds>(_fini_time - _creation_time).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(_fini_time - _creation_time).count();
   }
 
   bool hasFinished() { return _completed; }
