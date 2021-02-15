@@ -82,7 +82,7 @@ protected:
 				_streamPool.processStreams();
 
 				// Iterate while there are running tasks and pinned polling is enabled
-			} while (_isPinnedPolling && !_streamPool.ongoingStreams());
+			} while (_isPinnedPolling && _streamPool.ongoingStreams());
 
 			// Sleep for a configured amount of microseconds
 			BlockingAPI::waitForUs(_pollingPeriodUs);
