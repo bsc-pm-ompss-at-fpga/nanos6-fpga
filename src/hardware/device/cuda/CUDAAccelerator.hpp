@@ -34,13 +34,13 @@ private:
 	inline void generateDeviceEvironment(Task *task) override
 	{
 		// The Accelerator::runTask() function has already set the device so it's safe to proceed
-		nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
+		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
 		env.stream = _cudaStreamPool.getCUDAStream();
 	}
 
 	inline void finishTaskCleanup(Task *task) override
 	{
-		nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
+		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
 		_cudaStreamPool.releaseCUDAStream(env.stream);
 	}
 
@@ -49,22 +49,21 @@ private:
 
 	void preRunTask(Task *task) override;
 
-	void callBody(Task * task) override;
+	void callBody(Task *task) override;
 
 	void postRunTask(Task *task) override;
 
-	AcceleratorEvent* createEvent(std::function<void((AcceleratorEvent*))> onCompletion) override;
-	
-	void destroyEvent(AcceleratorEvent* event) override;
+	AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion) override;
+
+	void destroyEvent(AcceleratorEvent *event) override;
 
 public:
 	CUDAAccelerator(int cudaDeviceIndex) :
-		Accelerator( cudaDeviceIndex,
-					 nanos6_cuda_device,
-					 ConfigVariable<uint32_t>("devices.cuda.streams"),
-					 ConfigVariable<size_t>("devices.cuda.polling.period_us"),
-					 ConfigVariable<bool>("devices.cuda.polling.pinned")
-					),
+		Accelerator(cudaDeviceIndex,
+			nanos6_cuda_device,
+			ConfigVariable<uint32_t>("devices.cuda.streams"),
+			ConfigVariable<size_t>("devices.cuda.polling.period_us"),
+			ConfigVariable<bool>("devices.cuda.polling.pinned")),
 		_cudaStreamPool(cudaDeviceIndex)
 	{
 		CUDAFunctions::getDeviceProperties(_deviceProperties, _deviceHandler);
@@ -90,8 +89,6 @@ public:
 	{
 		_cudaStreamPool.releaseCUDAStream((cudaStream_t)stream);
 	}
-
-
 };
 
 #endif // CUDA_ACCELERATOR_HPP

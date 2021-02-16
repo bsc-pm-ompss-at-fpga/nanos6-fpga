@@ -145,6 +145,7 @@ private:
 
 	//! Device Accelerator Stream
 	AcceleratorStream* _deviceAcceleratorStream;
+
 public:
 	inline Task(
 		void *argsBlock,
@@ -171,8 +172,15 @@ public:
 
 	virtual inline ~Task();
 
-	AcceleratorStream* getAcceleratorStream()  {return _deviceAcceleratorStream;}
-	void  setAcceleratorStream(AcceleratorStream* stream)  { _deviceAcceleratorStream = stream;}
+	AcceleratorStream *getAcceleratorStream()
+	{
+		return _deviceAcceleratorStream;
+	}
+	
+	void setAcceleratorStream(AcceleratorStream *stream)
+	{
+		_deviceAcceleratorStream = stream;
+	}
 
 	//! Set the address of the arguments block
 	inline void setArgsBlock(void *argsBlock)

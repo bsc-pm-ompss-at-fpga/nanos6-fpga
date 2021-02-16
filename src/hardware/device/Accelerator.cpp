@@ -14,7 +14,7 @@
 #include <DataAccessRegistration.hpp>
 
 
-thread_local Task* Accelerator::_currentTask;
+thread_local Task *Accelerator::_currentTask;
 
 
 void Accelerator::runTask(Task *task)
@@ -22,7 +22,7 @@ void Accelerator::runTask(Task *task)
 	assert(task != nullptr);
 
 	_currentTask = task;
-	AcceleratorStream* acceleratorStream = _streamPool.getStream();
+	AcceleratorStream *acceleratorStream = _streamPool.getStream();
 	task->setComputePlace(_computePlace);
 	task->setMemoryPlace(_memoryPlace);
 	task->setAcceleratorStream(acceleratorStream);
@@ -45,12 +45,12 @@ void Accelerator::runTask(Task *task)
 
 	callBody(task);
 
-	AcceleratorEvent *event_post_run = createEvent([this, acceleratorStream, event_copies, event_pre_run, task ](AcceleratorEvent* own)
+	AcceleratorEvent *event_post_run = createEvent([this, acceleratorStream, event_copies, event_pre_run, task](AcceleratorEvent *own) 
 	{
-		[[maybe_unused]]  float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
-		[[maybe_unused]]  float execution_time = event_pre_run->getTimeBetweenEvents_ms(own);
+		[[maybe_unused]] float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
+		[[maybe_unused]] float execution_time = event_pre_run->getTimeBetweenEvents_ms(own);
 
-			//Future CTF Common Events
+		//Future CTF Common Events
 
 		finishTask(task);
 
@@ -63,7 +63,6 @@ void Accelerator::runTask(Task *task)
 	});
 
 	event_post_run->record(acceleratorStream);
-
 }
 
 void Accelerator::finishTask(Task *task)
@@ -107,7 +106,7 @@ void Accelerator::initializeService()
 		serviceFunction, this,
 		serviceCompleted, this,
 		"Device service", false
-	);
+		);
 }
 
 void Accelerator::shutdownService()
@@ -121,7 +120,7 @@ void Accelerator::shutdownService()
 
 void Accelerator::serviceFunction(void *data)
 {
-	Accelerator *accel = (Accelerator *) data;
+	Accelerator *accel = (Accelerator *)data;
 	assert(accel != nullptr);
 
 	// Execute the service loop
@@ -130,7 +129,7 @@ void Accelerator::serviceFunction(void *data)
 
 void Accelerator::serviceCompleted(void *data)
 {
-	Accelerator *accel = (Accelerator *) data;
+	Accelerator *accel = (Accelerator *)data;
 	assert(accel != nullptr);
 	assert(accel->_stopService);
 

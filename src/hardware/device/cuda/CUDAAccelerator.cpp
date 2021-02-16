@@ -15,8 +15,6 @@
 #include <DataAccessRegistrationImplementation.hpp>
 
 
-
-
 // For each CUDA device task a CUDA stream is required for the asynchronous
 // launch; To ensure kernel completion a CUDA event is 'recorded' on the stream
 // right after the kernel is queued. Then when a cudaEventQuery call returns
@@ -29,32 +27,33 @@ void CUDAAccelerator::postRunTask(Task *)
 }
 
 
-AcceleratorEvent *CUDAAccelerator::createEvent(std::function<void((AcceleratorEvent*))> onCompletion = [](AcceleratorEvent*){})
+AcceleratorEvent *CUDAAccelerator::createEvent(std::function<void((AcceleratorEvent *))> onCompletion = [](AcceleratorEvent *) {})
 {
-	nanos6_cuda_device_environment_t &env =	getCurrentTask()->getDeviceEnvironment().cuda;
+	nanos6_cuda_device_environment_t &env = getCurrentTask()->getDeviceEnvironment().cuda;
 
-	return (AcceleratorEvent *)new CUDAAcceleratorEvent(onCompletion,  env.stream, _cudaStreamPool);
+	return (AcceleratorEvent *)new CUDAAcceleratorEvent(onCompletion, env.stream, _cudaStreamPool);
 }
 
-void CUDAAccelerator::destroyEvent(AcceleratorEvent* event)
+void CUDAAccelerator::destroyEvent(AcceleratorEvent *event)
 {
-	delete (CUDAAcceleratorEvent *) event;
+	delete (CUDAAcceleratorEvent *)event;
 }
 
 
-void CUDAAccelerator::callBody(Task * task)
+void CUDAAccelerator::callBody(Task *task)
 {
 	size_t tableSize = 0;
 	nanos6_address_translation_entry_t stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
-	nanos6_address_translation_entry_t *translationTable =	SymbolTranslation::generateTranslationTable(task, _computePlace, stackTranslationTable,	tableSize);
+	nanos6_address_translation_entry_t *translationTable = SymbolTranslation::generateTranslationTable(task, _computePlace, stackTranslationTable, tableSize);
 	task->body(translationTable);
-	if (tableSize > 0)	MemoryAllocator::free(translationTable, tableSize);
+	if (tableSize > 0)
+		MemoryAllocator::free(translationTable, tableSize);
 }
 
 void CUDAAccelerator::preRunTask(Task *task)
 {
 	// Prefetch available memory locations to the GPU
-	nanos6_cuda_device_environment_t &env =	task->getDeviceEnvironment().cuda;
+	nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
 
 	DataAccessRegistration::processAllDataAccesses(task,
 		[&](const DataAccess *access) -> bool {
@@ -66,6 +65,5 @@ void CUDAAccelerator::preRunTask(Task *task)
 					access->getType() == READ_ACCESS_TYPE);
 			}
 			return true;
-		}
-	);
+		});
 }

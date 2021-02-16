@@ -27,7 +27,7 @@ private:
 	std::atomic<bool> _stopService;
 	std::atomic<bool> _finishedService;
 
-	thread_local static Task* _currentTask;
+	thread_local static Task *_currentTask;
 
 
 protected:
@@ -36,7 +36,7 @@ protected:
 	nanos6_device_t _deviceType;
 	MemoryPlace *_memoryPlace;
 	ComputePlace *_computePlace;
-	AcceleratorStreamPool       _streamPool;
+	AcceleratorStreamPool _streamPool;
 
 	size_t _pollingPeriodUs;
 	bool _isPinnedPolling;
@@ -70,8 +70,7 @@ protected:
 			setActiveDevice();
 			do {
 				// Launch as many ready device tasks as possible
-				while (_streamPool.streamAvailable())
-				{
+				while (_streamPool.streamAvailable()) {
 					Task *task = Scheduler::getReadyTask(_computePlace);
 					if (task == nullptr)
 						break;
@@ -112,7 +111,7 @@ protected:
 	{
 	}
 
-	virtual void callBody(Task * task) = 0;
+	virtual void callBody(Task *task) = 0;
 
 	virtual void finishTask(Task *task);
 
@@ -170,15 +169,15 @@ private:
 
 	static void serviceCompleted(void *data);
 
-	virtual AcceleratorEvent* createEvent(std::function<void((AcceleratorEvent*))> onCompletion = [](AcceleratorEvent*){})
+	virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion = [](AcceleratorEvent *) {})
 	{
 		return new AcceleratorEvent(onCompletion);
-	};
-	virtual void destroyEvent(AcceleratorEvent* event)
+	}
+	
+	virtual void destroyEvent(AcceleratorEvent *event)
 	{
 		delete event;
 	}
-
 };
 
 #endif // ACCELERATOR_HPP

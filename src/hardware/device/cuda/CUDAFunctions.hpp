@@ -15,7 +15,6 @@
 // A helper class, providing static helper functions, specific to the device,
 // to be used by DeviceInfo and other relevant classes as utilities.
 class CUDAFunctions {
-
 public:
 	static bool initialize()
 	{
@@ -142,7 +141,6 @@ public:
 		float ms;
 		CUDAErrorHandler::warn(cudaEventElapsedTime(&ms, event_1, event_2));
 		return ms;
-
 	}
 
 	static void cudaDevicePrefetch(void *pHost, size_t size, int device, cudaStream_t &stream, bool readOnly)

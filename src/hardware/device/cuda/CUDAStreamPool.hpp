@@ -80,7 +80,6 @@ public:
 	{
 		_events.emplace(event);
 	}
-
 };
 
 #endif // CUDA_STREAM_POOL_HPP

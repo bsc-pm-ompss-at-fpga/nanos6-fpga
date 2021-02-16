@@ -1,8 +1,9 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
 */
+
 #ifndef CUDA_ACCELERATOR_EVENT_HPP
 #define CUDA_ACCELERATOR_EVENT_HPP
 
