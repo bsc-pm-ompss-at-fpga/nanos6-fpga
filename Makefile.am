@@ -748,8 +748,12 @@ noinst_HEADERS = \
 	src/executors/threads/kernel-level/WorkerThreadBase.hpp \
 	src/hardware/HardwareInfo.hpp \
 	src/hardware/device/Accelerator.hpp \
+	src/hardware/device/AcceleratorEvent.hpp \
+	src/hardware/device/AcceleratorStream.hpp \
+	src/hardware/device/AcceleratorStreamPool.hpp \
 	src/hardware/device/DeviceEnvironment.hpp \
 	src/hardware/device/cuda/CUDAAccelerator.hpp \
+	src/hardware/device/cuda/CUDAAcceleratorEvent.hpp \
 	src/hardware/device/cuda/CUDADeviceInfo.hpp \
 	src/hardware/device/cuda/CUDAFunctions.hpp \
 	src/hardware/device/cuda/CUDAStreamPool.hpp \
