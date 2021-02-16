@@ -63,7 +63,7 @@ public:
 	{
 		assert(_completed != false);
 		assert(end._completed != false);
-		return std::chrono::duration_cast<std::chrono::microseconds>(end._fini_time - _fini_time).count();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(end._fini_time - _fini_time).count();
 	}
 
 
@@ -76,7 +76,7 @@ public:
 	virtual float eventCreationUntilExecution_ms()
 	{
 		assert(_completed != false);
-		return std::chrono::duration_cast<std::chrono::microseconds>(_fini_time - _creation_time).count();
+		return std::chrono::duration_cast<std::chrono::milliseconds>(_fini_time - _creation_time).count();
 	}
 
 	bool hasFinished()
