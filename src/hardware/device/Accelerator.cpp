@@ -47,8 +47,8 @@ void Accelerator::runTask(Task *task)
 
 	AcceleratorEvent *event_post_run = createEvent([this, acceleratorStream, event_copies, event_pre_run, task](AcceleratorEvent *own) 
 	{
-		[[maybe_unused]] float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
-		[[maybe_unused]] float execution_time = event_pre_run->getTimeBetweenEvents_ms(own);
+		[[maybe_unused]] float time_spend_in_copies = event_copies->getMillisBetweenEvents(event_pre_run);
+		[[maybe_unused]] float execution_time = event_pre_run->getMillisBetweenEvents(own);
 
 		//Future CTF Common Events
 

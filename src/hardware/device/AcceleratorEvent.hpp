@@ -59,7 +59,7 @@ public:
 	}
 
 
-	virtual float getTimeBetweenEvents_ms(AcceleratorEvent &end)
+	virtual float getMillisBetweenEvents(AcceleratorEvent &end)
 	{
 		assert(_completed != false);
 		assert(end._completed != false);
@@ -67,9 +67,9 @@ public:
 	}
 
 
-	virtual float getTimeBetweenEvents_ms(AcceleratorEvent *end)
+	virtual float getMillisBetweenEvents(AcceleratorEvent *end)
 	{
-		return getTimeBetweenEvents_ms(*end);
+		return getMillisBetweenEvents(*end);
 	}
 
 
