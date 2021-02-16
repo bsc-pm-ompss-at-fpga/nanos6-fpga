@@ -136,7 +136,7 @@ public:
 			cudaEventQuery(event), "While querying event");
 	}
 
-	static float cudaEventElaspedTime_ms(cudaEvent_t &event_1, cudaEvent_t &event_2)
+	static float getMillisBetweenEvents(cudaEvent_t &event_1, cudaEvent_t &event_2)
 	{
 		float ms;
 		CUDAErrorHandler::warn(cudaEventElapsedTime(&ms, event_1, event_2));

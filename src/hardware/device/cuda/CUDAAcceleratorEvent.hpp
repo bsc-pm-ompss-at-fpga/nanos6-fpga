@@ -27,15 +27,15 @@ class CUDAAcceleratorEvent : public AcceleratorEvent
     {
     }
 
-    float getTimeBetweenEvents_ms(AcceleratorEvent &second)
+    float getMillisBetweenEvents(AcceleratorEvent &second)
     {
         //Only when there are TWO events that are CUDA events, we can use the vendor-specifig
         //functions.
         CUDAAcceleratorEvent* second_dc = dynamic_cast<CUDAAcceleratorEvent*>(&second);
         if(second_dc == nullptr)
-            return AcceleratorEvent::getTimeBetweenEvents_ms(second);
+            return AcceleratorEvent::getMillisBetweenEvents(second);
 
-        return CUDAFunctions::cudaEventElaspedTime_ms(_cudaEvent, second_dc->_cudaEvent);
+        return CUDAFunctions::getMillisBetweenEvents(_cudaEvent, second_dc->_cudaEvent);
     }
 
     bool vendorEventQuery()
