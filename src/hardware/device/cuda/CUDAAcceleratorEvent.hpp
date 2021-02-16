@@ -39,12 +39,12 @@ class CUDAAcceleratorEvent : public AcceleratorEvent
 
     bool vendorEventQuery()
     {
-        return cudaEventQuery(_cudaEvent) == cudaSuccess;
+        return CUDAFunctions::cudaEventFinished(_cudaEvent);
     }
 
     void vendorEventRecord() override
     {
-        cudaEventRecord(_cudaEvent, _stream);
+        CUDAFunctions::recordEvent(_cudaEvent, _stream);
     }
 
     ~CUDAAcceleratorEvent()
