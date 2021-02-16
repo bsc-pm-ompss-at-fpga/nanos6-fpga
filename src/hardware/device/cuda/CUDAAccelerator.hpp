@@ -53,7 +53,8 @@ private:
 
 	void postRunTask(Task *task) override;
 
-	AcceleratorEvent* createEvent(std::function<void()> onCompletion) override;
+	AcceleratorEvent* createEvent(std::function<void((AcceleratorEvent*))> onCompletion) override;
+	
 	void destroyEvent(AcceleratorEvent* event) override;
 
 public:

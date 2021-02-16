@@ -21,7 +21,7 @@ class AcceleratorEvent {
   private:
 
     bool _completed;
-    std::function<void()> _onCompletion;
+    std::function<void(AcceleratorEvent*)> _onCompletion;
     std::chrono::steady_clock::time_point _creation_time, _fini_time;
 
 
@@ -30,13 +30,14 @@ class AcceleratorEvent {
   //callback specified at event-creation-time.
   bool query() {
     if(!vendorEventQuery()) return false;
-    _onCompletion();
+    _onCompletion(this);
     return true;
   }
 
 public:
-  AcceleratorEvent(std::function<void()> &completion)
+  AcceleratorEvent(std::function<void((AcceleratorEvent*))> &completion)
       : _completed(false), _onCompletion(std::move(completion)) {}
+
 
   virtual ~AcceleratorEvent() {}
 
@@ -85,7 +86,7 @@ public:
     //this marks the time when the event was created, not the time when executed.
     //if we have two events, we can infer the time between two points of executions of a stream.
     stream->addOperation(
-      [&]()
+      [&]
       {
         //Some devices like CUDA, have a native events interface, we invoke this if necessary.
         vendorEventRecord();
@@ -96,6 +97,7 @@ public:
         //so the best we can do is to advance as much as we can the stream virtualization execution, meaning that probably,
         //when a cuda event arrives to this point, the real execution has not finished. We query the vendor-check for finalization.
         //If the vendor-check is not necessary, the first time we call query will just return true.
+
         return [&]()
         {
             if (query()) {
@@ -108,6 +110,33 @@ public:
       }
     );
   }
+
+
+  //Record weak means that the execution won't be halted until the event has finished.
+  //This is useful for intermediate-events for devices like CUDA, where we can ensure that
+  //when a later event has been executed, all previous have been completed too.
+  //This optimization means that we can enqueue more operations into the native streams
+  //without the penalty of waiting for an operation to complete
+  void recordWeak(AcceleratorStream *stream)
+  {
+
+    _completed = false;
+    _creation_time = std::chrono::steady_clock::now();
+
+    stream->addOperation(
+      [&]
+      {
+        vendorEventRecord();
+
+        return [&]()
+        {
+              _completed = true;
+              _fini_time = std::chrono::steady_clock::now();
+              return true;
+        };
+      });
+  }
+
 };
 
 #endif // ACCELERATOR_EVENT_HPP

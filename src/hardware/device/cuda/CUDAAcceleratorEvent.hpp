@@ -18,7 +18,7 @@ class CUDAAcceleratorEvent : public AcceleratorEvent
     cudaStream_t    _stream;
     public:
 
-    CUDAAcceleratorEvent(std::function<void()>& completion, cudaStream_t stream,  CUDAStreamPool& pool) :
+    CUDAAcceleratorEvent(std::function<void(AcceleratorEvent*)>& completion, cudaStream_t stream,  CUDAStreamPool& pool) :
         AcceleratorEvent(completion),
         _cudaPool(pool),
         _cudaEvent(_cudaPool.getCUDAEvent()),

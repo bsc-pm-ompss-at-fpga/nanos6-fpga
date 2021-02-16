@@ -30,8 +30,8 @@ void Accelerator::runTask(Task *task)
 	generateDeviceEvironment(task);
 
 
-	AcceleratorEvent *event_copies = createEvent([]{});
-	event_copies->record(acceleratorStream);
+	AcceleratorEvent *event_copies = createEvent();
+	event_copies->recordWeak(acceleratorStream);
 
 	//if preRunTask passes through the directory,
 	//it will add new operations into the stream,
@@ -40,30 +40,29 @@ void Accelerator::runTask(Task *task)
 	//the next event will have again a correct result.
 	preRunTask(task);
 
-	AcceleratorEvent *event_pre_run = createEvent([]{});
-	event_pre_run->record(acceleratorStream);
+	AcceleratorEvent *event_pre_run = createEvent();
+	event_pre_run->recordWeak(acceleratorStream);
 
 	callBody(task);
 
-	AcceleratorEvent *event_post_run = createEvent([]{});
-	event_post_run->record(acceleratorStream);
-
-	acceleratorStream->addOperation([&, event_copies, event_pre_run, event_post_run, task, acceleratorStream]
+	AcceleratorEvent *event_post_run = createEvent([this, acceleratorStream, event_copies, event_pre_run, task ](AcceleratorEvent* own)
 	{
-		float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
-		float execution_time = event_pre_run->getTimeBetweenEvents_ms(event_post_run);
+		[[maybe_unused]]  float time_spend_in_copies = event_copies->getTimeBetweenEvents_ms(event_pre_run);
+		[[maybe_unused]]  float execution_time = event_pre_run->getTimeBetweenEvents_ms(own);
 
-		//Future CTF Common Events
+			//Future CTF Common Events
+
+		finishTask(task);
+
+		_streamPool.releaseStream(acceleratorStream);
 
 		destroyEvent(event_copies);
 		destroyEvent(event_pre_run);
-		destroyEvent(event_post_run);
-
-		finishTask(task);
-		_streamPool.releaseStream(acceleratorStream);
+		destroyEvent(own);
 		return true;
 	});
 
+	event_post_run->record(acceleratorStream);
 
 }
 

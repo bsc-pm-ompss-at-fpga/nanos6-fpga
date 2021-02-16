@@ -29,8 +29,7 @@ void CUDAAccelerator::postRunTask(Task *)
 }
 
 
-
-AcceleratorEvent *CUDAAccelerator::createEvent(std::function<void()> onCompletion)
+AcceleratorEvent *CUDAAccelerator::createEvent(std::function<void((AcceleratorEvent*))> onCompletion = [](AcceleratorEvent*){})
 {
 	nanos6_cuda_device_environment_t &env =	getCurrentTask()->getDeviceEnvironment().cuda;
 

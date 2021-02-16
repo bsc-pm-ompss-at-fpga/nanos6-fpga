@@ -170,7 +170,7 @@ private:
 
 	static void serviceCompleted(void *data);
 
-	virtual AcceleratorEvent* createEvent(std::function<void()> onCompletion)
+	virtual AcceleratorEvent* createEvent(std::function<void((AcceleratorEvent*))> onCompletion = [](AcceleratorEvent*){})
 	{
 		return new AcceleratorEvent(onCompletion);
 	};
