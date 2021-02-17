@@ -30,12 +30,15 @@ public:
 	using checker = std::function<bool(void)>;
 	using activatorReturnsChecker = std::function<checker(void)>;
 	using activatorQueue = std::queue<activatorReturnsChecker>;
+	using checkerQueue = std::queue<checker>;
 
 private:
 	activatorQueue _queuedStreamExecutors;
+	checkerQueue _queuedEventFinalization;
+
 	checker _currentStreamExecutorFinished;
 	bool _ongoingExecutor;
-	std::mutex _operations_mtx;
+	std::mutex _operations_mtx, _events_mtx;
 
 public:
 	AcceleratorStream() :
@@ -70,16 +73,31 @@ public:
 		return _queuedStreamExecutors.size() || _ongoingExecutor;
 	}
 
+    virtual void streamAddEventListener(checker eventListener)
+	{
+		std::lock_guard<std::mutex> guard(_events_mtx);
+		_queuedEventFinalization.push(std::move(eventListener));
+	}
+
 	virtual void streamServiceLoop()
 	{
-		std::lock_guard<std::mutex> guard(_operations_mtx);
-		if (_ongoingExecutor && _currentStreamExecutorFinished()) {
-			_ongoingExecutor = false;
-			if (!_queuedStreamExecutors.empty()) {
-				//we call the activator function of the next stream executor and put the returned checker function in our probe.
-				_currentStreamExecutorFinished = std::move(_queuedStreamExecutors.front()());
-				_queuedStreamExecutors.pop();
-				_ongoingExecutor = true;
+
+		{
+            std::lock_guard<std::mutex> guard(_events_mtx);
+			while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())
+				_queuedEventFinalization.pop();
+		}
+
+		{
+			std::lock_guard<std::mutex> guard(_operations_mtx);
+			if (_ongoingExecutor && _currentStreamExecutorFinished()) {
+				_ongoingExecutor = false;
+				if (!_queuedStreamExecutors.empty()) {
+					//we call the activator function of the next stream executor and put the returned checker function in our probe.
+					_currentStreamExecutorFinished = std::move(_queuedStreamExecutors.front()());
+					_queuedStreamExecutors.pop();
+					_ongoingExecutor = true;
+				}
 			}
 		}
 	}

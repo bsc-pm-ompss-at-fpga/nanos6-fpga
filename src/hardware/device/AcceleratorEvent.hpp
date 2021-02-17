@@ -96,7 +96,7 @@ public:
 		//this marks the time when the event was created, not the time when executed.
 		//if we have two events, we can infer the time between two points of executions of a stream.
 		stream->addOperation(
-			[&] {
+			[&, stream] {
 				//Some devices like CUDA, have a native events interface, we invoke this if necessary.
 				vendorEventRecord();
 				//This is done to check for the finalization of the event. This is may be redundant, since
@@ -107,13 +107,20 @@ public:
 				//when a cuda event arrives to this point, the real execution has not finished. We query the vendor-check for finalization.
 				//If the vendor-check is not necessary, the first time we call query will just return true.
 
-				return [&]() {
-					if (query()) {
-						_completed = true;
-						_fini_time = std::chrono::steady_clock::now();
-						return true;
-					}
-					return false;
+				return [&, stream]()
+				{
+					stream->streamAddEventListener(
+						[&]
+						{
+							if (query())
+							{
+								_completed = true;
+								_fini_time = std::chrono::steady_clock::now();
+								return true;
+							}
+							return false;
+						});
+					return true;
 				};
 			});
 	}
@@ -123,7 +130,7 @@ public:
 	//This is useful for intermediate-events for devices like CUDA, where we can ensure that
 	//when a later event has been executed, all previous have been completed too.
 	//This optimization means that we can enqueue more operations into the native streams
-	//without the penalty of waiting for an operation to complete
+	//without the penalty of waiting for an operation to complete nor we wait actively for this events
 	void recordWeak(AcceleratorStream *stream)
 	{
 		_completed = false;
