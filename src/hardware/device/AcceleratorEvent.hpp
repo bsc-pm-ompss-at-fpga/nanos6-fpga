@@ -33,7 +33,7 @@ private:
 	}
 
 public:
-	AcceleratorEvent(std::function<void((AcceleratorEvent *))> &completion) :
+	AcceleratorEvent(std::function<void((AcceleratorEvent *))> completion) :
 		_completed(false), _onCompletion(std::move(completion))
 	{
 	}

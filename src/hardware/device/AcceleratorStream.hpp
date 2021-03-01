@@ -11,7 +11,7 @@
 #include <queue>
 #include <mutex>
 #include <cassert>
-
+#include <iostream>
 //This class tries to emulate the behaviour of CUDA streams, this implementation makes it easier to make the acceleratos
 //share the same interface to talk with the runtime and control its execution workflow.
 //The stream it's its own mini-runtime
@@ -25,6 +25,7 @@
 //Free functions (Functions that don't have activation, but must be run once the stream arrives to it's queue position)
 //can be enqueued with addOperation, a dummy activation function will be performed. And the behaviour of the checker
 //will be the same as in an async finalization check
+
 class AcceleratorStream {
 public:
 	using checker = std::function<bool(void)>;
@@ -81,7 +82,6 @@ public:
 
 	virtual void streamServiceLoop()
 	{
-
 		{
             std::lock_guard<std::mutex> guard(_events_mtx);
 			while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())

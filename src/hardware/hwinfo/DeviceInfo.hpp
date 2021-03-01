@@ -10,6 +10,7 @@
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 
+class Accelerator;
 
 class DeviceInfo {
 protected:
@@ -19,7 +20,15 @@ protected:
 	//! Underlying mechanism initialization status, where applicable (e.g CUDA Runtime)
 	bool _deviceInitialized;
 
+	std::vector<Accelerator *> _accelerators;
+
+
 public:
+
+	inline 	std::vector<Accelerator*>& getAccelerators()
+	{
+		return _accelerators;
+	}
 
 	virtual ~DeviceInfo()
 	{

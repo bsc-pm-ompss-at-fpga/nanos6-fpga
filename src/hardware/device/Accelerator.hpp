@@ -38,6 +38,9 @@ protected:
 	ComputePlace *_computePlace;
 	AcceleratorStreamPool _streamPool;
 
+	int _directoryHandler;
+	uintptr_t        _pageSize = 0x1000;
+
 	size_t _pollingPeriodUs;
 	bool _isPinnedPolling;
 
@@ -90,8 +93,9 @@ protected:
 
 
 	// Each device may use these methods to prepare or conclude task launch if needed
-	virtual inline void preRunTask(Task *)
+	virtual inline void preRunTask(Task *task)
 	{
+
 	}
 
 	virtual inline void postRunTask(Task *)
@@ -125,6 +129,63 @@ public:
 	void initializeService();
 
 	void shutdownService();
+
+	int getDirectoryHandler() const
+	{
+		return _directoryHandler;
+	}
+
+
+	void setDirectoryHandler(int directoryHandler)
+	{
+		_directoryHandler = directoryHandler;
+	}
+
+	//this function performs a copy from a host address space into the accelerator
+	virtual AcceleratorStream::activatorReturnsChecker copy_in([[maybe_unused]] void *dst, [[maybe_unused]]void *src, [[maybe_unused]] size_t size,[[maybe_unused]] Task *) {return []{return []{return true;};};}
+
+	//this functions performs a copy from the accelerator address space to host memory
+	virtual AcceleratorStream::activatorReturnsChecker copy_out([[maybe_unused]] void * dst,[[maybe_unused]] void * src,[[maybe_unused]] size_t size,[[maybe_unused]] Task *) {return []{return []{return true;};};}
+
+	//this functions performs a copy from two accelerators that can share it's data without the host intervention
+	virtual AcceleratorStream::activatorReturnsChecker copy_between
+	([[maybe_unused]] void * dst, [[maybe_unused]] int dst_device_handler, [[maybe_unused]] void * src, [[maybe_unused]] int src_device_handler, [[maybe_unused]] size_t size, [[maybe_unused]] Task *) {return []{return []{return true;};};}
+
+	void setDirectoryHandle(int handle)
+	{
+		_directoryHandler = handle;
+
+	}
+
+	std::shared_ptr<DeviceAllocation>
+	createNewDeviceAllocation(const DataAccessRegion &region)
+	{
+		if(getDeviceType() == nanos6_host_device)
+			return std::make_shared<DeviceAllocation>(
+				DataAccessRegion((void *)region.getStartAddress(), (void *)region.getStartAddress()), 
+				DataAccessRegion((void *)region.getStartAddress(), (void *)region.getStartAddress()),
+				[](void *) {});
+		
+		const uintptr_t page_down = get_page(region.getStartAddress());
+		const uintptr_t page_up =
+			get_page_up((uintptr_t)(region.getEndAddress()) + 1);
+
+		void *ptr = accel_allocate(page_up - page_down);
+		if (ptr == nullptr) {
+			return nullptr;
+		}
+		const DataAccessRegion host =
+			DataAccessRegion((void *)page_down, (void *)page_up);
+		const DataAccessRegion device = DataAccessRegion(
+			(void *)ptr, (void *)(((uintptr_t)ptr) + page_up - page_down));
+
+		return std::make_shared<DeviceAllocation>(host, device, [&](void *f) {
+			setActiveDevice();
+			accel_free(f);
+		});
+		;
+	}
+
 
 	inline MemoryPlace *getMemoryPlace()
 	{
@@ -163,20 +224,52 @@ public:
 		return _currentTask;
 	}
 
+virtual void accel_free(void *)
+{
+}
 
+virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion = [](AcceleratorEvent *) {})
+{
+	return new AcceleratorEvent(onCompletion);
+}
+
+
+virtual void *accel_allocate(size_t size)
+{
+	static uintptr_t fake_offset = 0x1000;
+	uintptr_t fake = fake_offset;
+	fake_offset+=size;
+	return (void*) fake;
+}
+
+	virtual void destroyEvent(AcceleratorEvent *event)
+	{
+		delete event;
+	}
+	
 private:
 	static void serviceFunction(void *data);
 
 	static void serviceCompleted(void *data);
 
-	virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion = [](AcceleratorEvent *) {})
-	{
-		return new AcceleratorEvent(onCompletion);
-	}
+
 	
-	virtual void destroyEvent(AcceleratorEvent *event)
+
+
+	template <class T>
+	uintptr_t get_page(T addr)
 	{
-		delete event;
+		uintptr_t u_addr = (uintptr_t)addr;
+		uintptr_t u_page_mask = ~(_pageSize - 1);
+		return (u_addr & u_page_mask);
+	}
+
+	//helper for getting the beginning of the next page of the current address
+	template <class T>
+	uintptr_t get_page_up(T addr)
+	{
+		uintptr_t u_addr = (uintptr_t)addr;
+		return (u_addr % _pageSize) ? get_page(u_addr + _pageSize) : get_page(u_addr);
 	}
 };
 

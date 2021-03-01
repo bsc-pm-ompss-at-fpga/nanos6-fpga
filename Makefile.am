@@ -381,6 +381,7 @@ common_sources = \
 	src/executors/threads/WorkerThread.cpp \
 	src/executors/threads/cpu-managers/default/DefaultCPUManager.cpp \
 	src/executors/threads/cpu-managers/default/policies/IdlePolicy.cpp \
+	src/hardware/device/directory/DeviceDirectory.cpp \
 	src/hardware/HardwareInfo.cpp \
 	src/hardware/device/Accelerator.cpp \
 	src/hardware/hwinfo/HostInfo.cpp \

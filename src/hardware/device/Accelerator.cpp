@@ -31,7 +31,7 @@ void Accelerator::runTask(Task *task)
 
 
 	AcceleratorEvent *event_copies = createEvent();
-	event_copies->recordWeak(acceleratorStream);
+	event_copies->record(acceleratorStream);
 
 	//if preRunTask passes through the directory,
 	//it will add new operations into the stream,
@@ -41,7 +41,7 @@ void Accelerator::runTask(Task *task)
 	preRunTask(task);
 
 	AcceleratorEvent *event_pre_run = createEvent();
-	event_pre_run->recordWeak(acceleratorStream);
+	event_pre_run->record(acceleratorStream);
 
 	callBody(task);
 

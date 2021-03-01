@@ -9,7 +9,8 @@
 
 #include "HardwareInfo.hpp"
 #include "hwinfo/HostInfo.hpp"
-
+#include "hardware/device/Accelerator.hpp"
+#include "hardware/device/directory/DeviceDirectory.hpp"
 #ifdef USE_CUDA
 #include "hardware/device/cuda/CUDADeviceInfo.hpp"
 #endif
@@ -22,6 +23,9 @@ std::vector<DeviceInfo *> HardwareInfo::_infos;
 
 void HardwareInfo::initialize()
 {
+	std::vector<Accelerator*> _accelerators;
+
+
 	_infos.resize(nanos6_device_type_num);
 
 	_infos[nanos6_host_device] = new HostInfo();
@@ -34,6 +38,16 @@ void HardwareInfo::initialize()
 	_infos[nanos6_cuda_device] = new CUDADeviceInfo();
 #endif
 // Fill the rest of the devices accordingly, once implemented
+
+
+	for(int i = 0; i < (int)nanos6_device_t::nanos6_device_type_num; ++i)
+	{
+		DeviceInfo *deviceInfo = getDeviceInfo(i);
+		if(deviceInfo != nullptr && i != nanos6_device_t::nanos6_device_type_num) 
+			for(Accelerator* accel: deviceInfo->getAccelerators())
+			 _accelerators.push_back(accel);
+	}
+	DeviceDirectoryInstance::instance = new DeviceDirectory(_accelerators);
 }
 
 void HardwareInfo::initializeDeviceServices()
@@ -45,6 +59,8 @@ void HardwareInfo::initializeDeviceServices()
 #ifdef USE_CUDA
 	_infos[nanos6_cuda_device]->initializeDeviceServices();
 #endif
+
+	DeviceDirectoryInstance::instance->initializeTaskwaitService();
 }
 
 void HardwareInfo::shutdown()
@@ -65,4 +81,5 @@ void HardwareInfo::shutdownDeviceServices()
 #ifdef USE_CUDA
 	_infos[nanos6_cuda_device]->shutdownDeviceServices();
 #endif
+	DeviceDirectoryInstance::instance->shutdownTaskwaitService();
 }

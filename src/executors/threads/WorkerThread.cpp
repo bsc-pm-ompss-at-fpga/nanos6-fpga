@@ -21,6 +21,8 @@
 #include "WorkerThread.hpp"
 #include "dependencies/SymbolTranslation.hpp"
 #include "hardware/HardwareInfo.hpp"
+#include "hardware/device/directory/DeviceDirectory.hpp"
+#include "hardware/device/AcceleratorStream.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "system/If0Task.hpp"
 #include "system/PollingAPI.hpp"
@@ -169,6 +171,7 @@ void WorkerThread::handleTask(CPU *cpu)
 
 void WorkerThread::executeTask(CPU *cpu)
 {
+	
 	assert(_task != nullptr);
 	assert(cpu != nullptr);
 
@@ -203,7 +206,19 @@ void WorkerThread::executeTask(CPU *cpu)
 
 		// Run the task
 		std::atomic_thread_fence(std::memory_order_acquire);
-		_task->body(translationTable);
+		if( DeviceDirectoryInstance::useDirectory && _task->getNumSymbols()>0)
+		{
+			AcceleratorStream accelStream;
+			_task->setAcceleratorStream(&accelStream);
+			DeviceDirectoryInstance::instance->register_regions(_task);
+			accelStream.addOperation([&]{
+				_task->body(translationTable);
+				return true;
+			});
+			while(accelStream.streamPendingExecutors()) accelStream.streamServiceLoop();
+		}
+		else _task->body(translationTable);
+
 		std::atomic_thread_fence(std::memory_order_release);
 
 		// Update the CPU since the thread may have migrated

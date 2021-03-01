@@ -24,6 +24,7 @@
 #include "executors/threads/ThreadManager.hpp"
 #include "executors/threads/WorkerThread.hpp"
 #include "hardware/places/ComputePlace.hpp"
+#include "hardware/device/directory/DeviceDirectory.hpp"
 #include "memory/directory/Directory.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "support/Containers.hpp"
@@ -2212,16 +2213,22 @@ namespace DataAccessRegistration {
 		CPUDependencyData::satisfied_taskwait_accesses_t &completedTaskwaits,
 		ComputePlace *computePlace
 	) {
-		CPUDependencyData hpDependencyData;
 
+		std::cout<<DeviceDirectoryInstance::useDirectory<<" Directory Being Used <<"<<std::endl;
 		for (DataAccess *taskwait : completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
+			
+			auto releaseTaskwait = 
+			[originator = taskwait->getOriginator(), accessRegion = taskwait->getAccessRegion(), computePlace]
+			{
+				CPUDependencyData hpDependencyData;
+				DataAccessRegistration::releaseTaskwaitFragment(originator,accessRegion, computePlace, hpDependencyData);
+			};
 
-			DataAccessRegistration::releaseTaskwaitFragment(
-				taskwait->getOriginator(),
-				taskwait->getAccessRegion(),
-				computePlace, hpDependencyData
-			);
+			if(DeviceDirectoryInstance::useDirectory)
+				DeviceDirectoryInstance::instance->taskwait(taskwait->getAccessRegion(), releaseTaskwait);
+			else releaseTaskwait();
+			
 		}
 		completedTaskwaits.clear();
 	}
@@ -2452,7 +2459,10 @@ namespace DataAccessRegistration {
 		DataAccess::symbols_t symbol_list; //TODO consider alternative to vector
 
 		if (symbolIndex >= 0)
+		{
 			symbol_list.set(symbolIndex);
+			task->addAccessToSymbol(symbolIndex, region, accessType);
+		}
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 		assert(!accessStructures.hasBeenDeleted());

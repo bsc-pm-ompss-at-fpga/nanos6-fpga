@@ -71,6 +71,11 @@ public:
 		return _infos[type];
 	}
 
+	static DeviceInfo *getDeviceInfo(int type)
+	{
+		return _infos[(nanos6_device_t) type];
+	}
+
 	static inline size_t getCacheLineSize()
 	{
 		return ((HostInfo *) _infos[nanos6_device_t::nanos6_host_device])->getCacheLineSize();

@@ -166,6 +166,13 @@ public:
 		cudaError_t err = cudaMemcpy(destination, from, count, kind);
 		CUDAErrorHandler::handle(err, "Copying memory");
 	}
+
+	static void memcpyAsync(void *destination, const void *from, size_t count, cudaMemcpyKind kind, cudaStream_t stream)
+	{
+		cudaError_t err = cudaMemcpyAsync(destination, from, count, kind, stream);
+		CUDAErrorHandler::handle(err, "Copying memory");
+	}
+
 };
 
 #endif // CUDA_FUNCTIONS_HPP

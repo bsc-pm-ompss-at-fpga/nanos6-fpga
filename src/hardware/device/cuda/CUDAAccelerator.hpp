@@ -53,9 +53,13 @@ private:
 
 	void postRunTask(Task *task) override;
 
-	AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion) override;
+	cudaStream_t   _cudaCopyStream;
 
-	void destroyEvent(AcceleratorEvent *event) override;
+
+	AcceleratorStream::activatorReturnsChecker copy_in(void *dst, void *src, size_t size, Task* task) override;
+    AcceleratorStream::activatorReturnsChecker copy_out(void *dst, void *src, size_t size, Task* task) override;
+    AcceleratorStream::activatorReturnsChecker copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task* task) override;
+
 
 public:
 	CUDAAccelerator(int cudaDeviceIndex) :
@@ -64,7 +68,9 @@ public:
 			ConfigVariable<uint32_t>("devices.cuda.streams"),
 			ConfigVariable<size_t>("devices.cuda.polling.period_us"),
 			ConfigVariable<bool>("devices.cuda.polling.pinned")),
-		_cudaStreamPool(cudaDeviceIndex)
+		_cudaStreamPool(cudaDeviceIndex),
+		_cudaCopyStream(CUDAFunctions::createStream())
+
 	{
 		CUDAFunctions::getDeviceProperties(_deviceProperties, _deviceHandler);
 	}
@@ -73,6 +79,10 @@ public:
 	{
 	}
 
+	AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion) override;
+
+	void destroyEvent(AcceleratorEvent *event) override;
+	
 	// Set current device as the active in the runtime
 	inline void setActiveDevice() override
 	{

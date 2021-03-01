@@ -26,6 +26,10 @@ ConfigCentral::ConfigCentral() :
 	// CPU manager
 	registerOption<string_t>("cpumanager.policy", "default");
 
+
+	// DIRECTORY
+	registerOption<bool_t>("devices.directory", true);
+
 	// CUDA devices
 	registerOption<integer_t>("devices.cuda.page_size", 0x8000);
 	registerOption<integer_t>("devices.cuda.streams", 16);

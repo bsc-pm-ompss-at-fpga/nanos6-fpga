@@ -23,6 +23,7 @@
 #include <InstrumentTaskId.hpp>
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
+#include "Symbols.hpp"
 
 struct DataAccess;
 struct DataAccessBase;
@@ -33,7 +34,7 @@ class TaskStatistics;
 class TasktypeData;
 class WorkerThread;
 class AcceleratorStream;
-
+class Accelerator;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic error "-Wunused-result"
 
@@ -93,6 +94,10 @@ private:
 
 	//! NUMA Locality scheduling hints
 	uint64_t _NUMAHint;
+
+	std::vector<SymbolRepresentation> _symbolInfo;
+
+	Accelerator 	  *_accel;
 
 protected:
 	//! The thread assigned to this task, nullptr if the task has finished (but possibly waiting its children)
@@ -171,6 +176,17 @@ public:
 	);
 
 	virtual inline ~Task();
+
+	std::vector<SymbolRepresentation>& getSymbolInfo(){return _symbolInfo;	}
+	void addAccessToSymbol(uint32_t index, DataAccessRegion region, DataAccessType type)
+	{
+		_symbolInfo[index].addDataAccess(region, type);
+	}
+
+		Accelerator* getAccelerator(){return _accel;}
+	void setAccelerator(Accelerator* acc){_accel = acc;}
+
+
 
 	AcceleratorStream *getAcceleratorStream()
 	{

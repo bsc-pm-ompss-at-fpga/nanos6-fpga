@@ -4,7 +4,9 @@
 	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
 */
 
+#include "CUDAFunctions.hpp"
 #include "CUDAAccelerator.hpp"
+#include "../directory/DeviceDirectory.hpp"
 #include "CUDAAcceleratorEvent.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
@@ -52,18 +54,79 @@ void CUDAAccelerator::callBody(Task *task)
 
 void CUDAAccelerator::preRunTask(Task *task)
 {
-	// Prefetch available memory locations to the GPU
-	nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
 
-	DataAccessRegistration::processAllDataAccesses(task,
-		[&](const DataAccess *access) -> bool {
-			if (access->getType() != REDUCTION_ACCESS_TYPE && !access->isWeak()) {
-				CUDAFunctions::cudaDevicePrefetch(
-					access->getAccessRegion().getStartAddress(),
-					access->getAccessRegion().getSize(),
-					_deviceHandler, env.stream,
-					access->getType() == READ_ACCESS_TYPE);
-			}
-			return true;
-		});
+	if(DeviceDirectoryInstance::useDirectory)
+	{
+			DeviceDirectoryInstance::instance->register_regions(task);
+	}
+	else 
+	{
+		// Prefetch available memory locations to the GPU
+		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
+
+		DataAccessRegistration::processAllDataAccesses(task,
+			[&](const DataAccess *access) -> bool {
+				if (access->getType() != REDUCTION_ACCESS_TYPE && !access->isWeak()) {
+					CUDAFunctions::cudaDevicePrefetch(
+						access->getAccessRegion().getStartAddress(),
+						access->getAccessRegion().getSize(),
+						_deviceHandler, env.stream,
+						access->getType() == READ_ACCESS_TYPE);
+				}
+				return true;
+			});
+	}
 }
+
+
+
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_in(void *dst, void *src, size_t size, Task *task)
+{
+	if (task == nullptr) return [=]() -> AcceleratorStream::checker 
+	{
+			setActiveDevice();//since this can be processed by a host-task or taskwait
+			CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, _cudaCopyStream);
+			return [=]() -> bool {
+				setActiveDevice();
+				//printf("[HOST]%p -> [CUDA]%p 0x%X\n", src, dst, size);
+				return cudaStreamQuery(_cudaCopyStream) == cudaSuccess; //since there is no gpu task associated, we do it this way
+			};
+	};
+	else return [=]() -> AcceleratorStream::checker {
+		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, task->getDeviceEnvironment().cuda.stream);
+		return []() -> bool { return true; };
+	};
+}
+
+//this functions performs a copy from the accelerator address space to host memory
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_out(void *dst, void *src, size_t size, Task *task) 
+{
+	if (task == nullptr) return [=]() -> AcceleratorStream::checker {
+			setActiveDevice();//since this can be processed by a host-task or taskwait (in a future)
+			CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyDeviceToHost, _cudaCopyStream);
+			return [=]() -> bool {
+				setActiveDevice();
+				return cudaStreamQuery(_cudaCopyStream) == cudaSuccess; //since there is no gpu task associated, we do it this way
+			};
+		};
+	else return [=]() -> AcceleratorStream::checker {
+		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyDeviceToHost, task->getDeviceEnvironment().cuda.stream);
+		return []() -> bool { return true; };
+	};
+}
+
+//this functions performs a copy from two accelerators that can share it's data without the host intervention
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task *task)
+{
+	if (task == nullptr) return [=]() -> AcceleratorStream::checker 
+	{
+			 cudaMemcpyPeer(dst,dstDevice,src,srcDevice,size); 
+			 return []()->bool {return true;}; 
+	};
+	else return [=]() -> AcceleratorStream::checker 
+	{
+		cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,size, task->getDeviceEnvironment().cuda.stream);   
+		return []()-> bool{return true;}; 
+	};
+}
+
