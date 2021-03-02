@@ -11,7 +11,6 @@
 #include "hardware/places/MemoryPlace.hpp"
 
 class Accelerator;
-
 class DeviceInfo {
 protected:
 	//! Number of devices of the given device type

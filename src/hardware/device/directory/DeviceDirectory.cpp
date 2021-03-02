@@ -22,8 +22,8 @@ namespace DeviceDirectoryInstance {
 
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
-	dirMap(accels.size()),
-	_stopService(false), _finishedService(false)
+	_dirMap(new IntervalMap(accels.size())),
+	_stopService(false), _finishedService(false), _taskwaitStream(true)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
 		_accelerators[i]->setDirectoryHandle(i);
@@ -33,10 +33,13 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const DirectoryEntry &entry, int dstHandle, Task *task)
 {
 	const int srcHandle = entry.getFirstValidLocation();
+	
+
 	const uintptr_t smpAddr = (uintptr_t)entry.getDataAccessRegion().getStartAddress();
 	const uintptr_t srcAddr = srcHandle > 0 ? entry.getTranslation(srcHandle, smpAddr) : smpAddr;
 	const uintptr_t size = entry.getDataAccessRegion().getSize();
 	const uintptr_t dstAddr = dstHandle > 0 ? entry.getTranslation(dstHandle, smpAddr) : smpAddr;
+
 	Accelerator *srcA = getAcceleratorByHandle(srcHandle);
 	Accelerator *dstA = getAcceleratorByHandle(dstHandle);
 
@@ -81,6 +84,7 @@ bool DeviceDirectory::register_regions(Task *task)
 
 	std::lock_guard<std::mutex> guard(device_directory_mutex);
 	_current_task = task;
+
 	if (_current_task->getDeviceType() == nanos6_host_device)
 		_current_task->setAccelerator(getAcceleratorByHandle(0));
 	_symbol_allocations.clear();
@@ -89,12 +93,12 @@ bool DeviceDirectory::register_regions(Task *task)
 
 	const int handle = _current_task->getAccelerator()->getDirectoryHandler();
 
-	// printf("Getting device allocations...\n");
 	for (size_t i = 0; i < sym.size(); ++i) {
 		auto allocation = getDeviceAllocation(handle, sym[i]);
 		if (allocation == nullptr)
 			return false;
 		_symbol_allocations[i] = allocation;
+		_symbol_allocations[i]->print();
 	}
 
 
@@ -137,13 +141,13 @@ void DeviceDirectory::processSymbolRegions(const std::vector<DataAccessRegion> &
 	};
 
 	for (const DataAccessRegion &dependencyRegion : dataAccessVector) {
-		dirMap.addRange(dependencyRegion);
+		_dirMap->addRange(dependencyRegion);
 		if (RW_TYPE == READ_ACCESS_TYPE)
-			dirMap.applyToRange(dependencyRegion, in_lambda);
+			_dirMap->applyToRange(dependencyRegion, in_lambda);
 		else if (RW_TYPE == WRITE_ACCESS_TYPE)
-			dirMap.applyToRange(dependencyRegion, out_lambda);
+			_dirMap->applyToRange(dependencyRegion, out_lambda);
 		else
-			dirMap.applyToRange(dependencyRegion, inout_lambda);
+			_dirMap->applyToRange(dependencyRegion, inout_lambda);
 	}
 }
 
@@ -154,7 +158,7 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, 
 	std::shared_ptr<DeviceAllocation> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
 	if (deviceAllocation.get() == nullptr) {
-		dirMap.freeAllocationsForHandle(handle, _symbol_allocations);
+		_dirMap->freeAllocationsForHandle(handle, _symbol_allocations);
 		deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
 		if (deviceAllocation.get() == nullptr) {
@@ -163,9 +167,9 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, 
 		}
 	}
 
-	dirMap.addRange(deviceAllocation->getHostRegion());
+	_dirMap->addRange(deviceAllocation->getHostRegion());
 
-	dirMap.applyToRange(deviceAllocation->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
+	_dirMap->applyToRange(deviceAllocation->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
 		if (entry->getDeviceAllocation(handle) == nullptr)
 			entry->setDeviceAllocation(handle, deviceAllocation);
 		return true;
@@ -176,15 +180,15 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, 
 
 std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(int handle, SymbolRepresentation &symbol)
 {
-	dirMap.addRange(symbol.getHostRegion());
+	_dirMap->addRange(symbol.getHostRegion());
 
 	auto host_region = symbol.getHostRegion();
-	auto iter = dirMap.getIterator(host_region);
+	auto iter = _dirMap->getIterator(host_region);
 	std::shared_ptr<DeviceAllocation> &deviceAllocation = iter->second->getDeviceAllocation(handle);
 
 	if (deviceAllocation != nullptr) {
 		const auto symbol_end_address = (uintptr_t)symbol.getEndAddress();
-		const bool allocated = dirMap.applyToRange(symbol.getHostRegion(), [=](DirectoryEntry *entry) {
+		const bool allocated = _dirMap->applyToRange(symbol.getHostRegion(), [=](DirectoryEntry *entry) {
 			const auto &allocation = entry->getDeviceAllocation(handle);
 			if (allocation != deviceAllocation)
 				return false;
@@ -208,24 +212,23 @@ void DeviceDirectory::processSymbolRegions_out(int handle, DirectoryEntry &entry
 	entry.setValid(handle);
 }
 
-AcceleratorStream::checker DeviceDirectory::awaitToValid(int handler, DirectoryEntry &entry)
+AcceleratorStream::checker DeviceDirectory::awaitToValid(int handler,  const std::pair<uintptr_t,uintptr_t> & entry)
 {
-	return [left = entry.getLeft(), right = entry.getRight(), itvMap = &dirMap, handler = handler]() {
-		return itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) { return dirEntry->isValid(handler); });
+	return [itvMap = _dirMap, left = entry.first, right = entry.second, handler = handler]() 
+	{
+		return itvMap->applyToRange({left, right}, 
+		[=](DirectoryEntry *dirEntry) 
+		{ 
+			return dirEntry->isValid(handler); 
+		});
 	};
 }
 
-AcceleratorStream::checker DeviceDirectory::setValid(int handler, DirectoryEntry &entry)
+AcceleratorStream::checker DeviceDirectory::setValid(int handler, const std::pair<uintptr_t,uintptr_t> &entry)
 {
-	return [left = entry.getLeft(), right = entry.getRight(), itvMap = &dirMap, handler = handler]() 
+	return [itvMap = _dirMap, left = entry.first, right = entry.second,  handler = handler]
 	{
-		itvMap->applyToRange(
-			{left, right}, 
-			[=](DirectoryEntry *dirEntry) 
-			{
-				dirEntry->setValid(handler);
-				 return true; 
-			});
+		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handler); return true; });
 		return true;
 	};
 }
@@ -237,7 +240,7 @@ void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &ent
 	Accelerator* accelerator = _current_task->getAccelerator();
 	
 	if (entry.isPending(handle))
-		return acceleratorStream->addOperation(awaitToValid(handle, entry));
+		return acceleratorStream->addOperation(awaitToValid(handle, {entry.getLeft(), entry.getRight()}));
 
 	if (entry.isValid(handle)) {
 		entry.clearValid();
@@ -252,10 +255,10 @@ void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &ent
 	entry.setModified(handle);
 	entry.setPending(handle);
 
-	accelerator->createEvent([this,accelerator, setToValid = setValid(handle, entry)](AcceleratorEvent *own) 
+	accelerator->createEvent([this, left =entry.getLeft(), right = entry.getRight() , fun = setValid(handle, {entry.getLeft(), entry.getRight()}), accelerator](AcceleratorEvent *own) 
 	{
-		accelerator->destroyEvent(own);
-		setToValid();
+		fun();
+		//accelerator->destroyEvent(own);
 		return true;
 	})->record(acceleratorStream);
 }
@@ -269,7 +272,7 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 		return;
 
 	if (entry.isPending(handle))
-		return acceleratorStream->addOperation(awaitToValid(handle, entry));
+		return acceleratorStream->addOperation(awaitToValid(handle, {entry.getLeft(), entry.getRight()}));
 
 
 	acceleratorStream->addOperation(generateCopy(entry, handle, _current_task));
@@ -278,10 +281,10 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 	entry.setValid(entry.getModifiedLocation());
 	entry.setModified(NO_DEVICE);
 
-	accelerator->createEvent([this,accelerator, setToValid = setValid(handle, entry)](AcceleratorEvent *own) 
+	accelerator->createEvent([this,accelerator, fun = setValid(handle,  {entry.getLeft(), entry.getRight()}) ](AcceleratorEvent *own) 
 	{
-		accelerator->destroyEvent(own);
-		setToValid();
+		fun();
+		//accelerator->destroyEvent(own);
 		return true;
 	})->record(acceleratorStream);
 }
@@ -303,25 +306,60 @@ void DeviceDirectory::processRegionWithOldAllocation(int handle, DirectoryEntry 
 
 void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::function<void()> release)
 {
-		std::cout<<" @@@@@@@@setup event for taskwait"<<std::endl;
 
-
-	dirMap.applyToRange(taskwaitRegion, 
+	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 
 	{
-		if (!entry->isValid(SMP_HANDLER)) 
+		if (!entry->isValid(SMP_HANDLER))
+		{
 			_taskwaitStream.addOperation(generateCopy(*entry, SMP_HANDLER, nullptr)());
+		}
 		return true;
 	});
 
-	AcceleratorEvent * event = new AcceleratorEvent([=](AcceleratorEvent* own) {
+	(new AcceleratorEvent(
+		[=](AcceleratorEvent* own) 
+		{
 		/*release taskwait*/
-		dirMap.applyToRange(taskwaitRegion, [](DirectoryEntry *entry) {entry->clearAllocations(); return true; });
-		std::cout<<"releasing taskwait copyback"<<std::endl;
+		_dirMap->applyToRange(taskwaitRegion, [](DirectoryEntry *entry) {entry->clearAllocations(); return true; });
 		release();
 		delete own;
-	});
-	event->record(&_taskwaitStream);
+		}
+	))->record(&_taskwaitStream);
 	
 
+}
+
+
+void DeviceDirectory::print()
+{
+	auto indexToString = [](auto i) -> std::string {
+		if (i == DirectoryEntry::VALID)
+			return "V";
+		else if (i == DirectoryEntry::INVALID)
+			return "I";
+		else
+			return "P";
+	};
+
+	for (auto &[l, entry] : _dirMap->_inner_m) {
+		std::ignore = l;
+		auto &[locations, allocations, modified, range] = *entry;
+		auto &[left, right] = range;
+
+		printf("---------[%p,%p] \t", (void *)left, (void *)right);
+		printf("%d\n", modified);
+		for (size_t i = 0; i < locations.size(); ++i) {
+			printf("\t[%lu] ", i);
+			printf("%s\t", indexToString(locations[i]).c_str());
+			if (allocations[i] != nullptr)
+				printf("[%p,%p]\t", (void *)allocations[i]->getDeviceBase(), (void *)allocations[i]->getDeviceEnd());
+			else
+				printf("none\t");
+			printf("\n");
+		}
+		printf("-------------------------------\n");
+	}
+
+	printf("END OF DIR\n\n");
 }

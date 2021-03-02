@@ -151,7 +151,12 @@ private:
 	//! Device Accelerator Stream
 	AcceleratorStream* _deviceAcceleratorStream;
 
+
+
 public:
+	std::vector<nanos6_address_translation_entry_t> _symbolTranslations;
+
+
 	inline Task(
 		void *argsBlock,
 		size_t argsBlockSize,

@@ -32,7 +32,7 @@ private:
     std::vector<std::shared_ptr<DeviceAllocation>> _symbol_allocations;
 
     Task *_current_task;
-    IntervalMap dirMap;
+    IntervalMap *_dirMap;
 
     AcceleratorStream _taskwaitStream;
 	std::atomic<bool> _stopService;
@@ -94,6 +94,10 @@ private:
         while (!_finishedService);
     }
 
+
+    //This generates a setValid function for a directory range.
+    AcceleratorStream::checker setValid(int handler, const std::pair<uintptr_t,uintptr_t> & entry);
+
 private:
 
 	inline bool shouldStopService() const
@@ -101,6 +105,7 @@ private:
 		return _stopService.load(std::memory_order_relaxed);
 	}
 
+    void print();
 
     //This function makes a copy betwen two devices, if you are implementing a new device, you must add here the 
     //interaction between the devices.
@@ -133,10 +138,8 @@ private:
     //We cannot setup the directory at the moment of generating the copies because if another task wants to use the data
     //this could mean that the data is not valid.
     //For fixing this we create a transitory step, and the task will need to wait for directory validity. 
-    AcceleratorStream::checker awaitToValid(int handler, DirectoryEntry &entry);
+    AcceleratorStream::checker awaitToValid(int handler, const std::pair<uintptr_t,uintptr_t> & entry);
 
-    //This generates a setValid function for a directory range.
-    AcceleratorStream::checker setValid(int handler, DirectoryEntry &entry);
 
 };
 

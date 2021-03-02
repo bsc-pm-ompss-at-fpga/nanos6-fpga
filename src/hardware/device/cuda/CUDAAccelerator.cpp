@@ -44,20 +44,21 @@ void CUDAAccelerator::destroyEvent(AcceleratorEvent *event)
 
 void CUDAAccelerator::callBody(Task *task)
 {
-	size_t tableSize = 0;
-	nanos6_address_translation_entry_t stackTranslationTable[SymbolTranslation::MAX_STACK_SYMBOLS];
-	nanos6_address_translation_entry_t *translationTable = SymbolTranslation::generateTranslationTable(task, _computePlace, stackTranslationTable, tableSize);
-	task->body(translationTable);
-	if (tableSize > 0)
-		MemoryAllocator::free(translationTable, tableSize);
+
+	task->getAcceleratorStream()->addOperation([task]
+	{
+		task->body(&task->_symbolTranslations[0]);
+		return true;
+	});
+
 }
 
 void CUDAAccelerator::preRunTask(Task *task)
 {
 
 	if(DeviceDirectoryInstance::useDirectory)
-	{
-			DeviceDirectoryInstance::instance->register_regions(task);
+	{	
+		DeviceDirectoryInstance::instance->register_regions(task);
 	}
 	else 
 	{
@@ -88,7 +89,6 @@ AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_in(void *dst, v
 			CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, _cudaCopyStream);
 			return [=]() -> bool {
 				setActiveDevice();
-				//printf("[HOST]%p -> [CUDA]%p 0x%X\n", src, dst, size);
 				return cudaStreamQuery(_cudaCopyStream) == cudaSuccess; //since there is no gpu task associated, we do it this way
 			};
 	};

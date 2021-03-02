@@ -40,10 +40,11 @@ private:
 	checker _currentStreamExecutorFinished;
 	bool _ongoingExecutor;
 	std::mutex _operations_mtx, _events_mtx;
-
+	bool _debug;
 public:
-	AcceleratorStream() :
-		_ongoingExecutor(false)
+	AcceleratorStream(bool debug = false) :
+		_ongoingExecutor(false),
+		_debug(debug)
 	{
 	}
 
@@ -61,35 +62,42 @@ public:
 	virtual void addOperation(activatorReturnsChecker operation)
 	{
 		std::lock_guard<std::mutex> guard(_operations_mtx);
+
 		if (!_ongoingExecutor) {
 			_currentStreamExecutorFinished = std::move(operation());
 			_ongoingExecutor = true;
 		} else
+		{
 			_queuedStreamExecutors.emplace(operation);
+		}
+
 	}
 
 
 	virtual bool streamPendingExecutors()
 	{
-		return _queuedStreamExecutors.size() || _ongoingExecutor;
+		return _queuedStreamExecutors.size() || _ongoingExecutor || _queuedEventFinalization.size();
 	}
 
     virtual void streamAddEventListener(checker eventListener)
 	{
 		std::lock_guard<std::mutex> guard(_events_mtx);
 		_queuedEventFinalization.push(std::move(eventListener));
+
 	}
 
 	virtual void streamServiceLoop()
 	{
 		{
             std::lock_guard<std::mutex> guard(_events_mtx);
+
 			while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())
 				_queuedEventFinalization.pop();
 		}
 
 		{
 			std::lock_guard<std::mutex> guard(_operations_mtx);
+
 			if (_ongoingExecutor && _currentStreamExecutorFinished()) {
 				_ongoingExecutor = false;
 				if (!_queuedStreamExecutors.empty()) {
@@ -100,6 +108,7 @@ public:
 				}
 			}
 		}
+
 	}
 };
 

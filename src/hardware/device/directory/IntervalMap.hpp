@@ -41,6 +41,8 @@ public:
 
 	inline void freeAllocationsForHandle(int handle, const std::vector<std::shared_ptr<DeviceAllocation>>& untouchableAllocations)
 	{
+		std::lock_guard<std::mutex> guard(class_mutex);
+
 		const auto validElsewhere = [size = typeSize](DirectoryEntry& entry, int h)
 		{
 			for(int i = 0; i < size; ++i)
@@ -63,6 +65,7 @@ public:
 			}
 		}
 	}
+
 	inline IntervalMapIterator ADD(IntervalMapIterator hint, std::pair<uintptr_t, uintptr_t> itv, DirectoryEntry  *toClone,__attribute__((unused)) int line = 0)
 	{
 		if (itv.first == itv.second)

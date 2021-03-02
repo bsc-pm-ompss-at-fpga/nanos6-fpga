@@ -62,7 +62,9 @@ struct SymbolRepresentation
 	inline uintptr_t getSize(){ return getEndAddress() - getStartAddress();}
 	inline std::pair<uintptr_t, uintptr_t> getBounds(){return {getStartAddress(), getEndAddress()};};
 	inline void setSymbolTranslation(std::shared_ptr<DeviceAllocation>& alloc){
+
 		allocation = alloc;
+		//std::cout<<"SET SYMBOL TRANSLATION: HOST["<<std::hex<<allocation->getHostBase()<<"]  DEVICE["<<allocation->getDeviceBase()<<"]"<<std::endl;
 		*translationEntry = {allocation->getHostBase(), allocation->getDeviceBase()};
 	}
 };

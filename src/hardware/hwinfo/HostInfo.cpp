@@ -14,7 +14,7 @@
 #include "hardware/places/NUMAPlace.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "lowlevel/Padding.hpp"
-
+#include "hardware/device/Accelerator.hpp"
 // Workaround to deal with changes in different HWLOC versions
 #if HWLOC_API_VERSION < 0x00010b00
 #define HWLOC_NUMA_ALIAS HWLOC_OBJ_NODE
@@ -30,6 +30,9 @@
 HostInfo::HostInfo() :
 	_validMemoryPlaces(0)
 {
+	_accelerators.push_back(new Accelerator(0, nanos6_host_device, 0, 0, 0));
+
+
 //! Check that hwloc headers match with runtime.
 #if HWLOC_API_VERSION >= 0x00020000
 	FatalErrorHandler::failIf(hwloc_get_api_version() < 0x20000, "hwloc headers are more recent than runtime library.");

@@ -26,6 +26,7 @@ void Accelerator::runTask(Task *task)
 	task->setComputePlace(_computePlace);
 	task->setMemoryPlace(_memoryPlace);
 	task->setAcceleratorStream(acceleratorStream);
+	task->setAccelerator(this);
 
 	generateDeviceEvironment(task);
 
@@ -44,7 +45,6 @@ void Accelerator::runTask(Task *task)
 	event_pre_run->record(acceleratorStream);
 
 	callBody(task);
-
 	AcceleratorEvent *event_post_run = createEvent([this, acceleratorStream, event_copies, event_pre_run, task](AcceleratorEvent *own) 
 	{
 		[[maybe_unused]] float time_spend_in_copies = event_copies->getMillisBetweenEvents(event_pre_run);
@@ -56,9 +56,9 @@ void Accelerator::runTask(Task *task)
 
 		_streamPool.releaseStream(acceleratorStream);
 
-		destroyEvent(event_copies);
-		destroyEvent(event_pre_run);
-		destroyEvent(own);
+		//destroyEvent(event_copies);
+		//destroyEvent(event_pre_run);
+		//destroyEvent(own);
 		return true;
 	});
 

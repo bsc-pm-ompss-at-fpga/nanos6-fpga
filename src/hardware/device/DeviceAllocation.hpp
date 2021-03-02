@@ -46,6 +46,10 @@ struct DeviceAllocation
 		return (uintptr_t) _deviceRegion.getStartAddress() + (uintptr_t) dar.getStartAddress() - (uintptr_t) _hostRegion.getStartAddress();
 	}
 
+	void print()
+	{
+	}
+
 };
 
 #endif // DEVICE_ALLOCATION_HPP

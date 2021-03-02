@@ -11,6 +11,7 @@
 
 class L2Cache;
 class L3Cache;
+class Accelerator;
 
 class HostInfo : public DeviceInfo {
 private:

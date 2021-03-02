@@ -19,7 +19,7 @@ private:
 	bool _completed;
 	std::function<void(AcceleratorEvent *)> _onCompletion;
 	std::chrono::steady_clock::time_point _creation_time, _fini_time;
-
+	
 
 	//checks for event-finalization. In case of vendor-implementation, checks with the vendor driver first.
 	//In the base implementation or when the event is marked as finished by the vendor, we call the
@@ -111,7 +111,7 @@ public:
 				{
 					stream->streamAddEventListener(
 						[&]
-						{
+						{	
 							if (query())
 							{
 								_completed = true;

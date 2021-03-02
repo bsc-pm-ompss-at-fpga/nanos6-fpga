@@ -56,8 +56,14 @@ inline Task::Task(
 	_taskStatistics((TaskStatistics *) taskStatistics),
 	_hwCounters(taskCountersAddress),
 	_parentSpawnCallback(nullptr),
-	_nestingLevel(0)
+	_nestingLevel(0),
+	_symbolTranslations(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1))
+
 {
+
+	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
+	_symbolInfo.push_back(SymbolRepresentation(&_symbolTranslations[i]));
+
 	if (parent != nullptr) {
 		parent->addChild(this);
 		_nestingLevel = parent->getNestingLevel() + 1;
@@ -79,6 +85,14 @@ inline void Task::reinitialize(
 	Instrument::task_id_t instrumentationTaskId,
 	size_t flags
 ) {
+
+	_symbolTranslations.clear();
+	_symbolTranslations.resize(std::max(taskInfo->num_symbols,1));
+
+	_symbolInfo.clear();
+	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
+		_symbolInfo.push_back(SymbolRepresentation(&_symbolTranslations[i]));
+
 	_argsBlock = argsBlock;
 	_argsBlockSize = argsBlockSize;
 	_taskInfo = taskInfo;

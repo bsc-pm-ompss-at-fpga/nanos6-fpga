@@ -97,8 +97,11 @@ class DirectoryEntry
     int       getModifiedLocation() const{ return _modified_location; }
     int       getFirstValidLocation() const
     { 
+        
         for(size_t i = 0; i < _valid_locations.size(); ++i) 
+        {
             if(isValid(i)) return i;
+        }
         return 0;
     }
 

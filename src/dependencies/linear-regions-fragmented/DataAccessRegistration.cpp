@@ -2214,7 +2214,6 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace
 	) {
 
-		std::cout<<DeviceDirectoryInstance::useDirectory<<" Directory Being Used <<"<<std::endl;
 		for (DataAccess *taskwait : completedTaskwaits) {
 			assert(taskwait->getObjectType() == taskwait_type);
 			

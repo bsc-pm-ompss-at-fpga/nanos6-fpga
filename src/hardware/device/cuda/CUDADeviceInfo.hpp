@@ -18,7 +18,6 @@
 // Not to be confused with the device properties (see CUDAFunctions class)
 
 class CUDADeviceInfo : public DeviceInfo {
-	std::vector<CUDAAccelerator *> _accelerators;
 
 public:
 	CUDADeviceInfo()
@@ -35,7 +34,7 @@ public:
 			for (size_t i = 0; i < _deviceCount; ++i) {
 				CUDAAccelerator *accelerator = new CUDAAccelerator(i);
 				assert(accelerator != nullptr);
-				_accelerators.push_back(accelerator);
+				_accelerators.push_back((Accelerator*)accelerator);
 			}
 
 			_deviceInitialized = true;
@@ -44,25 +43,25 @@ public:
 
 	~CUDADeviceInfo()
 	{
-		for (CUDAAccelerator *accelerator : _accelerators) {
+		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
-			delete accelerator;
+			delete (CUDAAccelerator *)accelerator;
 		}
 	}
 
 	inline void initializeDeviceServices() override
 	{
-		for (CUDAAccelerator *accelerator : _accelerators) {
+		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
-			accelerator->initializeService();
+			((CUDAAccelerator *)accelerator)->initializeService();
 		}
 	}
 
 	inline void shutdownDeviceServices() override
 	{
-		for (CUDAAccelerator *accelerator : _accelerators) {
+		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
-			accelerator->shutdownService();
+			((CUDAAccelerator *)accelerator)->shutdownService();
 		}
 	}
 

@@ -89,6 +89,8 @@ public:
 		CUDAErrorHandler::handle(err, "In device malloc");
 		if (err != cudaSuccess)
 			return nullptr;
+
+		//printf("CUDA MALLOCATED [%p][%x]\n", ptr, size);
 		return ptr;
 	}
 
@@ -169,6 +171,9 @@ public:
 
 	static void memcpyAsync(void *destination, const void *from, size_t count, cudaMemcpyKind kind, cudaStream_t stream)
 	{
+		/*if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[CUDA]%p -> [HOST]%p 0x%X\n", from, destination, count);
+		else printf("[HOST]%p -> [CUDA]%p 0x%X\n", from, destination, count);
+*/
 		cudaError_t err = cudaMemcpyAsync(destination, from, count, kind, stream);
 		CUDAErrorHandler::handle(err, "Copying memory");
 	}
