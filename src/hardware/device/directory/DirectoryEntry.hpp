@@ -33,6 +33,7 @@ class DirectoryEntry
     int   _modified_location;
     std::pair<uintptr_t, uintptr_t> _range;
 
+    int ENTRY_VAL;
  
 
     DirectoryEntry(size_t size):
@@ -42,6 +43,8 @@ class DirectoryEntry
         _range({0,0})
     {
         _valid_locations[0] = STATUS::VALID;
+        static int _e = 0;
+        ENTRY_VAL = _e++;
     };
   
 
@@ -49,13 +52,18 @@ class DirectoryEntry
         _valid_locations(itb->_valid_locations),
         _perDeviceAllocation(itb->_perDeviceAllocation),
         _modified_location(itb->_modified_location),
-        _range(itb->_range)
+        _range(itb->_range),
+        ENTRY_VAL(itb->ENTRY_VAL)
     {
 
     }
 
 
-    DirectoryEntry* clone(){return new DirectoryEntry(this);}
+    DirectoryEntry* clone()
+    {
+        //printf("Cloning ENTRY_VAL: %d\n", ENTRY_VAL);
+        return new DirectoryEntry(this);
+    }
 
 
 
@@ -77,14 +85,31 @@ class DirectoryEntry
 	void setModified(int handler){_modified_location = handler;}
 
 	void setStatus(int handler, STATUS status){_valid_locations[handler] = status;}
-	void setDeviceAllocation(int handler, std::shared_ptr<DeviceAllocation>& deviceAllocation){_perDeviceAllocation[handler] = deviceAllocation;}
-    void clearDeviceAllocation(int handle){ _perDeviceAllocation[handle] = nullptr; _valid_locations[handle] = STATUS::INVALID;}
+	void setDeviceAllocation(int handler, std::shared_ptr<DeviceAllocation>& deviceAllocation)
+    {
+        //printf("[ENTRY[%d] HANDLER[%d]] setDeviceAllocation\n",ENTRY_VAL, handler);
+        _perDeviceAllocation[handler] = deviceAllocation;
+    }
+
+    void clearDeviceAllocation(int handle)
+    { 
+        //printf("clearDeviceAllocation [ENTRY[%d] HANDLER[%d]]\n", ENTRY_VAL, handle);
+        _perDeviceAllocation[handle] = nullptr;
+        _valid_locations[handle] = STATUS::INVALID;
+    }
     void clearValid(){std::fill(_valid_locations.begin(), _valid_locations.end(), STATUS::INVALID);}
-    void clearAllocations(){for(auto& a : _perDeviceAllocation) a = nullptr;}
+    void clearAllocations()
+    {
+        //printf("clearDeviceAllocation [ENTRY[%d] HANDLER[all]]\n", ENTRY_VAL);
+
+        for(auto& a : _perDeviceAllocation) a = nullptr;
+        clearValid();
+    }
 
     uintptr_t getTranslation(int handler, uintptr_t addr) const { 
 
         if(handler == 0) return addr;
+       // printf(" Get Translation [ENTRY[%d] HANDLER[%d]]\n", ENTRY_VAL, handler);
         assert(_perDeviceAllocation[handler] != nullptr);
         return _perDeviceAllocation[handler]->getTranslation(addr);
 

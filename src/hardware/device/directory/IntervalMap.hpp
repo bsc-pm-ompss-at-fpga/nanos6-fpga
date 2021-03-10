@@ -61,6 +61,7 @@ public:
 			auto& v = *ent.second;
 			if(isTouchable(v.getDeviceAllocation(handle)) && !v.isModified(handle) && validElsewhere(v,handle))
 			{
+				std::cout<<"ERROR: NOT CHECKING IF PINNED"<<std::endl;
 				v.clearDeviceAllocation(handle);
 			}
 		}
@@ -74,7 +75,10 @@ public:
 		if (toClone == nullptr)
 			toAdd = new DirectoryEntry (typeSize);
 		else
+		{
 			toAdd = toClone->clone();
+			//printf("[%d] Cloned entry [%d] with range [%X,%X] to range it to [%X, %X]\n",line,toAdd->ENTRY_VAL, toAdd->getLeft(), toAdd->getRight(), itv.first, itv.second);
+		}
 
 
 		toAdd->updateRange({itv.first, itv.second});
@@ -128,10 +132,12 @@ public:
 	{
 		std::lock_guard<std::mutex> guard(class_mutex);
 		IntervalMapIterator it = getIterator(apply.first);
+		while(it != getEnd() && it->second->getLeft()<apply.first) ++it;
 		while (it != getEnd() && it->second->getRight() <= apply.second) {
 			if (!function(it->second)) {
 				return false;
 			}
+
 			++it;
 		}
 
@@ -195,6 +201,7 @@ public:
 
 			bool exact_match = new_range_left == current_in_map_left && new_range_right == current_in_map_right;
 
+			//printf(" NEW RANGE [%X, %X]\n", new_range_left, new_range_right);
 			if (exact_match) {
 				return;
 			} else if (new_range_left == current_in_map_right)
@@ -218,7 +225,9 @@ public:
 				}
 				new_range_left = intersect_right;
 			} else if (new_range_left > current_in_map_left) {
-				if (intersection) {
+				if (intersection) 
+				{
+					//printf("INTERSECTION: current [%X, %X] MOD_TO [%X, %X] ADD_CLONING: [%X, %X] ADD_CLONING [%X, %X]\n",beg->second->getLeft(), beg->second->getRight(), current_in_map_left,intersect_left, intersect_left, intersect_right, intersect_right, current_in_map_right);
 					beg = MODIFY_KEY(beg, {current_in_map_left, intersect_left});
 					beg = ADD(beg, {intersect_left, intersect_right}, beg->second, __LINE__);
 					/*ADDED 09/07/2020 needs checking*/

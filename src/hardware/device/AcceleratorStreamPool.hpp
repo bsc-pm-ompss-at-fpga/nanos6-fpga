@@ -22,11 +22,13 @@ private:
 	std::queue<AcceleratorStream *> _streams_avail;
 
 public:
-	AcceleratorStreamPool(uint32_t numStreams) :
-		_streams(numStreams)
-	{
+	AcceleratorStreamPool(uint32_t numStreams, std::function<void(void)> activate):_streams(numStreams)
+	{		
 		for (auto &stream : _streams)
+		{
+			stream.addContext(activate);
 			_streams_avail.push(&stream);
+		}
 	}
 
 	bool streamAvailable()

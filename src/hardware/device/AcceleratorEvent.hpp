@@ -7,6 +7,8 @@
 #ifndef ACCELERATOR_EVENT_HPP
 #define ACCELERATOR_EVENT_HPP
 
+#include <functional>
+
 #include "AcceleratorStream.hpp"
 #include <chrono>
 #include <functional>

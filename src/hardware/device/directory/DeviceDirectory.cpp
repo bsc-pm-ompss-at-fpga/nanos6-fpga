@@ -23,7 +23,7 @@ namespace DeviceDirectoryInstance {
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_dirMap(new IntervalMap(accels.size())),
-	_stopService(false), _finishedService(false), _taskwaitStream(true)
+	_stopService(false), _finishedService(false), _taskwaitStream()
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
 		_accelerators[i]->setDirectoryHandle(i);
@@ -295,9 +295,11 @@ void DeviceDirectory::processRegionWithOldAllocation(int handle, DirectoryEntry 
 {
 	if (entry.getDeviceAllocation(handle) != region && handle != SMP_HANDLER) {
 		if (entry.getModifiedLocation() == handle && type != WRITE_ACCESS_TYPE) {
+			//std::cout<<"WARNING: RESIZING ENTRY TO FIT SYMBOL[!]!"<<std::endl;
 			_current_task->getAcceleratorStream()->addOperation(generateCopy(entry, SMP_HANDLER, _current_task));
 			entry.setModified(SMP_HANDLER);
 		}
+		//std::cout<<"WARNING2: INVALIDATING OLD ENTRY TO FIT SYMBOL[!]!"<<std::endl;
 		entry.setInvalid(handle);
 		entry.setDeviceAllocation(handle, region);
 	}
@@ -321,7 +323,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		[=](AcceleratorEvent* own) 
 		{
 		/*release taskwait*/
-		_dirMap->applyToRange(taskwaitRegion, [](DirectoryEntry *entry) {entry->clearAllocations(); return true; });
+		_dirMap->applyToRange(taskwaitRegion, [](DirectoryEntry *entry) {entry->clearAllocations(); entry->clearValid(); entry->setModified(-1); return true; });
 		release();
 		delete own;
 		}
@@ -333,6 +335,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 
 void DeviceDirectory::print()
 {
+/*
 	auto indexToString = [](auto i) -> std::string {
 		if (i == DirectoryEntry::VALID)
 			return "V";
@@ -362,4 +365,5 @@ void DeviceDirectory::print()
 	}
 
 	printf("END OF DIR\n\n");
+*/
 }

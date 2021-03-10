@@ -165,17 +165,29 @@ public:
 
 	static void memcpy(void *destination, const void *from, size_t count, cudaMemcpyKind kind)
 	{
+	/*	if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[SERIAL][CUDA]%p -> [HOST]%p 0x%X\n", from, destination, count);
+		else printf("[SERIAL][HOST]%p -> [CUDA]%p 0x%X\n", from, destination, count);
+*/
 		cudaError_t err = cudaMemcpy(destination, from, count, kind);
 		CUDAErrorHandler::handle(err, "Copying memory");
 	}
 
 	static void memcpyAsync(void *destination, const void *from, size_t count, cudaMemcpyKind kind, cudaStream_t stream)
 	{
-		/*if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[CUDA]%p -> [HOST]%p 0x%X\n", from, destination, count);
-		else printf("[HOST]%p -> [CUDA]%p 0x%X\n", from, destination, count);
+		/*int current = getActiveDevice();
+		if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[CUDA[%d]]%p -> [HOST]%p 0x%X\n", current, from, destination, count);
+		else printf("[HOST]%p -> [CUDA[%d]]%p 0x%X\n", from,current, destination, count);
 */
 		cudaError_t err = cudaMemcpyAsync(destination, from, count, kind, stream);
 		CUDAErrorHandler::handle(err, "Copying memory");
+	}
+
+	static void memcpyAsyncP2P( void* dst, int  dstDevice, const void* src, int  srcDevice, size_t count, cudaStream_t stream = 0)
+	{
+		//printf("[CUDA[%d]]%p -> [CUDA[%d]]%p 0x%X\n", srcDevice, src, dstDevice, dst, count);
+		cudaError_t err =  cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,count, stream);   
+		CUDAErrorHandler::handle(err, "Copying memory");
+
 	}
 
 };

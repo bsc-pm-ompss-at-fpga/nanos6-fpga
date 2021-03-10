@@ -29,6 +29,8 @@ private:
 	cudaDeviceProp _deviceProperties;
 	CUDAStreamPool _cudaStreamPool;
 
+	int _cudaDeviceId;
+
 	// To be used in order to obtain the current task in nanos6_get_current_cuda_stream() call
 
 	inline void generateDeviceEvironment(Task *task) override
@@ -69,6 +71,7 @@ public:
 			ConfigVariable<size_t>("devices.cuda.polling.period_us"),
 			ConfigVariable<bool>("devices.cuda.polling.pinned")),
 		_cudaStreamPool(cudaDeviceIndex),
+		_cudaDeviceId(cudaDeviceIndex),
 		_cudaCopyStream(CUDAFunctions::createStream())
 
 	{
@@ -101,6 +104,8 @@ public:
 	{
 		CUDAFunctions::setActiveDevice(_deviceHandler);
 	}
+
+    virtual int getVendorDeviceId(){ return _cudaDeviceId;}
 
 	// In CUDA, the async FIFOs used are CUDA streams
 	inline void *getAsyncHandle() override

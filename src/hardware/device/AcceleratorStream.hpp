@@ -25,7 +25,6 @@
 //Free functions (Functions that don't have activation, but must be run once the stream arrives to it's queue position)
 //can be enqueued with addOperation, a dummy activation function will be performed. And the behaviour of the checker
 //will be the same as in an async finalization check
-
 class AcceleratorStream {
 public:
 	using checker = std::function<bool(void)>;
@@ -36,18 +35,24 @@ public:
 private:
 	activatorQueue _queuedStreamExecutors;
 	checkerQueue _queuedEventFinalization;
-
 	checker _currentStreamExecutorFinished;
 	bool _ongoingExecutor;
+	std::function<void(void)> _activateContext; 
+
 	std::mutex _operations_mtx, _events_mtx;
 	bool _debug;
 public:
-	AcceleratorStream(bool debug = false) :
+
+	AcceleratorStream() :
 		_ongoingExecutor(false),
-		_debug(debug)
+		_activateContext([]{})
 	{
 	}
 
+	void addContext(std::function<void(void)> activate)
+	{
+		_activateContext = activate;
+	}
 
 	//a free operation is an operation that doesn't require
 	//an activator
@@ -61,10 +66,12 @@ public:
 	//to know if the activated function has finished, asynchronously.
 	virtual void addOperation(activatorReturnsChecker operation)
 	{
-		std::lock_guard<std::mutex> guard(_operations_mtx);
 
+		std::lock_guard<std::mutex> guard(_operations_mtx);
 		if (!_ongoingExecutor) {
 			_currentStreamExecutorFinished = std::move(operation());
+			_activateContext();
+
 			_ongoingExecutor = true;
 		} else
 		{
@@ -92,7 +99,10 @@ public:
             std::lock_guard<std::mutex> guard(_events_mtx);
 
 			while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())
+			{
+				_activateContext();
 				_queuedEventFinalization.pop();
+			}
 		}
 
 		{
@@ -100,6 +110,7 @@ public:
 
 			if (_ongoingExecutor && _currentStreamExecutorFinished()) {
 				_ongoingExecutor = false;
+				_activateContext();
 				if (!_queuedStreamExecutors.empty()) {
 					//we call the activator function of the next stream executor and put the returned checker function in our probe.
 					_currentStreamExecutorFinished = std::move(_queuedStreamExecutors.front()());
