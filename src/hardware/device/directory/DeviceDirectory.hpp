@@ -21,7 +21,7 @@
 
 using checker = int;
 
-class SymbolRepresentation;
+struct SymbolRepresentation;
 class DeviceDirectory
 {
 
