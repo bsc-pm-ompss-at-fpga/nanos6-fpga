@@ -17,10 +17,10 @@ am__is_gnu_make = { \
 
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = -I$(srcdir)/api -I$(srcdir)/loader -I.
-AM_CXXFLAGS = -I$(srcdir)/src -I$(builddir)/src -I$(srcdir)/api -I.
-AM_LDFLAGS = $(AS_NEEDED_FLAGS)
-AM_CXXFLAGS += $(FALIGNED_NEW_FLAG)
+AM_CFLAGS = -I$(srcdir)/api -I$(srcdir)/loader -I. -ftime-trace
+AM_CXXFLAGS = -I$(srcdir)/src -I$(builddir)/src -I$(srcdir)/api -I. -ftime-trace
+AM_LDFLAGS = $(AS_NEEDED_FLAGS) -ftime-trace 
+AM_CXXFLAGS += $(FALIGNED_NEW_FLAG) -ftime-trace
 
 SUBDIRS = . commands tests/directive_based/clang tests/directive_based/mercurium scripts
 
@@ -63,6 +63,7 @@ nanos6include_HEADERS = \
 	api/nanos6/monitoring.h \
 	api/nanos6/numa.h \
 	api/nanos6/openacc_device.h \
+	api/nanos6/fpga_device.h \
 	api/nanos6/polling.h \
 	api/nanos6/reductions.h \
 	api/nanos6/runtime-info.h \
@@ -202,6 +203,10 @@ if USE_CUDA
 symbol_resolution += loader/symbol-resolver/cuda-device-api.c
 endif
 
+if USE_FPGA
+symbol_resolution += loader/symbol-resolver/fpga.c 
+endif
+
 multidimensional_regions += \
 	multidim-region-dependency-resolvers.c \
 	multidim-release-resolvers.c \
@@ -236,6 +241,10 @@ symbol_resolution += \
 
 if USE_CUDA
 symbol_resolution += loader/indirect-symbols/cuda-device-api.c
+endif
+
+if USE_FPGA
+symbol_resolution += loader/indirect-symbols/fpga.c 
 endif
 
 multidimensional_regions += \
@@ -449,7 +458,12 @@ cuda_sources += \
 	src/system/CUDADeviceAPI.cpp
 endif
 
-common_sources += $(cuda_sources)
+fpga_sources =
+fpga_sources += \
+	src/hardware/device/fpga/FPGAAccelerator.cpp \
+	src/system/FPGADeviceAPI.cpp 
+
+common_sources += $(cuda_sources) $(fpga_sources)
 
 openacc_sources =
 
@@ -1218,8 +1232,8 @@ EXTRA_DIST += \
 	tests/tap-driver.pl \
 	tests/tap-driver.sh
 
-common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
-common_libnanos6_ldflags = $(openacc_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(memkind_LIBS) $(cpu_manager_ldflags) $(hardware_counters_ldflags)
+common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS) $(xtasks_CPPFLAGS)
+common_libnanos6_ldflags = $(openacc_LIBS) $(xtasks_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(memkind_LIBS) $(cpu_manager_ldflags) $(hardware_counters_ldflags) 
 
 # This is needed for debuggable spinlocks
 common_sources += $(introspection_sources)

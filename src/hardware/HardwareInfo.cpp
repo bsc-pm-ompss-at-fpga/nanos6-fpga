@@ -19,6 +19,10 @@
 #include "hardware/device/openacc/OpenAccDeviceInfo.hpp"
 #endif
 
+#ifdef USE_FPGA
+#include "hardware/device/fpga/FPGADeviceInfo.hpp"
+#endif
+
 std::vector<DeviceInfo *> HardwareInfo::_infos;
 
 void HardwareInfo::initialize()
@@ -60,6 +64,9 @@ void HardwareInfo::initializeDeviceServices()
 	_infos[nanos6_cuda_device]->initializeDeviceServices();
 #endif
 
+#ifdef USE_FPGA
+	_infos[nanos6_device_t::nanos6_fpga_device] = new FPGADeviceInfo();
+#endif
 	DeviceDirectoryInstance::instance->initializeTaskwaitService();
 }
 

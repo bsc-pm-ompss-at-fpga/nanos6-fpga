@@ -46,8 +46,14 @@ DeviceScheduler *SchedulerGenerator::createDeviceScheduler(
 			FatalErrorHandler::fail("OpenCL is not supported yet.");
 			break;
 		case nanos6_fpga_device:
-			FatalErrorHandler::fail("FPGA is not supported yet.");
-			break;
+			return new DeviceScheduler(
+				totalComputePlaces,
+				policy,
+				enablePriority,
+				enableImmediateSuccessor,
+				deviceType,
+				"FPGADeviceScheduler");
+				break;
 		case nanos6_cluster_device:
 			FatalErrorHandler::fail("Cluster is not actually a device.");
 			break;

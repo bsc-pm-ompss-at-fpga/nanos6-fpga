@@ -40,8 +40,9 @@ private:
 	std::function<void(void)> _activateContext; 
 
 	std::mutex _operations_mtx, _events_mtx;
-	bool _debug;
 public:
+
+   
 
 	AcceleratorStream() :
 		_ongoingExecutor(false),
@@ -49,6 +50,10 @@ public:
 	{
 	}
 
+	virtual ~AcceleratorStream()
+	{
+
+	}
 	void addContext(std::function<void(void)> activate)
 	{
 		_activateContext = activate;
@@ -69,7 +74,7 @@ public:
 
 		std::lock_guard<std::mutex> guard(_operations_mtx);
 		if (!_ongoingExecutor) {
-			_currentStreamExecutorFinished = std::move(operation());
+			_currentStreamExecutorFinished = operation();
 			_activateContext();
 
 			_ongoingExecutor = true;
@@ -113,7 +118,7 @@ public:
 				_activateContext();
 				if (!_queuedStreamExecutors.empty()) {
 					//we call the activator function of the next stream executor and put the returned checker function in our probe.
-					_currentStreamExecutorFinished = std::move(_queuedStreamExecutors.front()());
+					_currentStreamExecutorFinished = _queuedStreamExecutors.front()();
 					_queuedStreamExecutors.pop();
 					_ongoingExecutor = true;
 				}

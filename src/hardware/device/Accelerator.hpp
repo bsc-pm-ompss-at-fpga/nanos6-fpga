@@ -141,6 +141,9 @@ public:
 
   static inline Task *getCurrentTask() { return _currentTask; }
 
+	inline static void setCurrentTask(Task* task){ _currentTask = task;}
+
+
   virtual void accel_free(void *);
 
 

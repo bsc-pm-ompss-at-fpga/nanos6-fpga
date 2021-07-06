@@ -1,0 +1,162 @@
+/*
+	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
+
+	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+*/
+
+#include "FPGAAccelerator.hpp"
+#include "../directory/DeviceDirectory.hpp"
+#include "hardware/places/ComputePlace.hpp"
+#include "hardware/places/MemoryPlace.hpp"
+#include "scheduling/Scheduler.hpp"
+#include "system/BlockingAPI.hpp"
+
+#include <DataAccessRegistration.hpp>
+#include <DataAccessRegistrationImplementation.hpp>
+
+
+void FPGAAccelerator::postRunTask(Task *)
+{
+}
+
+
+void FPGAAccelerator::callBody(Task *task)
+{
+	if(DeviceDirectoryInstance::useDirectory)
+		task->getAcceleratorStream()->addOperation(
+			[task = task]() -> AcceleratorStream::checker 
+			{ 
+				Accelerator::setCurrentTask(task);
+				task->body(&task->_symbolTranslations[0]);
+				xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle);
+				return [=]()->bool{
+					xtasks_task_handle hand;
+					xtasks_task_id tid;
+					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+					{
+						xtasksDeleteTask(&hand);
+						Task* _task  = (Task*) tid;
+						_task->getDeviceEnvironment().fpga.taskFinished=true;
+					}
+					return task->getDeviceEnvironment().fpga.taskFinished;
+				};
+			}
+		);
+	else abort();
+}
+
+void FPGAAccelerator::preRunTask(Task *task)
+{
+	if (DeviceDirectoryInstance::useDirectory)
+			DeviceDirectoryInstance::instance->register_regions(task);
+		else abort();
+}
+
+
+
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, Task *task)
+{
+
+	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
+	if(_supports_async)
+		{
+			return [=]() -> AcceleratorStream::checker
+			{
+				auto checkFinalization= FPGAFunctions::memcpyAsync(dst,src,size,fp.first,XTASKS_HOST_TO_ACC);
+				return [checkFinalization]() -> bool
+				{
+					return FPGAFunctions::testAsyncDestroyOnSuccess(checkFinalization);
+				};
+			};
+		}
+	else
+	{
+		return [=]() -> AcceleratorStream::checker
+		{
+
+			bool* copy_finished_flag = new bool{};
+			auto do_copy = [](void* t)
+			{  
+				std::function<void()>* fn = (std::function<void()>*) t;
+				(*fn)();
+				delete fn;
+			};
+
+			auto copy  = new std::function<void()>([=](){FPGAFunctions::memcpy(dst,src,size,fp.first,XTASKS_HOST_TO_ACC);});
+
+			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
+
+			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag,"CopyInFPGA", false);
+			return [=]() -> bool
+			{
+				if(*copy_finished_flag)
+				{
+					delete copy_finished_flag;
+					return true;
+				}
+				return false;
+				//IF FINISHED FLAG -> CONTINUE
+			};
+		};
+
+	}
+}
+
+//this functions performs a copy from the accelerator address space to host memory
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, Task *task) 
+{
+	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
+	if(_supports_async)
+		{
+			return [=]() -> AcceleratorStream::checker
+			{
+				auto checkFinalization= FPGAFunctions::memcpyAsync(dst,src,size,fp.first,XTASKS_ACC_TO_HOST);
+				return [checkFinalization]() -> bool
+				{
+					return FPGAFunctions::testAsyncDestroyOnSuccess(checkFinalization);
+				};
+			};
+		}
+	else
+	{
+		return [=]() -> AcceleratorStream::checker
+		{
+
+			bool* copy_finished_flag = new bool{};
+			auto do_copy = [](void* t)
+			{  
+				std::function<void()>* fn = (std::function<void()>*) t;
+				(*fn)();
+				delete fn;
+			};
+
+			auto copy  = new std::function<void()>([=](){FPGAFunctions::memcpy(dst,src,size,fp.first,XTASKS_ACC_TO_HOST);});
+
+			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
+
+			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag,"CopyInFPGA", false);
+			return [=]() -> bool
+			{
+				if(*copy_finished_flag)
+				{
+					delete copy_finished_flag;
+					return true;
+				}
+				return false;
+				//IF FINISHED FLAG -> CONTINUE
+			};
+		};
+
+	}
+}
+
+//this functions performs a copy from two accelerators that can share it's data without the host intervention
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task *task)
+{
+	return []() -> AcceleratorStream::checker
+	{
+		return []() -> bool{return true;}; 
+	};
+}
+
+

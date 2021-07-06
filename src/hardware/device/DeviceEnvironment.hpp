@@ -20,6 +20,10 @@
 #include <nanos6/openacc_device.h>
 #endif
 
+#if USE_FPGA
+#include <nanos6/fpga_device.h>
+#endif
+
 //! Contains the device environment based on configured device types to determine max size
 union DeviceEnvironment {
 #if USE_CUDA
@@ -27,6 +31,9 @@ union DeviceEnvironment {
 #endif
 #if USE_OPENACC
 		nanos6_openacc_device_environment_t openacc;
+#endif
+#if USE_FPGA
+		nanos6_fpga_device_environment_t fpga;
 #endif
 };
 
