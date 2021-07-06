@@ -24,6 +24,7 @@ static const nanos6_api_versions_t apiVersions = {
 	.config_api_version = nanos6_config_api,
 	.cuda_device_api_version = nanos6_cuda_device_api,
 	.openacc_device_api_version = nanos6_openacc_device_api,
+	.fpga_device_api_version    = nanos6_fpga_device_api,
 	.final_api_version = nanos6_final_api,
 	.instantiation_api_version = nanos6_instantiation_api,
 	.library_mode_api_version = nanos6_library_mode_api,
