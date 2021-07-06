@@ -42,7 +42,9 @@ void HardwareInfo::initialize()
 	_infos[nanos6_cuda_device] = new CUDADeviceInfo();
 #endif
 // Fill the rest of the devices accordingly, once implemented
-
+#ifdef USE_FPGA
+	_infos[nanos6_fpga_device] = new FPGADeviceInfo();
+#endif
 
 	for(int i = 0; i < (int)nanos6_device_t::nanos6_device_type_num; ++i)
 	{
@@ -65,8 +67,10 @@ void HardwareInfo::initializeDeviceServices()
 #endif
 
 #ifdef USE_FPGA
-	_infos[nanos6_device_t::nanos6_fpga_device] = new FPGADeviceInfo();
+	_infos[nanos6_fpga_device]->initializeDeviceServices();
 #endif
+
+
 	DeviceDirectoryInstance::instance->initializeTaskwaitService();
 }
 
@@ -87,6 +91,10 @@ void HardwareInfo::shutdownDeviceServices()
 #endif
 #ifdef USE_CUDA
 	_infos[nanos6_cuda_device]->shutdownDeviceServices();
+#endif
+
+#ifdef USE_FPGA
+	_infos[nanos6_fpga_device]->shutdownDeviceServices();
 #endif
 	DeviceDirectoryInstance::instance->shutdownTaskwaitService();
 }
