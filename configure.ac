@@ -92,6 +92,7 @@ AC_CHECK_PAPI
 AC_CHECK_PQOS
 AC_CHECK_DLB
 AC_CHECK_JEMALLOC
+AC_CHECK_XTASKS
 
 AC_CHECK_FUNCS([reallocarray aligned_alloc])
 AC_CHECK_MADV_FREE
@@ -264,6 +265,19 @@ if test x"${ac_extra_debug}" = x"yes" ; then
 	AC_DEFINE([EXTRA_DEBUG_ENABLED], [1], [Define if extra debug checks are enabled. Any checks with big performance impact should be conditional to this.])
 fi
 
+AC_ARG_ENABLE([fpga], [AS_HELP_STRING([--enable-fpga], [Enable FPGA task support])])
+if test x"${enable_fpga}" = x"yes" ; then
+	ac_use_fpga=yes
+else
+	ac_use_fpga=no
+fi
+AM_CONDITIONAL([USE_FPGA], [test x${ac_use_fpga} = x"yes"])
+
+if test x"${ac_use_fpga}" = x"yes" ; then
+	AC_DEFINE([USE_FPGA], [1], [Define if FPGA is enabled.])
+fi
+
+
 AC_CHECK_MAIN_WRAPPER_TYPE
 AC_CHECK_SYMBOL_RESOLUTION_STRATEGY
 
@@ -357,6 +371,15 @@ else
 fi
 
 _AS_ECHO([])
+_AS_ECHO_N([   FPGA is enabled... ])
+if test x"${ac_use_fpga}" = x"yes" ; then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+fi
+
+
+_AS_ECHO([])
 _AS_ECHO_N([   Memkind is enabled... ])
 if test x"${ac_use_memkind}" = x"yes" ; then
 	AC_MSG_RESULT([yes])
@@ -402,6 +425,16 @@ if test x"${ac_use_jemalloc}" = x"yes" ; then
 	AC_MSG_RESULT([yes])
 	_AS_ECHO([   jemalloc CPPFLAGS... ${jemalloc_CPPFLAGS}])
 	_AS_ECHO([   jemalloc LIBS... ${jemalloc_LIBS}])
+else
+	AC_MSG_RESULT([no])
+fi
+
+_AS_ECHO([])
+_AS_ECHO_N([   xtasks is enabled... ])
+if test x"${ac_use_xtasks}" = x"yes" ; then
+	AC_MSG_RESULT([yes])
+	_AS_ECHO([   xtasks CPPFLAGS... ${xtasks_CPPFLAGS}])
+	_AS_ECHO([   xtasks LIBS... ${xtasks_LIBS}])
 else
 	AC_MSG_RESULT([no])
 fi
