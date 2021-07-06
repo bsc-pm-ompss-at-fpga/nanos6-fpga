@@ -27,7 +27,7 @@ class CUDAAcceleratorEvent : public AcceleratorEvent
     {
     }
 
-    float getMillisBetweenEvents(AcceleratorEvent &second)
+    float getMillisBetweenEvents(AcceleratorEvent &second) override
     {
         //Only when there are TWO events that are CUDA events, we can use the vendor-specifig
         //functions.
@@ -38,7 +38,7 @@ class CUDAAcceleratorEvent : public AcceleratorEvent
         return CUDAFunctions::getMillisBetweenEvents(_cudaEvent, second_dc->_cudaEvent);
     }
 
-    bool vendorEventQuery()
+    bool vendorEventQuery() override
     {
         return CUDAFunctions::cudaEventFinished(_cudaEvent);
     }

@@ -105,7 +105,7 @@ public:
 		CUDAFunctions::setActiveDevice(_deviceHandler);
 	}
 
-    virtual int getVendorDeviceId(){ return _cudaDeviceId;}
+    virtual int getVendorDeviceId() override { return _cudaDeviceId;}
 
 	// In CUDA, the async FIFOs used are CUDA streams
 	inline void *getAsyncHandle() override

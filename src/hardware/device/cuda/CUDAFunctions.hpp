@@ -174,10 +174,6 @@ public:
 
 	static void memcpyAsync(void *destination, const void *from, size_t count, cudaMemcpyKind kind, cudaStream_t stream)
 	{
-		/*int current = getActiveDevice();
-		if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[CUDA[%d]]%p -> [HOST]%p 0x%X\n", current, from, destination, count);
-		else printf("[HOST]%p -> [CUDA[%d]]%p 0x%X\n", from,current, destination, count);
-*/
 		cudaError_t err = cudaMemcpyAsync(destination, from, count, kind, stream);
 		CUDAErrorHandler::handle(err, "Copying memory");
 	}
