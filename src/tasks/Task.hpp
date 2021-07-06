@@ -716,7 +716,7 @@ public:
 	//! \brief Get the device subtype for which this task is implemented, TODO: device_subtype_id.
 	inline int getDeviceSubType()
 	{
-		return 0;
+		return _taskInfo->implementations[0].device_subtype_id;
 	}
 
 	inline void *getDeviceData()

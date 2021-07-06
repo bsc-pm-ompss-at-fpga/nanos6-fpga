@@ -8,7 +8,7 @@
 #define NANOS6_TASK_INSTANTIATION_H
 
 #include <stddef.h>
-
+#include <stdint.h>
 #include "major.h"
 
 
@@ -64,6 +64,8 @@ typedef struct
 
 	//! \brief Runtime device identifier (original type nanos6_device_t)
 	int device_type_id;
+
+	uint64_t device_subtype_id;
 
 	//! \brief Wrapper around the actual task implementation
 	//!
