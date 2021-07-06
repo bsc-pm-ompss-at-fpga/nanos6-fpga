@@ -17,7 +17,7 @@
 class FPGAAccelerator : public Accelerator {
 private:
 	bool _supports_async;
-	
+
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
@@ -38,7 +38,7 @@ private:
 		task->getDeviceEnvironment().fpga.taskFinished = false;
 	}
 
-	inline void finishTaskCleanup(Task *task) override
+	inline void finishTaskCleanup([[maybe_unused]] Task *task) override
 	{
 
 	}
@@ -84,21 +84,8 @@ public:
 		return FPGAFunctions::free(ptr);
 	}
 	
-	// Set current device as the active in the runtime
-	inline void setActiveDevice() override
-	{
 
-	}
 
-	inline void *getAsyncHandle() override
-	{
-		return nullptr;
-	}
-
-	inline void releaseAsyncHandle(void *stream) override
-	{
-
-	}
 };
 
 #endif // FPGA_ACCELERATOR_HPP

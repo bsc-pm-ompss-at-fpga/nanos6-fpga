@@ -54,7 +54,7 @@ void FPGAAccelerator::preRunTask(Task *task)
 
 
 
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, Task *task)
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  Task *task)
 {
 
 	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
@@ -103,7 +103,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, Task *task) 
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] Task *task) 
 {
 	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
 	if(_supports_async)
@@ -151,7 +151,13 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, 
 }
 
 //this functions performs a copy from two accelerators that can share it's data without the host intervention
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task *task)
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(
+	[[maybe_unused]] void *dst,
+	[[maybe_unused]] int dstDevice, 
+	[[maybe_unused]] void *src, 
+	[[maybe_unused]] int srcDevice,
+	[[maybe_unused]] size_t size,
+	[[maybe_unused]] Task *task)
 {
 	return []() -> AcceleratorStream::checker
 	{

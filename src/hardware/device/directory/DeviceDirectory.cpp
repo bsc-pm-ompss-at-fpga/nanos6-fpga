@@ -23,7 +23,7 @@ namespace DeviceDirectoryInstance {
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_dirMap(new IntervalMap(accels.size())),
-	_stopService(false), _finishedService(false), _taskwaitStream()
+	_taskwaitStream(), _stopService(false), _finishedService(false)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
 		_accelerators[i]->setDirectoryHandle(i);
@@ -255,10 +255,10 @@ void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &ent
 	entry.setModified(handle);
 	entry.setPending(handle);
 
-	accelerator->createEvent([this, left =entry.getLeft(), right = entry.getRight() , fun = setValid(handle, {entry.getLeft(), entry.getRight()}), accelerator](AcceleratorEvent *own) 
+	accelerator->createEvent([left =entry.getLeft(), right = entry.getRight() , fun = setValid(handle, {entry.getLeft(), entry.getRight()}), accelerator](AcceleratorEvent *own) 
 	{
 		fun();
-		//accelerator->destroyEvent(own);
+		accelerator->destroyEvent(own);
 		return true;
 	})->record(acceleratorStream);
 }
@@ -281,10 +281,10 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 	entry.setValid(entry.getModifiedLocation());
 	entry.setModified(NO_DEVICE);
 
-	accelerator->createEvent([this,accelerator, fun = setValid(handle,  {entry.getLeft(), entry.getRight()}) ](AcceleratorEvent *own) 
+	accelerator->createEvent([accelerator, fun = setValid(handle,  {entry.getLeft(), entry.getRight()}) ](AcceleratorEvent *own) 
 	{
 		fun();
-		//accelerator->destroyEvent(own);
+		accelerator->destroyEvent(own);
 		return true;
 	})->record(acceleratorStream);
 }

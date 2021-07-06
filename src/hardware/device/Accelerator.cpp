@@ -112,7 +112,7 @@ void Accelerator::finishTask(Task *task)
   void *Accelerator::getAsyncHandle() { return nullptr; };
 
 
-  void Accelerator::releaseAsyncHandle(void *asyncHandle){}
+  void Accelerator::releaseAsyncHandle([[maybe_unused]] void *asyncHandle){}
 
 
   
@@ -230,7 +230,7 @@ void Accelerator::serviceCompleted(void *data)
   }
 
 
-  void Accelerator::callBody(Task *task){};
+  void Accelerator::callBody([[maybe_unused]] Task *task){};
 
 
   // Device specific operations after task completion may go here (e.g. free
@@ -273,7 +273,7 @@ void Accelerator::serviceCompleted(void *data)
     return _stopService.load(std::memory_order_relaxed);
   }
 
-void Accelerator::setActiveDevice(){};
+  void Accelerator::setActiveDevice(){};
  int Accelerator::getVendorDeviceId(){ return 0;}
 
  void Accelerator::destroyEvent(AcceleratorEvent *event) { delete event; }
