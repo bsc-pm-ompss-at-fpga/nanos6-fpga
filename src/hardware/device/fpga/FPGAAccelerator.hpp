@@ -69,8 +69,6 @@ public:
 		static auto init = xtasksInit();
 		if(init != XTASKS_SUCCESS) 
 		{
-			printf("CAN'T INITIALIZE XTASKS\n");
-			std::cout<<std::endl;
 			abort();
 		}
 		size_t _deviceCount = 0, _handlesCount=0;
@@ -82,12 +80,10 @@ public:
 		std::vector<xtasks_acc_handle> handles(numAccel);
 		if(xtasksGetAccs(numAccel, &handles[0], &_handlesCount) != XTASKS_SUCCESS) abort();
 
-		printf("IS SUCCESSFUL AND THERE ARE: %X accelerators\n", numAccel);
 		for(int i=0; i<numAccel;++i)
 		{
 			xtasksGetAccInfo(handles[i], &info[i]);
 			_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
-			printf("HANDLE IS: %llX\n", handles[i]);
 		}
 	}
 

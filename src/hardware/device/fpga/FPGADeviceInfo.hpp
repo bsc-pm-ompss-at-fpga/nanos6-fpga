@@ -49,10 +49,7 @@ public:
 	{
 		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
-						std::cout<<"shutdowning fpga accelerator service"<<std::endl;
-
 			((FPGAAccelerator *)accelerator)->shutdownService();
-						std::cout<<"shutdowning fpga accelerator service success"<<std::endl;
 
 		}
 	}
