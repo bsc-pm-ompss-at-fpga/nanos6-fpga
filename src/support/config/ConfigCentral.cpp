@@ -42,6 +42,13 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("devices.openacc.polling.pinned", true);
 	registerOption<integer_t>("devices.openacc.polling.period_us", 1000);
 
+
+	// FPGA Devices
+	registerOption<integer_t>("devices.fpga.page_size", 0x8000);
+	registerOption<integer_t>("devices.fpga.streams", 16);
+	registerOption<bool_t>("devices.fpga.polling.pinned", true);
+	registerOption<integer_t>("devices.fpga.polling.period_us", 1000);
+
 	// DLB
 	registerOption<bool_t>("dlb.enabled", false);
 

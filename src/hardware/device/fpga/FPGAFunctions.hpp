@@ -16,7 +16,7 @@
 class FPGAFunctions {
 public:
 
-
+	
 
 	static FPGAMemoryAllocator& getAllocator()
 	{
@@ -73,7 +73,6 @@ public:
 
 	static xtasks_memcpy_handle* memcpyAsync(void *dst,  void *src, size_t count, xtasks_mem_handle handle,  xtasks_memcpy_kind kind)
 	{
-
 		xtasks_memcpy_handle *cpyHandle = new xtasks_memcpy_handle;
 		xtasks_stat ok;
 		if(kind == XTASKS_HOST_TO_ACC) 

@@ -22,7 +22,7 @@ class FPGADeviceInfo : public DeviceInfo {
 public:
 	FPGADeviceInfo()
 	{
-		xtasksInit();
+
 		_accelerators.push_back(new FPGAAccelerator(0));
 		_deviceInitialized = true;
 		_deviceCount = 1;
@@ -49,7 +49,11 @@ public:
 	{
 		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
+						std::cout<<"shutdowning fpga accelerator service"<<std::endl;
+
 			((FPGAAccelerator *)accelerator)->shutdownService();
+						std::cout<<"shutdowning fpga accelerator service success"<<std::endl;
+
 		}
 	}
 

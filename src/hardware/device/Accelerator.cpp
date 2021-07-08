@@ -53,7 +53,6 @@ void Accelerator::runTask(Task *task)
 		//Future CTF Common Events
 
 		finishTask(task);
-
 		_streamPool.releaseStream(acceleratorStream);
 
 		//destroyEvent(event_copies);
@@ -246,7 +245,8 @@ void Accelerator::serviceCompleted(void *data)
 
 
 	  void Accelerator::acceleratorServiceLoop() {
-    while (!shouldStopService()) {
+    while (!shouldStopService()) 
+    {
       setActiveDevice();
       do {
         // Launch as many ready device tasks as possible
@@ -259,13 +259,17 @@ void Accelerator::serviceCompleted(void *data)
         }
 
         _streamPool.processStreams();
-
+        std::cout<<"doing while for fpga is pinned: "<<_isPinnedPolling<<"ongoing: "<<_streamPool.ongoingStreams() <<std::endl;
         // Iterate while there are running tasks and pinned polling is enabled
       } while (_isPinnedPolling && _streamPool.ongoingStreams());
 
       // Sleep for a configured amount of microseconds
       BlockingAPI::waitForUs(_pollingPeriodUs);
     }
+
+    std::cout<<"service loop out"<<std::endl;
+
+
   }
 
 

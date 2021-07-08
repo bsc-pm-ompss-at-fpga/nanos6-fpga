@@ -135,6 +135,10 @@ void nanos6_shutdown(void)
 	Instrument::threadHasResumed(mainThread->getInstrumentationId());
 	Instrument::threadWillShutdown(mainThread->getInstrumentationId());
 
+
+	// Shutdown device services before CPU and thread managers
+	HardwareInfo::shutdownDeviceServices();
+
 	while (SpawnFunction::_pendingSpawnedFunctions > 0) {
 		// Wait for spawned functions to fully end
 	}
@@ -143,8 +147,6 @@ void nanos6_shutdown(void)
 	StreamManager::shutdown();
 	LeaderThread::shutdown();
 
-	// Shutdown device services before CPU and thread managers
-	HardwareInfo::shutdownDeviceServices();
 
 	// Shutdown throttle service before CPUs are stopped
 	Throttle::shutdown();

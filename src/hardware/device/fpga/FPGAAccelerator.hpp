@@ -56,15 +56,39 @@ private:
 
 
 public:
-	FPGAAccelerator(int cudaDeviceIndex) :
-		Accelerator(cudaDeviceIndex,
-			nanos6_cuda_device,
+	FPGAAccelerator(int fpgaDeviceIndex) :
+		Accelerator(fpgaDeviceIndex,
+			nanos6_fpga_device,
 			ConfigVariable<uint32_t>("devices.fpga.streams"),
 			ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 			ConfigVariable<bool>("devices.fpga.polling.pinned")),
 			_supports_async(false)
 	{
+		accel_allocate(0x1000);
 
+		static auto init = xtasksInit();
+		if(init != XTASKS_SUCCESS) 
+		{
+			printf("CAN'T INITIALIZE XTASKS\n");
+			std::cout<<std::endl;
+			abort();
+		}
+		size_t _deviceCount = 0, _handlesCount=0;
+		if(xtasksGetNumAccs(&_deviceCount) != XTASKS_SUCCESS) abort();
+
+		int numAccel = _deviceCount;
+
+		std::vector<xtasks_acc_info> info(numAccel);
+		std::vector<xtasks_acc_handle> handles(numAccel);
+		if(xtasksGetAccs(numAccel, &handles[0], &_handlesCount) != XTASKS_SUCCESS) abort();
+
+		printf("IS SUCCESSFUL AND THERE ARE: %X accelerators\n", numAccel);
+		for(int i=0; i<numAccel;++i)
+		{
+			xtasksGetAccInfo(handles[i], &info[i]);
+			_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
+			printf("HANDLE IS: %llX\n", handles[i]);
+		}
 	}
 
 	~FPGAAccelerator()
@@ -81,7 +105,7 @@ public:
 
 	void accel_free(void* ptr) override
 	{
-		return FPGAFunctions::free(ptr);
+		FPGAFunctions::free(ptr);
 	}
 	
 

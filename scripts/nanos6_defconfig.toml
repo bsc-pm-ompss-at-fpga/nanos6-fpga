@@ -13,7 +13,7 @@
 	debug = false
 	# Choose the dependency system implementation. Default is "discrete"
 	# Possible values: "discrete", "regions"
-	dependencies = "discrete"
+	dependencies = "regions"
 	# Choose the instrumentation variant to run. Default is "none"
 	# Possible values: "none", "ctf", "extrae", "graph", "lint", "stats", "verbose"
 	instrument = "none"
@@ -136,6 +136,13 @@ __!require_PQOS
 	rolling_window = 20
 
 [devices]
+	# OmpSs-2 @ FPGA
+	[devices.fpga]
+		page_size = 0x8000
+		streams = 16
+		[devices.fpga.polling]
+			period_us = 1000
+			pinned = true
 __require_CUDA
 	# OmpSs-2 @ CUDA
 	[devices.cuda]

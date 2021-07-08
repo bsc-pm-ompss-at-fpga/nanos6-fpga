@@ -64,7 +64,7 @@ public:
 	virtual float getMillisBetweenEvents(AcceleratorEvent &end)
 	{
 		assert(_completed != false);
-		assert(end._completed != false);
+		if(!end._completed) _fini_time = std::chrono::steady_clock::now();
 		return std::chrono::duration_cast<std::chrono::milliseconds>(end._fini_time - _fini_time).count();
 	}
 

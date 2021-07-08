@@ -17,10 +17,10 @@ am__is_gnu_make = { \
 
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CFLAGS = -I$(srcdir)/api -I$(srcdir)/loader -I. -ftime-trace
-AM_CXXFLAGS = -I$(srcdir)/src -I$(builddir)/src -I$(srcdir)/api -I. -ftime-trace
-AM_LDFLAGS = $(AS_NEEDED_FLAGS) -ftime-trace 
-AM_CXXFLAGS += $(FALIGNED_NEW_FLAG) -ftime-trace
+AM_CFLAGS = -I$(srcdir)/api -I$(srcdir)/loader -I.
+AM_CXXFLAGS = -I$(srcdir)/src -I$(builddir)/src -I$(srcdir)/api -I. 
+AM_LDFLAGS = $(AS_NEEDED_FLAGS)  
+AM_CXXFLAGS += $(FALIGNED_NEW_FLAG) 
 
 SUBDIRS = . commands tests/directive_based/clang tests/directive_based/mercurium scripts
 
@@ -458,12 +458,15 @@ cuda_sources += \
 	src/system/CUDADeviceAPI.cpp
 endif
 
-fpga_sources =
-fpga_sources += \
+if USE_FPGA
+common_sources += \
 	src/hardware/device/fpga/FPGAAccelerator.cpp \
 	src/system/FPGADeviceAPI.cpp 
+endif
 
-common_sources += $(cuda_sources) $(fpga_sources)
+
+
+common_sources += $(cuda_sources)
 
 openacc_sources =
 

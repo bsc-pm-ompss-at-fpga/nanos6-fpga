@@ -21,5 +21,9 @@
 #include "opencl_device.h"
 #endif
 
+#if NANOS6_FPGA
+#include "fpga_device.h"
+#endif
+
 #endif /* NANOS6_DEVICES_H */
 
