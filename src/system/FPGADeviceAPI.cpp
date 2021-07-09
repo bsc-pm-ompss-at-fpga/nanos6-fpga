@@ -14,7 +14,6 @@
 extern "C"
 void nanos6_fpga_addArg(int index, int symbolData, void* taskHandle, void* address)
 {
-    printf("Adding addr: %d %d %p %p\n", index, symbolData, taskHandle, address);
     xtasksAddArg(index, (xtasks_arg_flags) symbolData, (uint64_t) address, *((xtasks_task_handle*) taskHandle));
 }
 

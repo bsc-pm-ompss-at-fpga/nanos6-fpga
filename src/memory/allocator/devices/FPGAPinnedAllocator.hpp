@@ -15,8 +15,6 @@
       const size_t userRequestedSize =512*1024*1024;// FPGAConfig::getAllocatorPoolSize();
       size_t size = userRequestedSize > 0 ? userRequestedSize :512*1024*1024; //FPGAConfig::getDefaultAllocatorPoolSize();
       xtasks_stat status;
-      status = xtasksMalloc(0x1000, & _handle);
-      printf("FIRST HANDLE IS: %X\n", _handle);
       status = xtasksMalloc(size, & _handle);
       if (status != XTASKS_SUCCESS) {
          // Before fail, try to allocate less memory
@@ -34,8 +32,6 @@
          size = 0;
       }
    }
-    std::cout<<"Allocated " << size << " bytes of FPGA device memory for the FPGAPinnedAllocator status is"<<status<<std::endl;
-   printf("The handle is: %X\n", _handle);
    uint64_t addr = 0;
    if (status == XTASKS_SUCCESS) {
       status = xtasksGetAccAddress(_handle, & addr);
@@ -76,8 +72,6 @@
 	{
       size_t fpga_addr = (size_t)(kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-      printf("MEMCPY normal FPGA: %lX HOST: %lX COUNT: %lX handle %X \n", fpga_addr, host_addr, count, _handle);
-
 		if(xtasksMemcpy(_handle ,fpga_addr, count, host_addr, kind) != XTASKS_SUCCESS) abort();
 	}
 
@@ -88,10 +82,7 @@
       
       size_t fpga_addr = (size_t)(kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-
-      printf("MEMCPY async FPGA: %lX HOST: %lX COUNT: %lX\n", fpga_addr, host_addr, count);
 		if(xtasksMemcpyAsync(_handle ,fpga_addr, count, host_addr, kind, cpyHandle) != XTASKS_SUCCESS) abort();
-
 		return cpyHandle;
 	}
 

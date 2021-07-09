@@ -64,7 +64,7 @@ public:
 			ConfigVariable<uint32_t>("devices.fpga.streams"),
 			ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 			ConfigVariable<bool>("devices.fpga.polling.pinned")),
-			_supports_async(true)
+			_supports_async(ConfigVariable<bool>("devices.fpga.real_async"))
 	{
 
 		size_t _deviceCount = 0, _handlesCount=0;

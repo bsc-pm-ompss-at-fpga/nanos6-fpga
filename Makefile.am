@@ -1852,6 +1852,9 @@ if !USE_OPENACC
 disabled_config_features += "OPENACC"
 endif
 
+if !USE_FPGA
+disabled_config_features += "FPGA"
+endif 
 # Cluster is not supported
 disabled_config_features += "CLUSTER"
 

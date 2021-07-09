@@ -28,7 +28,6 @@ void FPGAAccelerator::callBody(Task *task)
 			{ 
 				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
-				std::cout<<"Submit task"<<std::endl;
 				if (xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS)
 				{
 					abort();
@@ -38,7 +37,6 @@ void FPGAAccelerator::callBody(Task *task)
 					xtasks_task_id tid;
 					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
 					{
-						std::cout<<"task has finished"<<std::endl;
 						xtasksDeleteTask(&hand);
 						Task* _task  = (Task*) tid;
 						_task->getDeviceEnvironment().fpga.taskFinished=true;

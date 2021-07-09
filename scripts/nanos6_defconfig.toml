@@ -136,13 +136,26 @@ __!require_PQOS
 	rolling_window = 20
 
 [devices]
+	directory = true
+__require_FPGA
 	# OmpSs-2 @ FPGA
 	[devices.fpga]
+		# If xtasks supports async copies, this can be true, if not, the runtime will use the default xtasks memcpy and
+		# simulate an asynchronous copy spawning a new thread.
+		real_async = false
 		page_size = 0x8000
+		# Maximum number of FPGA tasks running at the same time
 		streams = 16
 		[devices.fpga.polling]
-			period_us = 1000
+			# Indicate whether the FPGA services should constantly run while there are FPGA tasks
+			# running on their FPGA. Enabling this option may reduce the latency of processing FPGA
+			# tasks at the expenses of occupiying a CPU from the system. Default is true
 			pinned = true
+			# The time period in microseconds between FPGA service runs. During that time, the CPUs
+			# occupied by the services are available to execute ready tasks. Setting this option to 0
+			# makes the services to constantly run. Default is 1000
+			period_us = 1000
+__!require_FPGA
 __require_CUDA
 	# OmpSs-2 @ CUDA
 	[devices.cuda]
