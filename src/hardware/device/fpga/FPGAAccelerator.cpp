@@ -28,13 +28,17 @@ void FPGAAccelerator::callBody(Task *task)
 			{ 
 				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
-				xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle);
+				std::cout<<"Submit task"<<std::endl;
+				if (xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS)
+				{
+					abort();
+				}
 				return [=]()->bool{
 					xtasks_task_handle hand;
 					xtasks_task_id tid;
 					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
 					{
-						printf("Task finished\n");
+						std::cout<<"task has finished"<<std::endl;
 						xtasksDeleteTask(&hand);
 						Task* _task  = (Task*) tid;
 						_task->getDeviceEnvironment().fpga.taskFinished=true;
@@ -74,7 +78,8 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 		return [=]() -> AcceleratorStream::checker
 		{
 
-			bool* copy_finished_flag = new bool{};
+			bool* copy_finished_flag = new bool;
+			*copy_finished_flag=false;
 			auto do_copy = [](void* t)
 			{  
 				std::function<void()>* fn = (std::function<void()>*) t;
@@ -121,7 +126,8 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, 
 		return [=]() -> AcceleratorStream::checker
 		{
 
-			bool* copy_finished_flag = new bool{};
+			bool* copy_finished_flag = new bool;
+			*copy_finished_flag=false;
 			auto do_copy = [](void* t)
 			{  
 				std::function<void()>* fn = (std::function<void()>*) t;

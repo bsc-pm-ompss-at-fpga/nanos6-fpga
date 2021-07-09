@@ -40,6 +40,8 @@
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
 
+
+#include <libxtasks.h>
 static ExternalThread *mainThread = nullptr;
 
 void nanos6_shutdown(void);
@@ -66,6 +68,7 @@ void nanos6_preinit(void)
 			"this executable was compiled for a different Nanos6 version. Please recompile and link it."
 		);
 	}
+    if(xtasksInit() != XTASKS_SUCCESS) std::cout<<"ERROR INITIALIZING XTASKS"<<std::endl;;
 
 	// Initialize all runtime options if needed
 	ConfigCentral::initializeOptionsIfNeeded();
