@@ -651,8 +651,13 @@ memory_allocator_sources =
 memory_allocator_cppflags = -I$(srcdir)/src/memory/allocator/malloc
 endif
 
-memory_sources = $(memory_allocator_sources)
-memory_cppflags = $(memory_allocator_cppflags)
+if USE_FPGA
+memory_allocator_fpga_sources = src/memory/allocator/devices/SimpleAllocator.cpp
+memory_allocator_fpga_flags = -I$(srcdir)/src/memory/allocator/devices
+endif
+
+memory_sources = $(memory_allocator_sources) $(memory_allocator_fpga_sources)
+memory_cppflags = $(memory_allocator_cppflags) $(memory_allocator_fpga_flags)
 
 dist_memory_sources = $(memory_sources)
 

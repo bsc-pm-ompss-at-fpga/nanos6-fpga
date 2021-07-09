@@ -22,7 +22,11 @@ class FPGADeviceInfo : public DeviceInfo {
 public:
 	FPGADeviceInfo()
 	{
-
+		static auto init = xtasksInit();
+		if(init != XTASKS_SUCCESS) 
+		{
+			abort();
+		}
 		_accelerators.push_back(new FPGAAccelerator(0));
 		_deviceInitialized = true;
 		_deviceCount = 1;

@@ -34,6 +34,7 @@ void FPGAAccelerator::callBody(Task *task)
 					xtasks_task_id tid;
 					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
 					{
+						printf("Task finished\n");
 						xtasksDeleteTask(&hand);
 						Task* _task  = (Task*) tid;
 						_task->getDeviceEnvironment().fpga.taskFinished=true;
@@ -57,15 +58,14 @@ void FPGAAccelerator::preRunTask(Task *task)
 AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  Task *task)
 {
 
-	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
 	if(_supports_async)
 		{
 			return [=]() -> AcceleratorStream::checker
 			{
-				auto checkFinalization= FPGAFunctions::memcpyAsync(dst,src,size,fp.first,XTASKS_HOST_TO_ACC);
-				return [checkFinalization]() -> bool
+				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_HOST_TO_ACC);
+				return [this, checkFinalization]() -> bool
 				{
-					return FPGAFunctions::testAsyncDestroyOnSuccess(checkFinalization);
+					return _allocator.testAsyncDestroyOnSuccess(checkFinalization);
 				};
 			};
 		}
@@ -82,7 +82,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 				delete fn;
 			};
 
-			auto copy  = new std::function<void()>([=](){FPGAFunctions::memcpy(dst,src,size,fp.first,XTASKS_HOST_TO_ACC);});
+			auto copy  = new std::function<void()>([=](){_allocator.memcpy(dst,src,size,XTASKS_HOST_TO_ACC);});
 
 			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
 
@@ -105,15 +105,14 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 //this functions performs a copy from the accelerator address space to host memory
 AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] Task *task) 
 {
-	auto fp = FPGAFunctions::getMemHandleAndOffset(dst);
 	if(_supports_async)
 		{
 			return [=]() -> AcceleratorStream::checker
 			{
-				auto checkFinalization= FPGAFunctions::memcpyAsync(dst,src,size,fp.first,XTASKS_ACC_TO_HOST);
-				return [checkFinalization]() -> bool
+				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_ACC_TO_HOST);
+				return [this, checkFinalization]() -> bool
 				{
-					return FPGAFunctions::testAsyncDestroyOnSuccess(checkFinalization);
+					return _allocator.testAsyncDestroyOnSuccess(checkFinalization);
 				};
 			};
 		}
@@ -130,7 +129,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, 
 				delete fn;
 			};
 
-			auto copy  = new std::function<void()>([=](){FPGAFunctions::memcpy(dst,src,size,fp.first,XTASKS_ACC_TO_HOST);});
+			auto copy  = new std::function<void()>([=](){_allocator.memcpy(dst,src,size,XTASKS_ACC_TO_HOST);});
 
 			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
 

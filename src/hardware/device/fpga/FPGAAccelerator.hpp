@@ -9,14 +9,16 @@
 
 #include <list>
 
-#include "FPGAFunctions.hpp"
 #include "hardware/device/Accelerator.hpp"
 #include "support/config/ConfigVariable.hpp"
 #include "tasks/Task.hpp"
+#include "src/memory/allocator/devices/FPGAPinnedAllocator.hpp"
+
 
 class FPGAAccelerator : public Accelerator {
 private:
 	bool _supports_async;
+	FPGAPinnedAllocator _allocator;
 
 	struct _fpgaAccel
 	{
@@ -62,15 +64,9 @@ public:
 			ConfigVariable<uint32_t>("devices.fpga.streams"),
 			ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 			ConfigVariable<bool>("devices.fpga.polling.pinned")),
-			_supports_async(false)
+			_supports_async(true)
 	{
-		accel_allocate(0x1000);
 
-		static auto init = xtasksInit();
-		if(init != XTASKS_SUCCESS) 
-		{
-			abort();
-		}
 		size_t _deviceCount = 0, _handlesCount=0;
 		if(xtasksGetNumAccs(&_deviceCount) != XTASKS_SUCCESS) abort();
 
@@ -96,12 +92,12 @@ public:
 	
 	void *accel_allocate(size_t size) override
 	{
-		return FPGAFunctions::malloc(size);
+		return _allocator.allocate(size);
 	}
 
 	void accel_free(void* ptr) override
 	{
-		FPGAFunctions::free(ptr);
+		_allocator.free(ptr);
 	}
 	
 
