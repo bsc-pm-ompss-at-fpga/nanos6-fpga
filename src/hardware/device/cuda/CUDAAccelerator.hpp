@@ -84,11 +84,11 @@ public:
 
 	AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion) override;
 	
-	void *accel_allocate(size_t size) override
+	std::pair<void *, bool> accel_allocate(size_t size) override
 	{
 		void * devalloc =  CUDAFunctions::malloc(size);
 		//std::cout<<"CUDA Allocate: "<<devalloc<<std::endl;
-		return devalloc;
+		return {devalloc, devalloc!=nullptr};
 	}
 
 	void accel_free(void* ptr) override

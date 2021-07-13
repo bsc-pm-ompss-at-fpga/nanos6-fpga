@@ -15,6 +15,56 @@
 #include <DataAccessRegistrationImplementation.hpp>
 
 
+
+FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
+	Accelerator(fpgaDeviceIndex,
+		nanos6_fpga_device,
+		ConfigVariable<uint32_t>("devices.fpga.streams"),
+		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
+		ConfigVariable<bool>("devices.fpga.polling.pinned")),
+		_supports_async(ConfigVariable<bool>("devices.fpga.real_async"))
+{
+
+	size_t _deviceCount = 0, _handlesCount=0;
+	if(xtasksGetNumAccs(&_deviceCount) != XTASKS_SUCCESS) abort();
+
+	int numAccel = _deviceCount;
+
+	std::vector<xtasks_acc_info> info(numAccel);
+	std::vector<xtasks_acc_handle> handles(numAccel);
+	if(xtasksGetAccs(numAccel, &handles[0], &_handlesCount) != XTASKS_SUCCESS) abort();
+
+	for(int i=0; i<numAccel;++i)
+	{
+		xtasksGetAccInfo(handles[i], &info[i]);
+		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
+	}
+}
+
+
+
+inline void FPGAAccelerator::generateDeviceEvironment(Task *task) 
+{
+	xtasks_acc_handle accelerator = _inner_accelerators[task->getDeviceSubType()].getHandle();
+	xtasks_task_id parent = 0;
+	xtasksCreateTask((xtasks_task_id) task, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &task->getDeviceEnvironment().fpga.taskHandle);
+	task->getDeviceEnvironment().fpga.taskFinished = false;
+}
+
+
+
+
+	std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
+	{
+		return _allocator.allocate(size);
+	}
+
+	void FPGAAccelerator::accel_free(void* ptr)
+	{
+		_allocator.free(ptr);
+	}
+	
+
 void FPGAAccelerator::postRunTask(Task *)
 {
 }

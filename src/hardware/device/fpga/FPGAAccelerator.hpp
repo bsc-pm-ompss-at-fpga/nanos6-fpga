@@ -29,21 +29,12 @@ private:
 			return _accelHandle[(idx++)%_accelHandle.size()]; 
 		}
 	};
-
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
-	inline void generateDeviceEvironment(Task *task) override
-	{
-		xtasks_acc_handle accelerator = _inner_accelerators[task->getDeviceSubType()].getHandle();
-		xtasks_task_id parent = 0;
-		xtasksCreateTask((xtasks_task_id) task, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &task->getDeviceEnvironment().fpga.taskHandle);
-		task->getDeviceEnvironment().fpga.taskFinished = false;
-	}
 
-	inline void finishTaskCleanup([[maybe_unused]] Task *task) override
-	{
+	inline void generateDeviceEvironment(Task *task) override;
 
-	}
+	inline void finishTaskCleanup([[maybe_unused]] Task *task) override{}
 
 	void preRunTask(Task *task) override;
 
@@ -58,47 +49,11 @@ private:
 
 
 public:
-	FPGAAccelerator(int fpgaDeviceIndex) :
-		Accelerator(fpgaDeviceIndex,
-			nanos6_fpga_device,
-			ConfigVariable<uint32_t>("devices.fpga.streams"),
-			ConfigVariable<size_t>("devices.fpga.polling.period_us"),
-			ConfigVariable<bool>("devices.fpga.polling.pinned")),
-			_supports_async(ConfigVariable<bool>("devices.fpga.real_async"))
-	{
-
-		size_t _deviceCount = 0, _handlesCount=0;
-		if(xtasksGetNumAccs(&_deviceCount) != XTASKS_SUCCESS) abort();
-
-		int numAccel = _deviceCount;
-
-		std::vector<xtasks_acc_info> info(numAccel);
-		std::vector<xtasks_acc_handle> handles(numAccel);
-		if(xtasksGetAccs(numAccel, &handles[0], &_handlesCount) != XTASKS_SUCCESS) abort();
-
-		for(int i=0; i<numAccel;++i)
-		{
-			xtasksGetAccInfo(handles[i], &info[i]);
-			_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
-		}
-	}
-
-	~FPGAAccelerator()
-	{
-	}
-
+	FPGAAccelerator(int fpgaDeviceIndex);
 	
-	
-	std::pair<void *, bool> accel_allocate(size_t size) override
-	{
-		return _allocator.allocate(size);
-	}
+	std::pair<void *, bool> accel_allocate(size_t size) override;
 
-	void accel_free(void* ptr) override
-	{
-		_allocator.free(ptr);
-	}
-	
+	void accel_free(void* ptr) override;
 
 
 };
