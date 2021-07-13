@@ -97,4 +97,5 @@ void HardwareInfo::shutdownDeviceServices()
 	_infos[nanos6_fpga_device]->shutdownDeviceServices();
 #endif
 	DeviceDirectoryInstance::instance->shutdownTaskwaitService();
+	delete DeviceDirectoryInstance::instance;
 }

@@ -8,9 +8,9 @@
 #define FPGA_ACCELERATOR_HPP
 
 #include <list>
+#include "support/config/ConfigVariable.hpp"
 
 #include "hardware/device/Accelerator.hpp"
-#include "support/config/ConfigVariable.hpp"
 #include "tasks/Task.hpp"
 #include "src/memory/allocator/devices/FPGAPinnedAllocator.hpp"
 
@@ -88,9 +88,8 @@ public:
 	}
 
 	
-
 	
-	void *accel_allocate(size_t size) override
+	std::pair<void *, bool> accel_allocate(size_t size) override
 	{
 		return _allocator.allocate(size);
 	}

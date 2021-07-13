@@ -116,7 +116,7 @@ public:
 
   void setDirectoryHandle(int handle);
 
-  std::shared_ptr<DeviceAllocation>  createNewDeviceAllocation(const DataAccessRegion &region);
+  std::pair<std::shared_ptr<DeviceAllocation>, bool>   createNewDeviceAllocation(const DataAccessRegion &region);
 
   MemoryPlace *getMemoryPlace();
 
@@ -149,7 +149,7 @@ public:
 
   AcceleratorEvent *createEvent();
   virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);
-  virtual void *accel_allocate(size_t size);
+  virtual std::pair<void *, bool> accel_allocate(size_t size);
 
   virtual void destroyEvent(AcceleratorEvent *event);
 

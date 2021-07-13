@@ -6,8 +6,6 @@
 #ifndef DEVICE_DIRECTORY_INTERVAL_MAP_HPP
 #define DEVICE_DIRECTORY_INTERVAL_MAP_HPP
 
-
-
 #include <algorithm>
 #include <assert.h>
 #include <cstddef>
@@ -25,32 +23,22 @@ using IntervalMapIterator = typename IntervalMapType::iterator;
 
 class IntervalMap {
 private:
-	int typeSize;
-	std::mutex class_mutex;
+	const int _numberOfAccelerators;
+	std::mutex _map_mtx;
 
 public:
 	IntervalMapType _inner_m;
 
-	IntervalMap(){}
-	IntervalMap(int s):typeSize(s){}
+	IntervalMap():_numberOfAccelerators(0){}
+	IntervalMap(int s):_numberOfAccelerators(s){}
 	~IntervalMap()
 	{
 		for(auto& val: _inner_m) delete val.second;
-
 	}
 
 	inline void freeAllocationsForHandle(int handle, const std::vector<std::shared_ptr<DeviceAllocation>>& untouchableAllocations)
 	{
-		std::lock_guard<std::mutex> guard(class_mutex);
-
-		const auto validElsewhere = [size = typeSize](DirectoryEntry& entry, int h)
-		{
-			for(int i = 0; i < size; ++i)
-				if(i != h && entry.isValid(i)) return true;
-			
-			return false;
-		};
-
+		std::lock_guard<std::mutex> guard(_map_mtx);
 		const auto isTouchable = [&](auto& t){
 			for(auto& a : untouchableAllocations) if(a == t) return false;
 			return true;
@@ -59,37 +47,34 @@ public:
 		for(auto & ent : _inner_m)
 		{
 			auto& v = *ent.second;
-			if(isTouchable(v.getDeviceAllocation(handle)) && !v.isModified(handle) && validElsewhere(v,handle))
+			if(isTouchable(v.getDeviceAllocation(handle)) && !v.isModified(handle))
 			{
-				std::cout<<"ERROR: NOT CHECKING IF PINNED"<<std::endl;
-				v.clearDeviceAllocation(handle);
+				const int fvl = v.getFirstValidLocation(handle);
+				const bool isNotValidAnywhere = !v.isValid(0) && !v.isValid(handle);
+				const bool isValidElsewhere = v.isValid(0) || fvl!=0;
+				if(isNotValidAnywhere || isValidElsewhere)
+				{
+					v.clearDeviceAllocation(handle);
+				}
 			}
 		}
 	}
 
 	inline IntervalMapIterator ADD(IntervalMapIterator hint, std::pair<uintptr_t, uintptr_t> itv, DirectoryEntry  *toClone,__attribute__((unused)) int line = 0)
 	{
+		DirectoryEntry  *toAdd;
 		if (itv.first == itv.second)
 			return hint;
-		DirectoryEntry  *toAdd;
-		if (toClone == nullptr)
-			toAdd = new DirectoryEntry (typeSize);
-		else
-		{
-			toAdd = toClone->clone();
-			//printf("[%d] Cloned entry [%d] with range [%X,%X] to range it to [%X, %X]\n",line,toAdd->ENTRY_VAL, toAdd->getLeft(), toAdd->getRight(), itv.first, itv.second);
-		}
 
+		if (toClone == nullptr) toAdd = new DirectoryEntry (_numberOfAccelerators);
+		else toAdd = toClone->clone();
 
 		toAdd->updateRange({itv.first, itv.second});
 
 		assert(itv.first < itv.second);
 
 		std::pair<uintptr_t, DirectoryEntry  *> t = {itv.first, toAdd};
-		auto ret = _inner_m.insert(hint, t);
-
-		//ret->second->setValid(0);//TODO IS THIS OK? 
-		return ret;
+		return _inner_m.insert(hint, t);
 	}
 
 	inline IntervalMapIterator MODIFY_KEY(IntervalMapIterator it, std::pair<uintptr_t, uintptr_t> new_itv)
@@ -103,8 +88,7 @@ public:
 		uintptr_t key = toAdd->getLeft();
 	
 		std::pair<uintptr_t, DirectoryEntry  *> t = {key, toAdd};
-		auto ret = _inner_m.insert(std::begin(_inner_m), t);
-		return ret;
+		return _inner_m.insert(std::begin(_inner_m), t);
 	}
 
 
@@ -127,10 +111,11 @@ public:
 	{
 		return applyToRange({(uintptr_t)dar.getStartAddress(), (uintptr_t)dar.getStartAddress() + (uintptr_t)dar.getSize()}, function);
 	}
+
 	//if function returns false, cancel execution and return false.
 	bool applyToRange(std::pair<uintptr_t, uintptr_t> apply, std::function<bool(DirectoryEntry  *)> function)
 	{
-		std::lock_guard<std::mutex> guard(class_mutex);
+		std::lock_guard<std::mutex> guard(_map_mtx);
 		IntervalMapIterator it = getIterator(apply.first);
 		while(it != getEnd() && it->second->getLeft()<apply.first) ++it;
 		while (it != getEnd() && it->second->getRight() <= apply.second) {
@@ -140,7 +125,6 @@ public:
 
 			++it;
 		}
-
 		return true;
 	}
 
@@ -152,7 +136,7 @@ public:
 
 	void addRange(std::pair<uintptr_t, uintptr_t> new_range_to_add)
 	{
-		std::lock_guard<std::mutex> guard(class_mutex);
+		std::lock_guard<std::mutex> guard(_map_mtx);
 		
 		assert(new_range_to_add.first <= new_range_to_add.second);
 		if(new_range_to_add.first == new_range_to_add.second) new_range_to_add.second+=sizeof(void*);
@@ -201,12 +185,10 @@ public:
 
 			bool exact_match = new_range_left == current_in_map_left && new_range_right == current_in_map_right;
 
-			//printf(" NEW RANGE [%X, %X]\n", new_range_left, new_range_right);
-			if (exact_match) {
-				return;
-			} else if (new_range_left == current_in_map_right)
-				beg++;
-			else if (new_range_left < intersect_left) {
+			if (exact_match) return;
+			else if (new_range_left == current_in_map_right) beg++;
+			else if (new_range_left < intersect_left) 
+			{
 				if(no_intersection)
 				{
 					beg = ADD(beg, {new_range_left, new_range_right}, nullptr, __LINE__);
@@ -227,17 +209,15 @@ public:
 			} else if (new_range_left > current_in_map_left) {
 				if (intersection) 
 				{
-					//printf("INTERSECTION: current [%X, %X] MOD_TO [%X, %X] ADD_CLONING: [%X, %X] ADD_CLONING [%X, %X]\n",beg->second->getLeft(), beg->second->getRight(), current_in_map_left,intersect_left, intersect_left, intersect_right, intersect_right, current_in_map_right);
 					beg = MODIFY_KEY(beg, {current_in_map_left, intersect_left});
 					beg = ADD(beg, {intersect_left, intersect_right}, beg->second, __LINE__);
-					/*ADDED 09/07/2020 needs checking*/
 					beg = ADD(beg, {intersect_right, current_in_map_right}, beg->second, __LINE__);
 				} else {
 					beg++;
 				}
 			} else {
-				printf("ERROR\n");
-				exit(-1);
+				printf("Device Directory Internal Structure failure\n");
+				abort();
 			}
 		}
 

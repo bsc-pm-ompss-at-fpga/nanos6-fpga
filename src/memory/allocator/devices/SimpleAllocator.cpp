@@ -1,7 +1,8 @@
 #include <iostream>
 #include <cstring>
-#include "SimpleAllocator.hpp"
+#include <utility>
 
+#include "SimpleAllocator.hpp"
 
 SimpleAllocator::SimpleAllocator( uint64_t baseAddress, std::size_t len ) : _baseAddress( baseAddress ), _remaining ( len ), _capacity( len )
 {
@@ -16,7 +17,7 @@ void SimpleAllocator::init( uint64_t baseAddress, std::size_t len )
    _capacity = len;
 }
 
-void * SimpleAllocator::allocate( std::size_t size )
+std::pair<void *, bool> SimpleAllocator::allocate( std::size_t size )
 {
    std::map<uint64_t, std::size_t>::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
@@ -41,18 +42,13 @@ void * SimpleAllocator::allocate( std::size_t size )
       retAddr = ( void * ) targetAddr;
       _remaining -= size;
    }
-   else {
-      // Could not get a chunk of 'size' bytes
-      //*myThread->_file << __FUNCTION__ << " WARNING: Allocator is full, requested " << size << " bytes, remaining " << _remaining << " bytes." << std::endl;
-      //sys.printBt();
-      return NULL;
-   }
- //  *(myThread->_file) << "SimpleAllocator::allocate returns " << (void *) retAddr << std::endl;
+   else return {nullptr, false};
+   
 
-   return retAddr;
+   return {retAddr, true};
 }
 
-void * SimpleAllocator::alignedAllocate( std::size_t const alignment, std::size_t const size )
+std::pair<void *, bool>  SimpleAllocator::alignedAllocate( std::size_t const alignment, std::size_t const size )
 {
    std::map<uint64_t, std::size_t>::iterator mapIter = _freeChunks.begin();
    void * retAddr = (void *) 0;
@@ -91,10 +87,10 @@ void * SimpleAllocator::alignedAllocate( std::size_t const alignment, std::size_
    else {
       // Could not get a chunk of 'size' bytes
       //*myThread->_file << sys.getNetwork()->getNodeNum() << ": WARNING: Allocator is full" << std::endl;
-      return NULL;
+      return {nullptr, false};
    }
 
-   return retAddr;
+   return {retAddr, true};
 }
 
 std::size_t SimpleAllocator::free( void *address )
@@ -183,32 +179,32 @@ void SimpleAllocator::printMap( std::ostream &o )
 {
    std::size_t totalAlloc = 0, totalFree = 0;
    o << (void *) this <<" ALLOCATED CHUNKS" << std::endl;
-   for (std::map<uint64_t, std::size_t>::iterator it = _allocatedChunks.begin(); it != _allocatedChunks.end(); it++ ) {
+   for (const auto &map_pair : _allocatedChunks)
+   {
       o << "|... ";
-      o << (void *) it->first << " @ " << (std::size_t)it->second;
+      o << (void *) map_pair.first << " @ " << (std::size_t)map_pair.second;
       o << " ...";
-      totalAlloc += it->second;
+      totalAlloc += map_pair.second;
    }
    o << "| total allocated bytes " << (std::size_t) totalAlloc << std::endl;
 
    o << (void *) this <<" FREE CHUNKS" << std::endl;
-   for (std::map<uint64_t, std::size_t>::iterator it = _freeChunks.begin(); it != _freeChunks.end(); it++ ) {
+   for (const auto &map_pair : _freeChunks) {
       o << "|... ";
-      o << (void *) it->first << " @ " << (std::size_t) it->second;
+      o << (void *) map_pair.first << " @ " << (std::size_t) map_pair.second;
       o << " ...";
-      totalFree += it->second;
+      totalFree += map_pair.second;
    }
    o << "| total free bytes "<< (std::size_t) totalFree << std::endl;
 }
 
-void SimpleAllocator::lock() {
-   //while ( !_lock.tryAcquire() ) {
-   //   myThread->idle();
-   //}
+void SimpleAllocator::lock() 
+{
    _lock.lock();
 }
 
-void SimpleAllocator::unlock() {
+void SimpleAllocator::unlock() 
+{
    _lock.unlock();
 }
 
@@ -243,8 +239,10 @@ void SimpleAllocator::canAllocate( std::size_t *sizes, unsigned int numChunks, s
    for ( unsigned int idx = 0; idx < numChunks; idx += 1 ) {
       allocated[ idx ] = false;
    }
-   for ( std::map<uint64_t, std::size_t>::const_iterator mapIter = _freeChunks.begin(); mapIter != _freeChunks.end(); mapIter++ ) {
-      std::size_t thisSize = mapIter->second;
+
+   for(const auto &map_pair : _freeChunks)
+   {
+      std::size_t thisSize = map_pair.second;
       for ( unsigned int idx = 0; idx < numChunks; idx += 1 ) {
          if ( allocated[ idx ] == false && sizes[ idx ] <= thisSize ) {
             allocated[ idx ] = true;
@@ -269,13 +267,14 @@ void SimpleAllocator::canAllocate( std::size_t *sizes, unsigned int numChunks, s
    }
 }
 
-void SimpleAllocator::getFreeChunksList( SimpleAllocator::ChunkList &list ) const {
-   for ( std::map<uint64_t, std::size_t>::const_iterator mapIter = _freeChunks.begin(); mapIter != _freeChunks.end(); mapIter++ ) {
-      list.push_back( *mapIter );
-   }
+void SimpleAllocator::getFreeChunksList( SimpleAllocator::ChunkList &list ) const 
+{
+   for(const auto&  map_pair : _freeChunks)
+      list.push_back(map_pair);
 }
 
-std::size_t SimpleAllocator::getCapacity() const {
+std::size_t SimpleAllocator::getCapacity() const 
+{
    return _capacity;
 }
 

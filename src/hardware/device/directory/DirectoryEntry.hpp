@@ -69,11 +69,11 @@ class DirectoryEntry
 
      //Directory Entry Utils
 
- 	STATUS               getStatus(int handler)  const   {return _valid_locations[handler];}
- 	bool                 isValid(int handler)    const   {return _valid_locations[handler] == STATUS::VALID;}
- 	bool                 isPending(int handler)  const   {return _valid_locations[handler] == STATUS::PENDING_TO_VALID;}
- 	bool                 isInvalid(int handler)  const   {return _valid_locations[handler] == STATUS::INVALID;}
- 	bool                 isModified(int handler) const   {return _modified_location == handler;}
+ 	STATUS getStatus(int handler)  const   {return _valid_locations[handler];}
+ 	bool isValid(int handler)    const   {return _valid_locations[handler] == STATUS::VALID;}
+ 	bool isPending(int handler)  const   {return _valid_locations[handler] == STATUS::PENDING_TO_VALID;}
+ 	bool isInvalid(int handler)  const   {return _valid_locations[handler] == STATUS::INVALID;}
+ 	bool isModified(int handler) const   {return _modified_location == handler;}
     std::shared_ptr<DeviceAllocation>& getDeviceAllocation(int handler){return _perDeviceAllocation[handler];}
 
 
@@ -87,53 +87,52 @@ class DirectoryEntry
 	void setStatus(int handler, STATUS status){_valid_locations[handler] = status;}
 	void setDeviceAllocation(int handler, std::shared_ptr<DeviceAllocation>& deviceAllocation)
     {
-        //printf("[ENTRY[%d] HANDLER[%d]] setDeviceAllocation\n",ENTRY_VAL, handler);
         _perDeviceAllocation[handler] = deviceAllocation;
     }
 
     void clearDeviceAllocation(int handle)
     { 
-        //printf("clearDeviceAllocation [ENTRY[%d] HANDLER[%d]]\n", ENTRY_VAL, handle);
         _perDeviceAllocation[handle] = nullptr;
         _valid_locations[handle] = STATUS::INVALID;
     }
-    void clearValid(){std::fill(_valid_locations.begin(), _valid_locations.end(), STATUS::INVALID);}
+    void clearValid()
+    {
+        std::fill(_valid_locations.begin(), _valid_locations.end(), STATUS::INVALID);
+    }
+   
     void clearAllocations()
     {
-        //printf("clearDeviceAllocation [ENTRY[%d] HANDLER[all]]\n", ENTRY_VAL);
-
         for(auto& a : _perDeviceAllocation) a = nullptr;
         clearValid();
     }
 
-    uintptr_t getTranslation(int handler, uintptr_t addr) const { 
-
+    uintptr_t getTranslation(int handler, uintptr_t addr) const 
+    { 
         if(handler == 0) return addr;
-       // printf(" Get Translation [ENTRY[%d] HANDLER[%d]]\n", ENTRY_VAL, handler);
         assert(_perDeviceAllocation[handler] != nullptr);
         return _perDeviceAllocation[handler]->getTranslation(addr);
-
     }
 
     //get raw data
     uintptr_t getLeft() const{return _range.first;}
     uintptr_t getRight() const {return _range.second;}
     std::pair<uintptr_t, uintptr_t>   getRange() const {return _range;}
-    int       getModifiedLocation() const{ return _modified_location; }
-    int       getFirstValidLocation() const
+
+    int getModifiedLocation() const{ return _modified_location; }
+    int getFirstValidLocation(int handle_ignore = -2) const
     { 
-        
         for(size_t i = 0; i < _valid_locations.size(); ++i) 
         {
-            if(isValid(i)) return i;
+            if(handle_ignore ==  (int) i) continue;
+            else if(isValid(i)) return i;
         }
         return 0;
     }
 
     //get processed data
-    size_t           getSize() const {return getRight()-getLeft();}
+    size_t getSize() const {return getRight()-getLeft();}
     DataAccessRegion getDataAccessRegion() const {return DataAccessRegion((void*) getLeft(), getSize());}
-    std::pair<uintptr_t, uintptr_t>          getIntersection(const std::pair<uintptr_t, uintptr_t>& other) const {return {std::max(getLeft(), other.first), std::min(getRight(), other.second)};}
+    std::pair<uintptr_t, uintptr_t> getIntersection(const std::pair<uintptr_t, uintptr_t>& other) const {return {std::max(getLeft(), other.first), std::min(getRight(), other.second)};}
 
     //setters
     void updateRange(const std::pair<uintptr_t, uintptr_t>& r){_range = r;}

@@ -144,6 +144,7 @@ __require_FPGA
 		# simulate an asynchronous copy spawning a new thread.
 		real_async = false
 		page_size = 0x8000
+		requested_fpga_memory = 0x200000000
 		# Maximum number of FPGA tasks running at the same time
 		streams = 16
 		[devices.fpga.polling]

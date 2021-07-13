@@ -15,16 +15,18 @@
 
 struct DeviceAllocation
 {
-    std::function<void(void*)> free_deviceAllocation;
+    std::function<void()> free_deviceAllocation;
     DataAccessRegion _hostRegion, _deviceRegion;
 
 	~DeviceAllocation(){
 		if(_deviceRegion.getStartAddress() != nullptr)
-			free_deviceAllocation(_deviceRegion.getStartAddress());
+		{
+			free_deviceAllocation();
+		}
 	}
 
 	DeviceAllocation(
-	 const DataAccessRegion& host,	 const DataAccessRegion& device,  std::function<void(void*)> freeFun) : 
+	 const DataAccessRegion& host,	 const DataAccessRegion& device,  std::function<void()> freeFun) : 
 		  free_deviceAllocation(std::move(freeFun)), _hostRegion(host),  _deviceRegion(device)
 	 {
 	 }

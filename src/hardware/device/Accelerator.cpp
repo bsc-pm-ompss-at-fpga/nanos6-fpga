@@ -117,11 +117,11 @@ void Accelerator::finishTask(Task *task)
   
 void Accelerator::accel_free(void *){}
 
-void *Accelerator::accel_allocate(size_t size) {
+std::pair<void *, bool> Accelerator::accel_allocate(size_t size) {
     static uintptr_t fake_offset = 0x1000;
     uintptr_t fake = fake_offset;
     fake_offset += size;
-    return (void *)fake;
+    return { (void *)fake,  true};
   }
 
 void Accelerator::initializeService()
@@ -198,34 +198,35 @@ void Accelerator::serviceCompleted(void *data)
 
   void Accelerator::setDirectoryHandle(int handle) { _directoryHandler = handle; }
 
-  std::shared_ptr<DeviceAllocation>
-  Accelerator::createNewDeviceAllocation(const DataAccessRegion &region) {
+  std::pair<std::shared_ptr<DeviceAllocation>, bool> Accelerator::createNewDeviceAllocation(const DataAccessRegion &region) 
+  {
     if (getDeviceType() == nanos6_host_device)
-      return std::make_shared<DeviceAllocation>(
-          DataAccessRegion((void *)region.getStartAddress(),
-                           (void *)region.getStartAddress()),
-          DataAccessRegion((void *)region.getStartAddress(),
-                           (void *)region.getStartAddress()),
-          [](void *) {});
+      return { std::make_shared<DeviceAllocation>(          
+        DataAccessRegion((void *)region.getStartAddress(), (void *)region.getEndAddress()),
+        DataAccessRegion((void *)region.getStartAddress(), (void *)region.getEndAddress()),
+        []{}
+      ), true};
 
     const uintptr_t page_down = get_page(region.getStartAddress());
-    const uintptr_t page_up =
-        get_page_up((uintptr_t)(region.getEndAddress()) + 1);
+    const uintptr_t page_up = get_page_up((uintptr_t)(region.getEndAddress()));
 
-    void *ptr = accel_allocate(page_up - page_down);
-    if (ptr == nullptr) {
-      return nullptr;
-    }
-    const DataAccessRegion host =
-        DataAccessRegion((void *)page_down, (void *)page_up);
-    const DataAccessRegion device = DataAccessRegion(
-        (void *)ptr, (void *)(((uintptr_t)ptr) + page_up - page_down));
+    //printf("page_down: %p page_up %p diff: %p\n", page_down, page_up, page_up-page_down);
+    std::pair<void*, bool> allocation = accel_allocate(page_up - page_down);
+    if (!allocation.second) return {nullptr, false};
 
-    return std::make_shared<DeviceAllocation>(host, device, [&](void *f) {
-      setActiveDevice();
-      accel_free(f);
-    });
-    ;
+
+    void* ptr = allocation.first;
+    
+    const DataAccessRegion host = DataAccessRegion((void *)page_down, (void *)page_up);
+    const DataAccessRegion device = DataAccessRegion((void *)ptr, (void *)(((uintptr_t)ptr) + page_up - page_down));
+
+    return {std::make_shared<DeviceAllocation>
+    (
+      host, 
+      device, 
+      [=]{ setActiveDevice(); accel_free(ptr); }
+    ), true};
+    
   }
 
 

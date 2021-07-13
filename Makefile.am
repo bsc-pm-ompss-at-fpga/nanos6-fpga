@@ -406,6 +406,8 @@ common_sources = \
 	src/memory/directory/Directory.cpp \
 	src/memory/directory/HomeNodeMap.cpp \
 	src/memory/numa/NUMAManager.cpp \
+	src/memory/allocator/devices/FPGAPinnedAllocator.hpp \
+	src/memory/allocator/devices/SimpleAllocator.hpp \
 	src/monitoring/Monitoring.cpp \
 	src/monitoring/TaskMonitor.cpp \
 	src/monitoring/TasktypeStatistics.cpp \

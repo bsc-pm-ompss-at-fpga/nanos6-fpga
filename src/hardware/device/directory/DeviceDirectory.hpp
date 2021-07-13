@@ -24,6 +24,9 @@ using checker = int;
 struct SymbolRepresentation;
 class DeviceDirectory
 {
+    public:
+        void print();
+
 
 private:
     std::mutex device_directory_mutex;
@@ -41,7 +44,7 @@ private:
     public:
 
     DeviceDirectory(const std::vector<Accelerator*>& accels);
-
+    ~DeviceDirectory();
     //This function tries to register the task dependences in the directory. 
     //As a parameter it accepts the task which dependences are going to be registered, and two steps that will be used for synchronization
     //This function can fail if there is no space for allocation in the device. In this case, the user is responsible of calling the free
@@ -105,7 +108,6 @@ private:
 		return _stopService.load(std::memory_order_relaxed);
 	}
 
-    void print();
 
     //This function makes a copy betwen two devices, if you are implementing a new device, you must add here the 
     //interaction between the devices.

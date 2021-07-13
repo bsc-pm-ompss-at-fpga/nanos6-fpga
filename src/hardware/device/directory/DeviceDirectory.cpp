@@ -20,6 +20,8 @@ namespace DeviceDirectoryInstance {
 };
 
 
+
+
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_dirMap(new IntervalMap(accels.size())),
@@ -32,7 +34,8 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 
 AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const DirectoryEntry &entry, int dstHandle, Task *task)
 {
-	const int srcHandle = entry.getFirstValidLocation();
+	const int srcHandle =  entry.getFirstValidLocation();
+
 	
 
 	const uintptr_t smpAddr = (uintptr_t)entry.getDataAccessRegion().getStartAddress();
@@ -83,6 +86,7 @@ bool DeviceDirectory::register_regions(Task *task)
 		return true;
 
 	std::lock_guard<std::mutex> guard(device_directory_mutex);
+
 	_current_task = task;
 
 	if (_current_task->getDeviceType() == nanos6_host_device)
@@ -106,6 +110,7 @@ bool DeviceDirectory::register_regions(Task *task)
 		processSymbol(sym[i], _symbol_allocations[i]);
 
 	_symbol_allocations.clear();
+
 	return true;
 }
 
@@ -155,27 +160,27 @@ void DeviceDirectory::processSymbolRegions(const std::vector<DataAccessRegion> &
 
 std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, SymbolRepresentation &symbol)
 {
-	std::shared_ptr<DeviceAllocation> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
+	std::pair<std::shared_ptr<DeviceAllocation>, bool> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
-	if (deviceAllocation.get() == nullptr) {
+	if (!deviceAllocation.second) {
 		_dirMap->freeAllocationsForHandle(handle, _symbol_allocations);
 		deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
-		if (deviceAllocation.get() == nullptr) {
+		if (!deviceAllocation.second) {
 			std::printf("FATAL ERROR: NO MEMORY ON DEVICE AFTER TRYING TO FREE\n");
 			exit(-1);
 		}
 	}
 
-	_dirMap->addRange(deviceAllocation->getHostRegion());
+	_dirMap->addRange(deviceAllocation.first->getHostRegion());
 
-	_dirMap->applyToRange(deviceAllocation->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
+	_dirMap->applyToRange(deviceAllocation.first->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
 		if (entry->getDeviceAllocation(handle) == nullptr)
-			entry->setDeviceAllocation(handle, deviceAllocation);
+			entry->setDeviceAllocation(handle, deviceAllocation.first);
 		return true;
 	});
 
-	return deviceAllocation;
+	return deviceAllocation.first;
 }
 
 std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(int handle, SymbolRepresentation &symbol)
@@ -323,7 +328,19 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		[=](AcceleratorEvent* own) 
 		{
 		/*release taskwait*/
-		_dirMap->applyToRange(taskwaitRegion, [](DirectoryEntry *entry) {entry->clearAllocations(); entry->clearValid(); entry->setModified(-1); return true; });
+		_dirMap->applyToRange(
+			taskwaitRegion,
+			[&](DirectoryEntry *entry) 
+			{
+				//clearing allocations is not easy, we can make it so it stays allocated
+				//and if we fail to allocate afterwards, try to cleanup
+				//entry->clearAllocations();
+				entry->clearValid();
+				entry->setModified(-1); 
+				entry->setValid(0);
+				return true;
+			});
+
 		release();
 		delete own;
 		}
@@ -332,6 +349,14 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 
 }
 
+
+DeviceDirectory::~DeviceDirectory()
+{
+	for(size_t i = 1; i < _accelerators.size(); ++i)
+	_dirMap->freeAllocationsForHandle(i, {});
+
+	delete _dirMap;
+}
 
 void DeviceDirectory::print()
 {
@@ -347,7 +372,7 @@ void DeviceDirectory::print()
 
 	for (auto &[l, entry] : _dirMap->_inner_m) {
 		std::ignore = l;
-		auto &[locations, allocations, modified, range] = *entry;
+		auto &[locations, allocations, modified, range, eval] = *entry;
 		auto &[left, right] = range;
 
 		printf("---------[%p,%p] \t", (void *)left, (void *)right);
@@ -356,7 +381,10 @@ void DeviceDirectory::print()
 			printf("\t[%lu] ", i);
 			printf("%s\t", indexToString(locations[i]).c_str());
 			if (allocations[i] != nullptr)
-				printf("[%p,%p]\t", (void *)allocations[i]->getDeviceBase(), (void *)allocations[i]->getDeviceEnd());
+				printf("[%p,%p](count: %lX)\t", 
+				(void *)allocations[i]->getDeviceBase(),
+				(void *)allocations[i]->getDeviceEnd(),
+				allocations[i].use_count());
 			else
 				printf("none\t");
 			printf("\n");

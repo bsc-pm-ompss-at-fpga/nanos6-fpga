@@ -45,6 +45,8 @@ ConfigCentral::ConfigCentral() :
 
 	// FPGA Devices
 	registerOption<integer_t>("devices.fpga.page_size", 0x8000);
+	registerOption<memory_t>("devices.fpga.requested_fpga_memory",0x200000000);
+
 	registerOption<integer_t>("devices.fpga.streams", 16);
 	registerOption<bool_t>("devices.fpga.polling.pinned", true);
 	registerOption<bool_t>("devices.fpga.real_async", false);
