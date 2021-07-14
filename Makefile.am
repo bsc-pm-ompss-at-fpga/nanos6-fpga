@@ -197,7 +197,8 @@ symbol_resolution += \
 	loader/symbol-resolver/loop.c \
 	loader/symbol-resolver/taskwait.c \
 	loader/symbol-resolver/user-mutex.c \
-	loader/symbol-resolver/weak-dependencies.c
+	loader/symbol-resolver/weak-dependencies.c \
+	loader/symbol-resolver/device-api.c 
 
 if USE_CUDA
 symbol_resolution += loader/symbol-resolver/cuda-device-api.c
@@ -237,7 +238,8 @@ symbol_resolution += \
 	loader/indirect-symbols/loop.c \
 	loader/indirect-symbols/taskwait.c \
 	loader/indirect-symbols/user-mutex.c \
-	loader/indirect-symbols/weak-dependencies.c
+	loader/indirect-symbols/weak-dependencies.c \
+	loader/indirect-symbols/device-api.c 
 
 if USE_CUDA
 symbol_resolution += loader/indirect-symbols/cuda-device-api.c
@@ -437,6 +439,7 @@ common_sources = \
 	src/system/TaskInfoAPI.cpp \
 	src/system/Throttle.cpp \
 	src/system/TrackingPoints.cpp \
+	src/system/DeviceAPI.cpp \
 	src/system/debug/DebugAPI.cpp \
 	src/system/ompss/AddTask.cpp \
 	src/system/ompss/Loop.cpp \

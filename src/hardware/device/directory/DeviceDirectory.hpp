@@ -150,7 +150,8 @@ private:
 namespace DeviceDirectoryInstance
 {
     extern DeviceDirectory *instance;
-    static bool useDirectory =	ConfigVariable<bool>("devices.directory");
+    extern bool useDirectory;
+    extern bool noflush;
 };
 
 #endif //DEVICE_DIRECTORY_HPP

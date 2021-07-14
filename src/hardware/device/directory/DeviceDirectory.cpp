@@ -17,6 +17,8 @@ static constexpr int SMP_HANDLER = 0;
 static constexpr int NO_DEVICE = -1;
 namespace DeviceDirectoryInstance {
 	DeviceDirectory *instance = nullptr;
+	bool useDirectory =	ConfigVariable<bool>("devices.directory");
+    bool noflush = false;
 };
 
 
@@ -314,6 +316,12 @@ void DeviceDirectory::processRegionWithOldAllocation(int handle, DirectoryEntry 
 void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::function<void()> release)
 {
 
+	if(DeviceDirectoryInstance::noflush)
+	{
+		release();
+		return;
+	}
+
 	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 
 	{
@@ -334,7 +342,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 			{
 				//clearing allocations is not easy, we can make it so it stays allocated
 				//and if we fail to allocate afterwards, try to cleanup
-				//entry->clearAllocations();
+				entry->clearAllocations();
 				entry->clearValid();
 				entry->setModified(-1); 
 				entry->setValid(0);
@@ -360,7 +368,7 @@ DeviceDirectory::~DeviceDirectory()
 
 void DeviceDirectory::print()
 {
-/*
+
 	auto indexToString = [](auto i) -> std::string {
 		if (i == DirectoryEntry::VALID)
 			return "V";
@@ -393,5 +401,5 @@ void DeviceDirectory::print()
 	}
 
 	printf("END OF DIR\n\n");
-*/
+
 }
