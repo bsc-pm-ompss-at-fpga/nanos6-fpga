@@ -36,12 +36,8 @@ class FPGAPinnedAllocator: public SimpleAllocator
             size = 0;
       }
    }
-   uint64_t addr = 0;
-   if (status == XTASKS_SUCCESS) {
-      status = xtasksGetAccAddress(_handle, & addr);
-      //ensure( status == XTASKS_SUCCESS, " Error getting the FPGA device address for the FPGAPinnedAllocator" );
-   }
-   init(addr, size);
+
+   init(0, size);
 
    // debug0( "New FPGAPinnedAllocator created with size: " << size/1024 << "KB, base_addr: 0x" <<    std::hex << addr << std::dec );
    }
