@@ -369,36 +369,43 @@ DeviceDirectory::~DeviceDirectory()
 void DeviceDirectory::print()
 {
 
-	auto indexToString = [](auto i) -> std::string {
-		if (i == DirectoryEntry::VALID)
-			return "V";
-		else if (i == DirectoryEntry::INVALID)
-			return "I";
-		else
-			return "P";
-	};
 
-	for (auto &[l, entry] : _dirMap->_inner_m) {
-		std::ignore = l;
-		auto &[locations, allocations, modified, range, eval] = *entry;
-		auto &[left, right] = range;
+	auto printEntry = [](const std::pair<uintptr_t, DirectoryEntry*>& entry)
+	{
 
+		auto indexToString = [](auto i) -> std::string {
+			if (i == DirectoryEntry::VALID)
+				return "V";
+			else if (i == DirectoryEntry::INVALID)
+				return "I";
+			else
+				return "P";
+		};
+
+		
+		auto left = entry.second->getRange().first;
+		auto right = entry.second->getRange().second;
 		printf("---------[%p,%p] \t", (void *)left, (void *)right);
-		printf("%d\n", modified);
-		for (size_t i = 0; i < locations.size(); ++i) {
+		printf("%d\n", entry.second->_modified_location);
+
+		auto& locations = entry.second->_valid_locations;
+		auto& allocations = entry.second->_perDeviceAllocation;
+		for(size_t i = 0; i < locations.size();++i)
+		{
 			printf("\t[%lu] ", i);
 			printf("%s\t", indexToString(locations[i]).c_str());
 			if (allocations[i] != nullptr)
-				printf("[%p,%p](count: %lX)\t", 
-				(void *)allocations[i]->getDeviceBase(),
-				(void *)allocations[i]->getDeviceEnd(),
-				allocations[i].use_count());
-			else
-				printf("none\t");
-			printf("\n");
+				printf("[%p,%p](count: %lX)\t", (void *)allocations[i]->getDeviceBase(),(void *)allocations[i]->getDeviceEnd(),allocations[i].use_count());
+			else printf("none\t");
+			printf("\n");;
 		}
 		printf("-------------------------------\n");
-	}
+
+	};
+
+	printf("BEGIN OF DIR\n\n");
+
+	std::for_each(std::begin(_dirMap->_inner_m),std::end(_dirMap->_inner_m),printEntry);
 
 	printf("END OF DIR\n\n");
 
