@@ -17,7 +17,7 @@ int nanos6_get_device_num(nanos6_device_t device)
 	static nanos6_get_device_num_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0)) 
     {
-		symbol = (nanos6_get_device_num *) _nanos6_resolve_symbol("nanos6_get_device_num", "essential", NULL);
+		symbol = (nanos6_get_device_num_t *) _nanos6_resolve_symbol("nanos6_get_device_num", "essential", NULL);
 	}
 
 	return (*symbol)(device);
@@ -46,7 +46,7 @@ void nanos6_print_directory()
     static nanos6_print_directory_t *symbol = NULL;
     if (__builtin_expect(symbol == NULL, 0))
     {
-        symbol = (nanos6_print_directory *) _nanos6_resolve_symbol("nanos6_print_directory", "essential", NULL);
+        symbol = (nanos6_print_directory_t *) _nanos6_resolve_symbol("nanos6_print_directory", "essential", NULL);
     }
     
     (*symbol)();
@@ -60,7 +60,7 @@ void nanos6_enable_noflush()
     static nanos6_enable_noflush_t *symbol = NULL;
     if (__builtin_expect(symbol == NULL, 0))
     {
-        symbol = (nanos6_enable_noflush *) _nanos6_resolve_symbol("nanos6_enable_noflush", "essential", NULL);
+        symbol = (nanos6_enable_noflush_t *) _nanos6_resolve_symbol("nanos6_enable_noflush", "essential", NULL);
     }
     
     (*symbol)();
@@ -74,7 +74,7 @@ void nanos6_disable_noflush()
     static nanos6_disable_noflush_t *symbol = NULL;
     if (__builtin_expect(symbol == NULL, 0))
     {
-        symbol = (nanos6_disable_noflush *) _nanos6_resolve_symbol("nanos6_disable_noflush", "essential", NULL);
+        symbol = (nanos6_disable_noflush_t *) _nanos6_resolve_symbol("nanos6_disable_noflush", "essential", NULL);
     }
     
     (*symbol)();
