@@ -9,6 +9,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
    private: 
    xtasks_mem_handle _handle; //!< Memory chunk handler for xTasks library
    size_t _allocated_memory;
+   uint64_t _phys_base_addr;
 
    public: 
    
@@ -28,18 +29,25 @@ class FPGAPinnedAllocator: public SimpleAllocator
          // Emit a warning with the allocation result
          if (status == XTASKS_SUCCESS && userRequestedSize > 0) 
          {
-         std::cout<< "Could not allocate requested amount of FPGA device memory (" << userRequestedSize <<" bytes). Only " << size << " bytes have been allocated."<<std::endl;
+         std::cerr<< "Could not allocate requested amount of FPGA device memory (" << userRequestedSize <<" bytes). Only " << size << " bytes have been allocated."<<std::endl;
          }
          else if (status != XTASKS_SUCCESS) 
          {
-            std::cout<<"Could not allocate FPGA device memory for the FPGAPinnedAllocator"<<std::endl;
-            size = 0;
+            std::cerr<<"Could not allocate FPGA device memory for the FPGAPinnedAllocator"<<std::endl;
+            abort();
+         }
       }
-   }
 
-   init(0, size);
+      status = xtasksGetAccAddress(_handle, &_phys_base_addr);
+      if (status != XTASKS_SUCCESS)
+      {
+         std::cerr << "Error getting the FPGA device address for the FPGAPinnedAllocator" << std::endl;
+         abort();
+      }
 
-   // debug0( "New FPGAPinnedAllocator created with size: " << size/1024 << "KB, base_addr: 0x" <<    std::hex << addr << std::dec );
+      init(_phys_base_addr, size);
+
+      //std::cerr << "New FPGAPinnedAllocator created with size: " << size/1024 << "KB, base_addr: 0x" << std::hex << _phys_base_addr << std::dec << std::endl;
    }
    
    ~FPGAPinnedAllocator() 
@@ -83,8 +91,8 @@ class FPGAPinnedAllocator: public SimpleAllocator
 	{
       size_t fpga_addr = (size_t) (kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-      //printf(" FPGA_ADDR: [%p]  HOST_ADDR:  [%p]  SIZE:  [%lX] %s\n", fpga_addr,host_addr,count,kind==XTASKS_HOST_TO_ACC?"HOST->FPGA":"FPGA->HOST");
-		if(xtasksMemcpy(_handle ,fpga_addr, count, host_addr, kind) != XTASKS_SUCCESS) abort();
+      //printf(" FPGA_ADDR: [0x%lX (offset %lu)]  HOST_ADDR:  [%p]  SIZE:  [%lX] %s\n", fpga_addr, fpga_addr-_phys_base_addr,host_addr,count,kind==XTASKS_HOST_TO_ACC?"HOST->FPGA":"FPGA->HOST");
+		if(xtasksMemcpy(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind) != XTASKS_SUCCESS) abort();
 	}
 
 	xtasks_memcpy_handle* memcpyAsync(void *dst,  void *src, size_t count, xtasks_memcpy_kind kind)
@@ -94,7 +102,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
       
       size_t fpga_addr = (size_t) (kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-		if(xtasksMemcpyAsync(_handle ,fpga_addr, count, host_addr, kind, cpyHandle) != XTASKS_SUCCESS) abort();
+		if(xtasksMemcpyAsync(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind, cpyHandle) != XTASKS_SUCCESS) abort();
 		return cpyHandle;
 	}
 

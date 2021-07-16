@@ -285,7 +285,9 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 	acceleratorStream->addOperation(generateCopy(entry, handle, _current_task));
 
 	entry.setPending(handle);
-	entry.setValid(entry.getModifiedLocation());
+   if (entry.getModifiedLocation() >= 0) {
+	   entry.setValid(entry.getModifiedLocation());
+   }
 	entry.setModified(NO_DEVICE);
 
 	accelerator->createEvent([accelerator, fun = setValid(handle,  {entry.getLeft(), entry.getRight()}) ](AcceleratorEvent *own) 

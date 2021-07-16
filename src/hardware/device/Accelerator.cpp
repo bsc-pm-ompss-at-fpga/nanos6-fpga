@@ -208,17 +208,16 @@ void Accelerator::serviceCompleted(void *data)
       ), true};
 
     const uintptr_t page_down = get_page(region.getStartAddress());
-    const uintptr_t page_up = get_page_up((uintptr_t)(region.getEndAddress()));
+    const uintptr_t page_up = get_page_up((uintptr_t)(region.getEndAddress())-1);
 
     //printf("page_down: %p page_up %p diff: %p\n", page_down, page_up, page_up-page_down);
     std::pair<void*, bool> allocation = accel_allocate(page_up - page_down);
     if (!allocation.second) return {nullptr, false};
 
-
     void* ptr = allocation.first;
     
-    const DataAccessRegion host = DataAccessRegion((void *)page_down, (void *)page_up);
-    const DataAccessRegion device = DataAccessRegion((void *)ptr, (void *)(((uintptr_t)ptr) + page_up - page_down));
+    const DataAccessRegion host = DataAccessRegion(region.getStartAddress(), region.getEndAddress());
+    const DataAccessRegion device = DataAccessRegion((void *)ptr, (void *)((uintptr_t)ptr + (uintptr_t)region.getEndAddress() - (uintptr_t)region.getStartAddress()));
 
     return {std::make_shared<DeviceAllocation>
     (
