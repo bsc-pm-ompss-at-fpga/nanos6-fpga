@@ -67,7 +67,7 @@ void SpawnFunction::spawnFunction(
 
 	// Increase the number of spawned functions in case it is
 	// spawned from outside the runtime system
-	//if (fromUserCode) 
+	//if (fromUserCode) //this has a bug... if we don't increase it it fails to finalize the runtime
 	{
 		_pendingSpawnedFunctions++;
 	}

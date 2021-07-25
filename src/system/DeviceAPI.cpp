@@ -17,8 +17,14 @@
 #include "hardware/device/AcceleratorStream.hpp"
 #include "dependencies/DataAccessType.hpp"
 
-#include "hardware/device/directory/DeviceDirectory.hpp"
 
+#include "hardware/device/directory/DeviceDirectory.hpp"
+#include "hardware/device/directory/IntervalMap.hpp"
+#include "hardware/device/directory/DirectoryEntry.hpp"
+
+
+#include <Dependencies.hpp>
+#include "ompss/AddTask.hpp"
 extern "C" {
 
 
@@ -43,59 +49,138 @@ int nanos6_get_device_num(nanos6_device_t device)
     return HardwareInfo::getDeviceInfo(device)==nullptr?0:HardwareInfo::getDeviceInfo(device)->getComputePlaceCount();
 }
 
-void nanos6_device_memcpy(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+
+
+
+nanos6_task_invocation_info_t global_device_api_src{"Directory Home API src"};
+
+struct taskArgsDeps
 {
+    nanos6_device_t device;
+    int device_id;
+    void* host_ptr;
+    size_t size;
+};
+
+
+Task* createTaskWithInDep(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+{
+    taskArgsDeps argsBlock{device, device_id, host_ptr, size};
+
+    auto depinfoRegister = [](void* args, void *, void *handler)
+    {
+        taskArgsDeps *_argsBlock = (taskArgsDeps*) args;
+        nanos6_register_read_depinfo(handler, _argsBlock->host_ptr, _argsBlock->size, 0);
+    };
+
+    nanos6_task_implementation_info_t *taskImplementationInfo = 
+    [=]{
+        nanos6_task_implementation_info_t *_taskImplementationInfo = new nanos6_task_implementation_info_t;
+
+        _taskImplementationInfo->device_type_id = nanos6_device_t::nanos6_host_device;
+        _taskImplementationInfo->task_label = "Nanos6 API\n";
+        _taskImplementationInfo->declaration_source = "Spawned HOME API task\n";
+        _taskImplementationInfo->get_constraints = nullptr;
+
+        return _taskImplementationInfo;
+    }();
+
+
+    nanos6_task_info_t *taskInfo = 
+    [=]
+    {
+        nanos6_task_info_t *_taskInfo = new nanos6_task_info_t;
+
+        _taskInfo->num_symbols = 1;
+        _taskInfo->implementations = taskImplementationInfo;
+        _taskInfo->implementation_count = 1;
+
+        _taskInfo->register_depinfo = depinfoRegister;
+
+        //finish callback
+        _taskInfo->destroy_args_block = [](void*){};
+
+        return _taskInfo;
+    }();
+
+    Task* task =  AddTask::createTask(
+        taskInfo,
+        &global_device_api_src,
+        nullptr,
+        sizeof(taskArgsDeps),
+        nanos6_waiting_task,
+        1,//num dependencies
+        false);//from_user_code
+
+
+    *((taskArgsDeps*) task->getArgsBlock()) = argsBlock;
+    task->setIgnoreDirectory(true);
     
-    void *nullargs = nullptr;
-    size_t argsBlockSize = 0;
-    
-    nanos6_task_info_t taskinfo; taskinfo.num_symbols = 1;
-
-    nanos6_task_invocation_info_t taskInvokationInfo;
-    Task* parent = nullptr;
-    Instrument::task_id_t instrumentationTaskId;
-    size_t flags = 0;
-    TaskDataAccessesInfo taskAccessInfo(1);
-    void* taskCountersAddress = nullptr;
-    void* taskStatistics = nullptr;
-    
-
-    AcceleratorStream accelStream;
-
-    
-    nanos6_task_implementation_info_t impl_info;
-    
-    impl_info.device_type_id = device;
-    
-    taskinfo.implementations=&impl_info;
-
-    Task task(
-        nullargs,
-        argsBlockSize,
-        &taskinfo,
-        &taskInvokationInfo,
-        parent,
-        instrumentationTaskId,
-        flags,
-        taskAccessInfo,
-        taskCountersAddress,
-        taskStatistics
-    );
-
-
-
-    task.setAccelerator(HardwareInfo::getDeviceInfo(device)->getAccelerators()[device_id]);
-
-
-    task.setAcceleratorStream(&accelStream);
-
-    task.addAccessToSymbol(0, {host_ptr, size}, READWRITE_ACCESS_TYPE);
-
-    DeviceDirectoryInstance::instance->register_regions(&task);
-    while(accelStream.streamPendingExecutors()) accelStream.streamServiceLoop();
-  
-
+    return task;
 }
 
+
+void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+{    
+    
+    Task* task = createTaskWithInDep(device, device_id, host_ptr, size);
+    
+    task->getTaskInfo()->implementations[0].run = [](void* args, void*, nanos6_address_translation_entry_t*)
+    {
+        taskArgsDeps *_argsBlock = (taskArgsDeps*) args;
+        DataAccessRegion dar(_argsBlock->host_ptr, _argsBlock->size);
+        DeviceDirectoryInstance::instance->getIntervalMap()->addRange(dar);
+
+        const auto directoryHandle = HardwareInfo::getDeviceInfo(_argsBlock->device)->getAccelerators()[_argsBlock->device_id]->getDirectoryHandler();
+        const auto set_home_lambda = [=](DirectoryEntry *entry) {
+            entry->setHome(directoryHandle);
+            return true;
+        };
+        DeviceDirectoryInstance::instance->getIntervalMap()->applyToRange(dar, set_home_lambda);
+    };
+
+
+    WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
+	assert(workerThread != nullptr);
+
+	Task *parent = workerThread->getTask();
+	assert(parent != nullptr);
+
+    AddTask::submitTask(task,parent);
+}
+
+
+
+
+    void nanos6_device_memcpy(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+    {    
+        
+        Task* task = createTaskWithInDep(device, device_id, host_ptr, size);
+        
+        task->getTaskInfo()->implementations[0].run = [](void* args, void*, nanos6_address_translation_entry_t*)
+        {
+            taskArgsDeps *_argsBlock = (taskArgsDeps*) args;
+            DataAccessRegion dar(_argsBlock->host_ptr, _argsBlock->size);
+
+            AcceleratorStream accelStream;
+            Accelerator* accelerator = HardwareInfo::getDeviceInfo(_argsBlock->device)->getAccelerators()[_argsBlock->device_id];
+            std::vector<SymbolRepresentation> _symRep;
+            nanos6_address_translation_entry_t t;
+            _symRep.emplace_back(&t);
+            _symRep[0].addDataAccess(dar, READ_ACCESS_TYPE);
+            DeviceDirectoryInstance::instance->register_regions(_symRep, accelerator, &accelStream, nullptr);
+            while(accelStream.streamPendingExecutors()) accelStream.streamServiceLoop();
+            
+        };
+
+
+        WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
+        assert(workerThread != nullptr);
+
+        Task *parent = workerThread->getTask();
+        assert(parent != nullptr);
+
+        AddTask::submitTask(task,parent);
+    }
 
 }

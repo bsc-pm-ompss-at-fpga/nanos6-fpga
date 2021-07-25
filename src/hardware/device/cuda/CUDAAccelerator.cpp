@@ -81,7 +81,7 @@ void CUDAAccelerator::preRunTask(Task *task)
 
 
 
-AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_in(void *dst, void *src, size_t size, Task *task)
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_in(void *dst, void *src, size_t size, void* task)
 {
 	if (task == nullptr) return [=]() -> AcceleratorStream::checker 
 	{
@@ -93,13 +93,13 @@ AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_in(void *dst, v
 			};
 	};
 	else return [=]() -> AcceleratorStream::checker {
-		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, task->getDeviceEnvironment().cuda.stream);
+		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, ((Task*)task)->getDeviceEnvironment().cuda.stream);
 		return []() -> bool { return true; };
 	};
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_out(void *dst, void *src, size_t size, Task *task) 
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_out(void *dst, void *src, size_t size, void* task) 
 {
 	if (task == nullptr) return [=]() -> AcceleratorStream::checker {
 			setActiveDevice();//since this can be processed by a host-task or taskwait (in a future)
@@ -110,13 +110,13 @@ AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_out(void *dst, 
 			};
 		};
 	else return [=]() -> AcceleratorStream::checker {
-		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyDeviceToHost, task->getDeviceEnvironment().cuda.stream);
+		CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyDeviceToHost, ((Task*)task)->getDeviceEnvironment().cuda.stream);
 		return []() -> bool { return true; };
 	};
 }
 
 //this functions performs a copy from two accelerators that can share it's data without the host intervention
-AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task *task)
+AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task)
 {
 	if (task == nullptr) return [=]() -> AcceleratorStream::checker 
 	{
@@ -125,7 +125,7 @@ AcceleratorStream::activatorReturnsChecker CUDAAccelerator::copy_between(void *d
 	};
 	else return [=]() -> AcceleratorStream::checker 
 	{
-		cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,size, task->getDeviceEnvironment().cuda.stream);   
+		cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,size, ((Task*)task)->getDeviceEnvironment().cuda.stream);   
 		return []()-> bool{return true;}; 
 	};
 }

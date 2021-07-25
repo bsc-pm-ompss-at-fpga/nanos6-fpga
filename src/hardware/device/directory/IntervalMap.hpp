@@ -16,7 +16,7 @@
 #include <mutex>
 #include <vector>
 #include "DirectoryEntry.hpp"
-
+#include "lowlevel/FatalErrorHandler.hpp"
 using IntervalMapType = std::map<uintptr_t, DirectoryEntry *>;
 using IntervalMapKeyValue = std::pair<uintptr_t, DirectoryEntry *>;
 using IntervalMapIterator = typename IntervalMapType::iterator;
@@ -31,11 +31,15 @@ public:
 
 	IntervalMap():_numberOfAccelerators(0){}
 	IntervalMap(int s):_numberOfAccelerators(s){}
+
 	~IntervalMap()
 	{
 		for(auto& val: _inner_m) delete val.second;
 	}
 
+	//This will try to free all the data for a handle that is valid in a different device, this is done to try to free memory
+	//instead of crashing when out-of-memory for a device. If there are tasks that are reading the DATA, they will lose the directory
+	//entry with the valid data, but the inner region will not be freed until that task ends, so this function is safe to use.
 	inline void freeAllocationsForHandle(int handle, const std::vector<std::shared_ptr<DeviceAllocation>>& untouchableAllocations)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
@@ -73,7 +77,7 @@ public:
 
 		assert(itv.first < itv.second);
 
-		std::pair<uintptr_t, DirectoryEntry  *> t = {itv.first, toAdd};
+		std::pair<uintptr_t, DirectoryEntry*> t = {itv.first, toAdd};
 		return _inner_m.insert(hint, t);
 	}
 
@@ -83,7 +87,7 @@ public:
 		assert(toAdd->getRight() > new_itv.second);
 
 		toAdd->updateRange({new_itv});
-		_inner_m.erase(it);
+		deleteIt(it);
 		
 		uintptr_t key = toAdd->getLeft();
 	
@@ -102,11 +106,13 @@ public:
 		return getIterator((uintptr_t)dar.getStartAddress());
 	}
 
-	IntervalMapIterator getEnd()
+	IntervalMapIterator deleteIt(IntervalMapIterator itMapIt)
 	{
-		return std::end(_inner_m);
+		delete itMapIt->second;
+		return _inner_m.erase(itMapIt);
 	}
 
+	//helper function to work with Data Access Regions
 	bool applyToRange(const DataAccessRegion& dar, std::function<bool(DirectoryEntry  *)> function)
 	{
 		return applyToRange({(uintptr_t)dar.getStartAddress(), (uintptr_t)dar.getStartAddress() + (uintptr_t)dar.getSize()}, function);
@@ -116,112 +122,175 @@ public:
 	bool applyToRange(std::pair<uintptr_t, uintptr_t> apply, std::function<bool(DirectoryEntry  *)> function)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
-		IntervalMapIterator it = getIterator(apply.first);
-		while(it != getEnd() && it->second->getLeft()<apply.first) ++it;
-		while (it != getEnd() && it->second->getRight() <= apply.second) {
-			if (!function(it->second)) {
-				return false;
-			}
 
+		IntervalMapIterator it = getIterator(apply.first);
+		IntervalMapIterator end_it = std::end(_inner_m);
+
+		while(it != end_it && it->second->getLeft()<apply.first) ++it;
+
+		while (it != end_it && it->second->getRight() <= apply.second) 
+		{
+			if (!function(it->second)) return false;
 			++it;
 		}
+
 		return true;
 	}
 
+
+	void remRange(const DataAccessRegion& dar, const int remove_only_if_handle_equals = -1)
+	{
+		const std::pair<uintptr_t, uintptr_t> range((uintptr_t)dar.getStartAddress(), (uintptr_t)dar.getStartAddress() + (uintptr_t) dar.getSize());
+		remRange(range,remove_only_if_handle_equals);
+
+	}
+
+	void remRange(const std::pair<uintptr_t, uintptr_t>& range_to_del, const int remove_only_if_handle_equals = -1)
+	{
+		std::lock_guard<std::mutex> guard(_map_mtx);
+
+		auto it = getIterator(range_to_del.first);
+
+		while(it != std::end(_inner_m) && it->second->getRight() <= range_to_del.second)
+		{
+			if(remove_only_if_handle_equals == -1 || remove_only_if_handle_equals == it->second->getHome())
+				it = deleteIt(it);
+			else ++it;
+		}
+
+	}
+
+	
+	//helper function to add ranges
 	void addRange(const DataAccessRegion& dar)
 	{
 		addRange({(uintptr_t)dar.getStartAddress(), (uintptr_t)dar.getStartAddress() + (uintptr_t)dar.getSize()});
 	}
 
 
-	void addRange(std::pair<uintptr_t, uintptr_t> new_range_to_add)
+	void addRange(const std::pair<uintptr_t, uintptr_t>& new_range_to_add)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
 		
 		assert(new_range_to_add.first <= new_range_to_add.second);
-		if(new_range_to_add.first == new_range_to_add.second) new_range_to_add.second+=sizeof(void*);
-		if (_inner_m.size() == 0) {
-			ADD(std::end(_inner_m), new_range_to_add, nullptr, __LINE__);
+
+		auto new_range_left = new_range_to_add.first;
+		auto new_range_right = new_range_to_add.second;
+
+		if(new_range_left == new_range_right) new_range_right += sizeof(void*);
+
+		//If there is no elements on the map, add the access directly.
+		if (_inner_m.empty()) {
+			ADD(std::end(_inner_m), {new_range_left, new_range_right}, nullptr, __LINE__);
 			return;
 		}
 
-		IntervalMapIterator beg = _inner_m.lower_bound(new_range_to_add.first);
-		if (beg != std::begin(_inner_m))
-			beg--; //if not exact match
+		IntervalMapIterator beg = _inner_m.lower_bound(new_range_left);
+		if (beg != std::begin(_inner_m)) beg--; //get the leftmost closer entry 
 
-		auto &new_range_left = new_range_to_add.first;
-		auto &new_range_right = new_range_to_add.second;
 
-		while (beg != std::end(_inner_m) && beg->second->getRight() < new_range_to_add.first)
-			++beg;
+		//If the right of the current interval in the iterator is less than the new left range, iterate
+		//until getting the first entry that is equal or greater than our range
+		while (beg != std::end(_inner_m) && beg->second->getRight() < new_range_left) ++beg;
+
+
+		//if there wasn't an entry greater than our new range, we can add it directly and return. this will add any -rightmost- entry
 		if (beg == std::end(_inner_m)) {
 			ADD(std::end(_inner_m), new_range_to_add, nullptr, __LINE__);
 			return;
 		}
 
+
+		//here we will begin 
 		while (beg != std::end(_inner_m)) 
 		{
-			auto range  =  beg->second->getRange();
-			auto current_in_map_left = range.first;
-			auto current_in_map_right = range.second;
+			const auto range  =  beg->second->getRange();
+			const auto current_in_map_left = range.first;
+			const auto current_in_map_right = range.second;
 
-			auto intersect = beg->second->getIntersection(new_range_to_add);
-			auto intersect_left = intersect.first;
-			auto intersect_right = intersect.second;
+			const auto intersect = beg->second->getIntersection(new_range_to_add);
+			const auto intersect_left = intersect.first;
+			const auto intersect_right = intersect.second;
+			const bool no_intersection = intersect_left > intersect_right;
+			const bool intersection = !no_intersection;
+			const bool exact_match = new_range_left == current_in_map_left && new_range_right == current_in_map_right;
 
-			bool no_intersection = intersect_left > intersect_right;
-			IntervalMapIterator begp = beg;
-			begp++;
-			if (no_intersection && begp != std::end(_inner_m) && begp->first >= new_range_right) {
+
+			//this lambda ensures that the result is const -- c++ idiomatic
+			const std::pair<bool, bool> not_map_end__region_at_left = [&]()-> std::pair<bool, bool>
+			{
+				IntervalMapIterator begp = beg; 
+				begp++;
+				if(begp == std::end(_inner_m)) return {false, false};
+				else return {true, begp->first >= new_range_right};
+			}();
+
+			const bool is_not_map_end = not_map_end__region_at_left.first ;
+			const bool new_region_is_at_the_left = not_map_end__region_at_left.second;
+
+			//If there is an exact match, we can return. Else, if we have no intersection, we add the new range directly and return.
+			if (new_range_left >= new_range_right || exact_match) return;
+			//If the new region is at the left of the current regions, we add it. 
+			//This is the equivalent of the -rightmost- entry before the while.
+			else if (no_intersection && is_not_map_end && new_region_is_at_the_left) 
+			{				
+
 				ADD(beg, {new_range_left, new_range_right}, nullptr, __LINE__);
 				return;
 			}
-			bool intersection = !no_intersection;
-			if (new_range_left >= new_range_right)
-			{
-				return;
-
-			}
-
-			bool exact_match = new_range_left == current_in_map_left && new_range_right == current_in_map_right;
-
-			if (exact_match) return;
+			//if the  new range left and current right are equal, we need the next entry to check for partitions of matches.
 			else if (new_range_left == current_in_map_right) beg++;
+			//intersection rules
 			else if (new_range_left < intersect_left) 
 			{
-				if(no_intersection)
+				if(no_intersection)//there isn't an intersection, so we can add the entry to the map
 				{
 					beg = ADD(beg, {new_range_left, new_range_right}, nullptr, __LINE__);
 					return;
 				}
-				else
+				else //there is an intersection, we add the missing partition to the left and update the current range
 				{
 					beg = ADD(beg, {new_range_left, intersect_left}, nullptr, __LINE__);
 					new_range_left = intersect_left;
 				}
 			} 
-			else if (new_range_left == current_in_map_left) {
+			//if overlaps a region
+			else if (new_range_left == current_in_map_left) 
+			{
+				//if overlaps partially, we partition the directory mantaining the region attributes
+				//current allocation:  @@@@@@@@
+				//region to add:       ##
+				// --------------------
+				//result:   		   ##@@@@@@ two different partitions that share attributes
 				if (intersect_right < current_in_map_right) {
 					beg = MODIFY_KEY(beg, {intersect_left, intersect_right});
 					beg = ADD(beg, {intersect_right, current_in_map_right}, beg->second, __LINE__);
 				}
 				new_range_left = intersect_right;
-			} else if (new_range_left > current_in_map_left) {
+			}
+			//if it overlaps but not at the beginning of the interval, it must partitionate one more time
+			//current allocation:  @@@@@@@@
+			//region to add:         ##
+			// --------------------
+			//result:   		   @@##%%%% three different partitions that share attributes
+			else if (new_range_left > current_in_map_left) 
+			{
 				if (intersection) 
 				{
 					beg = MODIFY_KEY(beg, {current_in_map_left, intersect_left});
 					beg = ADD(beg, {intersect_left, intersect_right}, beg->second, __LINE__);
 					beg = ADD(beg, {intersect_right, current_in_map_right}, beg->second, __LINE__);
 				} else {
+					//if there is no intersection with the current entry, try the next.
+					//when beg results in end it will exit the loop
 					beg++;
 				}
 			} else {
-				printf("Device Directory Internal Structure failure\n");
-				abort();
+				FatalErrorHandler::fail("Device Directory Internal Structure failure\n");
 			}
 		}
 
-
+		//once the directory has no more entries that match, if there is still a region that is not overlapping, add it.
 		if (new_range_left < new_range_right)
 			ADD(std::end(_inner_m), {new_range_left, new_range_right}, nullptr, __LINE__);
 

@@ -21,7 +21,6 @@
 #include "WorkerThread.hpp"
 #include "dependencies/SymbolTranslation.hpp"
 #include "hardware/HardwareInfo.hpp"
-#include "hardware/device/directory/DeviceDirectory.hpp"
 #include "hardware/device/AcceleratorStream.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "system/If0Task.hpp"
@@ -35,6 +34,10 @@
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <InstrumentWorkerThread.hpp>
+
+
+
+#include "hardware/device/directory/DeviceDirectory.hpp"
 
 void WorkerThread::initialize()
 {

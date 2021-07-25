@@ -60,7 +60,7 @@ inline Task::Task(
 	_symbolTranslations(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1))
 
 {
-
+	_ignoreDirectory = false;
 	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
 	_symbolInfo.push_back(SymbolRepresentation(&_symbolTranslations[i]));
 
@@ -85,6 +85,8 @@ inline void Task::reinitialize(
 	Instrument::task_id_t instrumentationTaskId,
 	size_t flags
 ) {
+
+	_ignoreDirectory = false;
 
 	_symbolTranslations.clear();
 	_symbolTranslations.resize(std::max(taskInfo->num_symbols,1));

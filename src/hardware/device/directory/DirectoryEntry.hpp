@@ -31,20 +31,19 @@ class DirectoryEntry
     location_status     _valid_locations;
 	shared_allocations  _perDeviceAllocation;
     int   _modified_location;
+    int   _home;
     std::pair<uintptr_t, uintptr_t> _range;
 
-    int ENTRY_VAL;
  
 
     DirectoryEntry(size_t size):
         _valid_locations(std::vector<STATUS>(size, INVALID)),
         _perDeviceAllocation(shared_allocations(size, nullptr)),
         _modified_location(NOT_MODIFIED),
+        _home(0),
         _range({0,0})
     {
         _valid_locations[0] = STATUS::VALID;
-        static int _e = 0;
-        ENTRY_VAL = _e++;
     };
   
 
@@ -52,8 +51,8 @@ class DirectoryEntry
         _valid_locations(itb->_valid_locations),
         _perDeviceAllocation(itb->_perDeviceAllocation),
         _modified_location(itb->_modified_location),
-        _range(itb->_range),
-        ENTRY_VAL(itb->ENTRY_VAL)
+        _home(itb->_home),
+        _range(itb->_range)
     {
 
     }
@@ -61,7 +60,6 @@ class DirectoryEntry
 
     DirectoryEntry* clone()
     {
-        //printf("Cloning ENTRY_VAL: %d\n", ENTRY_VAL);
         return new DirectoryEntry(this);
     }
 
@@ -77,6 +75,8 @@ class DirectoryEntry
     std::shared_ptr<DeviceAllocation>& getDeviceAllocation(int handler){return _perDeviceAllocation[handler];}
 
 
+    void setHome(int handler){ _home = handler;}
+    int  getHome() { return _home;}
 
 	void setValid(int handler ) {_valid_locations[handler] = STATUS::VALID;}
 	void setPending(int handler){_valid_locations[handler] = STATUS::PENDING_TO_VALID;}
@@ -100,9 +100,11 @@ class DirectoryEntry
         std::fill(_valid_locations.begin(), _valid_locations.end(), STATUS::INVALID);
     }
    
-    void clearAllocations()
+    void clearAllocations(size_t skip_handle = 0)
     {
-        for(auto& a : _perDeviceAllocation) a = nullptr;
+        for(size_t i =  0; i < _perDeviceAllocation.size(); ++i)
+            if(i != skip_handle)
+                _perDeviceAllocation[i] = nullptr;
         clearValid();
     }
 

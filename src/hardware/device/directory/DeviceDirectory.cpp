@@ -12,7 +12,10 @@
 #include "hardware/device/AcceleratorEvent.hpp"
 
 #include "api/nanos6/library-mode.h"
+#include "lowlevel/FatalErrorHandler.hpp"
 
+
+#include "IntervalMap.hpp"
 static constexpr int SMP_HANDLER = 0;
 static constexpr int NO_DEVICE = -1;
 namespace DeviceDirectoryInstance {
@@ -34,12 +37,9 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 
 }
 
-AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const DirectoryEntry &entry, int dstHandle, Task *task)
+AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const DirectoryEntry &entry, int dstHandle, void *copy_extra)
 {
 	const int srcHandle =  entry.getFirstValidLocation();
-
-	
-
 	const uintptr_t smpAddr = (uintptr_t)entry.getDataAccessRegion().getStartAddress();
 	const uintptr_t srcAddr = srcHandle > 0 ? entry.getTranslation(srcHandle, smpAddr) : smpAddr;
 	const uintptr_t size = entry.getDataAccessRegion().getSize();
@@ -50,21 +50,21 @@ AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const D
 
 	if (srcA->getDeviceType() == nanos6_host_device) {
 		if (dstA->getDeviceType() == nanos6_cuda_device)
-			return dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, task);
+			return dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, copy_extra);
 		else if (dstA->getDeviceType() == nanos6_fpga_device)
-			return dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, task);
+			return dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, copy_extra);
 	}
 
 	if (srcA->getDeviceType() == nanos6_cuda_device) {
 		if (dstA->getDeviceType() == nanos6_host_device)
 			return srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, nullptr); //since it's from GPU->CPU, there is no cuda stream associated to the task
 		else if (dstA->getDeviceType() == nanos6_cuda_device)
-			return dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, task);
+			return dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, copy_extra);
 	}
 
 	if (srcA->getDeviceType() == nanos6_fpga_device) {
 		if (dstA->getDeviceType() == nanos6_host_device)
-			return srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, task);
+			return srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, copy_extra);
 	}
 
 	return [a = srcA->getDeviceType(), b = dstA->getDeviceType(), hand = dstHandle, vloc = entry._valid_locations, modloc = entry.getModifiedLocation()]() {  
@@ -76,74 +76,75 @@ AcceleratorStream::activatorReturnsChecker DeviceDirectory::generateCopy(const D
 	};
 }
 
-Accelerator *DeviceDirectory::getAcceleratorByHandle(int handle)
+Accelerator *DeviceDirectory::getAcceleratorByHandle(const int handle)
 {
 	return _accelerators[handle];
 }
 
-bool DeviceDirectory::register_regions(Task *task)
+
+bool DeviceDirectory::register_regions(std::vector<SymbolRepresentation>& symbolInfo, Accelerator* accelerator, AcceleratorStream* acceleratorStream, void* copy_extra)
 {
-	auto &sym = task->getSymbolInfo();
-	if (sym.size() == 0)
-		return true;
+	if (symbolInfo.size() == 0) return true;
+
+	const int handle = accelerator->getDirectoryHandler();
 
 	std::lock_guard<std::mutex> guard(device_directory_mutex);
 
-	_current_task = task;
-
-	if (_current_task->getDeviceType() == nanos6_host_device)
-		_current_task->setAccelerator(getAcceleratorByHandle(0));
 	_symbol_allocations.clear();
-	_symbol_allocations.resize(sym.size());
+	_symbol_allocations.resize(symbolInfo.size());
 
-
-	const int handle = _current_task->getAccelerator()->getDirectoryHandler();
-
-	for (size_t i = 0; i < sym.size(); ++i) {
-		auto allocation = getDeviceAllocation(handle, sym[i]);
+	for (size_t i = 0; i < symbolInfo.size(); ++i) {
+		auto allocation = getDeviceAllocation(handle, symbolInfo[i]);
 		if (allocation == nullptr)
 			return false;
+
 		_symbol_allocations[i] = allocation;
-		_symbol_allocations[i]->print();
 	}
 
 
-	for (size_t i = 0; i < sym.size(); ++i)
-		processSymbol(sym[i], _symbol_allocations[i]);
+	for (size_t i = 0; i < symbolInfo.size(); ++i)
+		processSymbol(handle, copy_extra, accelerator, acceleratorStream, symbolInfo[i], _symbol_allocations[i]);
 
 	_symbol_allocations.clear();
 
 	return true;
 }
 
-//SYMBOL PROCESSING
-
-void DeviceDirectory::processSymbol(SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> &deviceAllocation)
+bool DeviceDirectory::register_regions(Task *task)
 {
-	symbol.setSymbolTranslation(deviceAllocation);
-	processSymbolRegions(symbol.getInputRegions(), deviceAllocation, READ_ACCESS_TYPE);
-	processSymbolRegions(symbol.getOutputRegions(), deviceAllocation, WRITE_ACCESS_TYPE);
-	processSymbolRegions(symbol.getInputOutputRegions(), deviceAllocation, READWRITE_ACCESS_TYPE);
+	if(task->ignoreDirectory()) return true;
+
+	if (task->getDeviceType() == nanos6_host_device)
+		task->setAccelerator(getAcceleratorByHandle(0));
+	return register_regions(task->getSymbolInfo(), task->getAccelerator(), task->getAcceleratorStream(), (void*) task);
 }
 
-void DeviceDirectory::processSymbolRegions(const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> &region, DataAccessType RW_TYPE)
-{
-	const int handle = _current_task->getAccelerator()->getDirectoryHandler();
+//SYMBOL PROCESSING
 
+void DeviceDirectory::processSymbol(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> &deviceAllocation)
+{
+	symbol.setSymbolTranslation(deviceAllocation);
+	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getInputRegions(), deviceAllocation, READ_ACCESS_TYPE);
+	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getOutputRegions(), deviceAllocation, WRITE_ACCESS_TYPE);
+	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getInputOutputRegions(), deviceAllocation, READWRITE_ACCESS_TYPE);
+}
+
+void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> &region, DataAccessType RW_TYPE)
+{
 	const auto in_lambda = [=, &region](DirectoryEntry *entry) {
-		processRegionWithOldAllocation(handle, *entry, region, RW_TYPE);
-		processSymbolRegions_in(handle, *entry);
+		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
+		processSymbolRegions_in(handle, copy_extra, accelerator, acceleratorStream, *entry);
 		return true;
 	};
 
 	const auto out_lambda = [=, &region](DirectoryEntry *entry) {
-		processRegionWithOldAllocation(handle, *entry, region, RW_TYPE);
+		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
 		processSymbolRegions_out(handle, *entry);
 		return true;
 	};
 	const auto inout_lambda = [=, &region](DirectoryEntry *entry) {
-		processRegionWithOldAllocation(handle, *entry, region, RW_TYPE);
-		processSymbolRegions_inout(handle, *entry);
+		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
+		processSymbolRegions_inout(handle, copy_extra, accelerator, acceleratorStream, *entry);
 		return true;
 	};
 
@@ -160,7 +161,7 @@ void DeviceDirectory::processSymbolRegions(const std::vector<DataAccessRegion> &
 
 //ALLOCATIONS
 
-std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, SymbolRepresentation &symbol)
+std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int handle, SymbolRepresentation &symbol)
 {
 	std::pair<std::shared_ptr<DeviceAllocation>, bool> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
@@ -168,10 +169,7 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, 
 		_dirMap->freeAllocationsForHandle(handle, _symbol_allocations);
 		deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
-		if (!deviceAllocation.second) {
-			std::printf("FATAL ERROR: NO MEMORY ON DEVICE AFTER TRYING TO FREE\n");
-			exit(-1);
-		}
+		FatalErrorHandler::failIf(!deviceAllocation.second, "Device Allocation: Out of space in device memory after already trying to free unused memory");
 	}
 
 	_dirMap->addRange(deviceAllocation.first->getHostRegion());
@@ -185,7 +183,7 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(int handle, 
 	return deviceAllocation.first;
 }
 
-std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(int handle, SymbolRepresentation &symbol)
+std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int handle, SymbolRepresentation &symbol)
 {
 	_dirMap->addRange(symbol.getHostRegion());
 
@@ -193,16 +191,19 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(int handl
 	auto iter = _dirMap->getIterator(host_region);
 	std::shared_ptr<DeviceAllocation> &deviceAllocation = iter->second->getDeviceAllocation(handle);
 
+
 	if (deviceAllocation != nullptr) {
 		const auto symbol_end_address = (uintptr_t)symbol.getEndAddress();
-		const bool allocated = _dirMap->applyToRange(symbol.getHostRegion(), [=](DirectoryEntry *entry) {
+		const auto checkIfRegionIsAllocated = [=](DirectoryEntry *entry) 
+		{
 			const auto &allocation = entry->getDeviceAllocation(handle);
 			if (allocation != deviceAllocation)
 				return false;
 			if (allocation->getHostEnd() < symbol_end_address)
 				return false;
 			return true;
-		});
+		};
+		const bool allocated = _dirMap->applyToRange(symbol.getHostRegion(), checkIfRegionIsAllocated);
 		if (allocated)
 			return deviceAllocation;
 	}
@@ -212,14 +213,14 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(int handl
 
 //Inner Symbols
 
-void DeviceDirectory::processSymbolRegions_out(int handle, DirectoryEntry &entry)
+void DeviceDirectory::processSymbolRegions_out(const int handle, DirectoryEntry &entry)
 {
 	entry.clearValid();
 	entry.setModified(handle);
 	entry.setValid(handle);
 }
 
-AcceleratorStream::checker DeviceDirectory::awaitToValid(int handler,  const std::pair<uintptr_t,uintptr_t> & entry)
+AcceleratorStream::checker DeviceDirectory::awaitToValid(const int handler,  const std::pair<uintptr_t,uintptr_t> & entry)
 {
 	return [itvMap = _dirMap, left = entry.first, right = entry.second, handler = handler]() 
 	{
@@ -231,7 +232,7 @@ AcceleratorStream::checker DeviceDirectory::awaitToValid(int handler,  const std
 	};
 }
 
-AcceleratorStream::checker DeviceDirectory::setValid(int handler, const std::pair<uintptr_t,uintptr_t> &entry)
+AcceleratorStream::checker DeviceDirectory::setValid(const int handler, const std::pair<uintptr_t,uintptr_t> &entry)
 {
 	return [itvMap = _dirMap, left = entry.first, right = entry.second,  handler = handler]
 	{
@@ -240,11 +241,8 @@ AcceleratorStream::checker DeviceDirectory::setValid(int handler, const std::pai
 	};
 }
 
-void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &entry)
+void DeviceDirectory::processSymbolRegions_inout(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry)
 {
-
-	AcceleratorStream* acceleratorStream = _current_task->getAcceleratorStream();
-	Accelerator* accelerator = _current_task->getAccelerator();
 	
 	if (entry.isPending(handle))
 		return acceleratorStream->addOperation(awaitToValid(handle, {entry.getLeft(), entry.getRight()}));
@@ -256,7 +254,7 @@ void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &ent
 		return;
 	}
 
-	acceleratorStream->addOperation(generateCopy(entry, handle, _current_task));
+	acceleratorStream->addOperation(generateCopy(entry, handle, copy_extra));
 
 	entry.clearValid();
 	entry.setModified(handle);
@@ -270,10 +268,8 @@ void DeviceDirectory::processSymbolRegions_inout(int handle, DirectoryEntry &ent
 	})->record(acceleratorStream);
 }
 
-void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
+void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream,  DirectoryEntry &entry)
 {
-	AcceleratorStream* acceleratorStream = _current_task->getAcceleratorStream();
-	Accelerator* accelerator = _current_task->getAccelerator();
 
 	if (entry.isValid(handle))
 		return;
@@ -282,7 +278,7 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 		return acceleratorStream->addOperation(awaitToValid(handle, {entry.getLeft(), entry.getRight()}));
 
 
-	acceleratorStream->addOperation(generateCopy(entry, handle, _current_task));
+	acceleratorStream->addOperation(generateCopy(entry, handle, copy_extra));
 
 	entry.setPending(handle);
    if (entry.getModifiedLocation() >= 0) {
@@ -300,12 +296,13 @@ void DeviceDirectory::processSymbolRegions_in(int handle, DirectoryEntry &entry)
 
 //the control logic that comes afterwards will enqueue a copy operation from SMP to the device again
 //since a stream is sequential, this is valid.
-void DeviceDirectory::processRegionWithOldAllocation(int handle, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> &region, DataAccessType type)
+void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> &region, DataAccessType type)
 {
 	if (entry.getDeviceAllocation(handle) != region && handle != SMP_HANDLER) {
 		if (entry.getModifiedLocation() == handle && type != WRITE_ACCESS_TYPE) {
 			//std::cout<<"WARNING: RESIZING ENTRY TO FIT SYMBOL[!]!"<<std::endl;
-			_current_task->getAcceleratorStream()->addOperation(generateCopy(entry, SMP_HANDLER, _current_task));
+			acceleratorStream->addOperation(generateCopy(entry, SMP_HANDLER, copy_extra));
+			acceleratorStream->addOperation([keepalive = entry.getDeviceAllocation(handle)]{ std::ignore = keepalive; return true;});
 			entry.setModified(SMP_HANDLER);
 		}
 		//std::cout<<"WARNING2: INVALIDATING OLD ENTRY TO FIT SYMBOL[!]!"<<std::endl;
@@ -327,9 +324,9 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 
 	{
-		if (!entry->isValid(SMP_HANDLER))
+		if (!entry->isValid(entry->getHome()))
 		{
-			_taskwaitStream.addOperation(generateCopy(*entry, SMP_HANDLER, nullptr)());
+			_taskwaitStream.addOperation(generateCopy(*entry, entry->getHome(), nullptr)());
 		}
 		return true;
 	});
@@ -338,18 +335,21 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		[=](AcceleratorEvent* own) 
 		{
 		/*release taskwait*/
+
 		_dirMap->applyToRange(
-			taskwaitRegion,
-			[&](DirectoryEntry *entry) 
-			{
-				//clearing allocations is not easy, we can make it so it stays allocated
-				//and if we fail to allocate afterwards, try to cleanup
-				entry->clearAllocations();
-				entry->clearValid();
-				entry->setModified(-1); 
-				entry->setValid(0);
-				return true;
-			});
+					taskwaitRegion,
+					[&](DirectoryEntry *entry) 
+					{
+						//clearing allocations is not easy, we can make it so it stays allocated
+						//and if we fail to allocate afterwards, try to cleanup
+						entry->clearAllocations(entry->getHome());//ignore home node
+						entry->clearValid();
+						entry->setModified(-1); //now is not modified
+						entry->setValid(entry->getHome());//it's valid on the home node
+						return true;
+					});
+
+		_dirMap->remRange(taskwaitRegion, SMP_HANDLER);
 
 		release();
 		delete own;
@@ -397,7 +397,7 @@ void DeviceDirectory::print()
 			printf("\t[%lu] ", i);
 			printf("%s\t", indexToString(locations[i]).c_str());
 			if (allocations[i] != nullptr)
-				printf("[%p,%p](count: %lX)\t", (void *)allocations[i]->getDeviceBase(),(void *)allocations[i]->getDeviceEnd(),allocations[i].use_count());
+				printf("[%p,%p](count: %lX) HOME: %X\t", (void *)allocations[i]->getDeviceBase(),(void *)allocations[i]->getDeviceEnd(),allocations[i].use_count(), entry.second->getHome());
 			else printf("none\t");
 			printf("\n");;
 		}

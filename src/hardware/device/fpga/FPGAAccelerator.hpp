@@ -23,7 +23,7 @@ private:
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
-		unsigned idx;
+		unsigned idx = 0;
 		xtasks_acc_handle getHandle()
 		{
 			return _accelHandle[(idx++)%_accelHandle.size()]; 
@@ -43,9 +43,9 @@ private:
 	void postRunTask(Task *task) override;
 
 
-	AcceleratorStream::activatorReturnsChecker copy_in(void *dst, void *src, size_t size, Task* task) override;
-    AcceleratorStream::activatorReturnsChecker copy_out(void *dst, void *src, size_t size, Task* task) override;
-    AcceleratorStream::activatorReturnsChecker copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, Task* task) override;
+	AcceleratorStream::activatorReturnsChecker copy_in(void *dst, void *src, size_t size, void* copy_extra) override;
+    AcceleratorStream::activatorReturnsChecker copy_out(void *dst, void *src, size_t size, void* copy_extra) override;
+    AcceleratorStream::activatorReturnsChecker copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) override;
 
 
 public:

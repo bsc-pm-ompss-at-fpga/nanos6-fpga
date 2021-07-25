@@ -17,33 +17,29 @@ class FPGAPinnedAllocator: public SimpleAllocator
    {
       const size_t userRequestedSize = ConfigVariable<size_t>("devices.fpga.requested_fpga_memory").getValue();
       size_t size = userRequestedSize > 0 ? userRequestedSize :512*1024*1024; 
-      xtasks_stat status;
-      status = xtasksMalloc(size, & _handle);
-      if (status != XTASKS_SUCCESS) {
+      
+      xtasks_stat status = xtasksMalloc(size, &_handle);
+      if (status != XTASKS_SUCCESS) 
+      {
          // Before fail, try to allocate less memory
          do {
-         size = size / 2;
-         status = xtasksMalloc(size, & _handle);
+            size = size / 2;
+            status = xtasksMalloc(size, & _handle);
          } while (status != XTASKS_SUCCESS && size > 32768 /* 32KB */ );
          _allocated_memory = size;
          // Emit a warning with the allocation result
-         if (status == XTASKS_SUCCESS && userRequestedSize > 0) 
-         {
-         std::cerr<< "Could not allocate requested amount of FPGA device memory (" << userRequestedSize <<" bytes). Only " << size << " bytes have been allocated."<<std::endl;
-         }
-         else if (status != XTASKS_SUCCESS) 
-         {
-            std::cerr<<"Could not allocate FPGA device memory for the FPGAPinnedAllocator"<<std::endl;
-            abort();
-         }
+
+         FatalErrorHandler::failIf(status != XTASKS_SUCCESS, "Xtasks: failed to allocate memory");
+
+         FatalErrorHandler::warnIf(userRequestedSize > 0,
+            "Could not allocate requested amount of FPGA device memory (",userRequestedSize," bytes). Only " , size , " bytes have been allocated.");
       }
 
-      status = xtasksGetAccAddress(_handle, &_phys_base_addr);
-      if (status != XTASKS_SUCCESS)
-      {
-         std::cerr << "Error getting the FPGA device address for the FPGAPinnedAllocator" << std::endl;
-         abort();
-      }
+
+      FatalErrorHandler::failIf(
+         xtasksGetAccAddress(_handle, &_phys_base_addr) != XTASKS_SUCCESS,
+         "Error getting the FPGA device address for the FPGAPinnedAllocator"
+      );
 
       init(_phys_base_addr, size);
 
@@ -60,11 +56,10 @@ class FPGAPinnedAllocator: public SimpleAllocator
    std::pair<void *, bool> allocate(size_t size) 
    {
       static const std::size_t align = 16;
-      if(size > _allocated_memory) 
-      {
-         printf("Can't allocate this much memory for FPGA");
-         abort();
-      }
+      FatalErrorHandler::failIf(
+		   size > _allocated_memory,
+		   "FPGA Pinned Allocator: Can't allocate this much memory for FPGA"
+	   );
       lock();
       //Force the allocated sizes to be multiples of align
       //This prevents allocation of unaligned chunks
@@ -91,9 +86,11 @@ class FPGAPinnedAllocator: public SimpleAllocator
 	{
       size_t fpga_addr = (size_t) (kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-      //printf(" FPGA_ADDR: [0x%lX (offset %lu)]  HOST_ADDR:  [%p]  SIZE:  [%lX] %s\n", fpga_addr, fpga_addr-_phys_base_addr,host_addr,count,kind==XTASKS_HOST_TO_ACC?"HOST->FPGA":"FPGA->HOST");
-		if(xtasksMemcpy(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind) != XTASKS_SUCCESS) abort();
-	}
+	   FatalErrorHandler::failIf(
+		   xtasksMemcpy(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind) != XTASKS_SUCCESS,
+		   "Xtasks: failed to perform a memcpy sync"
+	   );
+   }
 
 	xtasks_memcpy_handle* memcpyAsync(void *dst,  void *src, size_t count, xtasks_memcpy_kind kind)
 	{
@@ -102,7 +99,10 @@ class FPGAPinnedAllocator: public SimpleAllocator
       
       size_t fpga_addr = (size_t) (kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
-		if(xtasksMemcpyAsync(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind, cpyHandle) != XTASKS_SUCCESS) abort();
+      FatalErrorHandler::failIf(
+		   xtasksMemcpyAsync(_handle ,fpga_addr-_phys_base_addr, count, host_addr, kind, cpyHandle) != XTASKS_SUCCESS,
+		   "Xtasks: failed to perform a memcpy async"
+	   );
 		return cpyHandle;
 	}
 

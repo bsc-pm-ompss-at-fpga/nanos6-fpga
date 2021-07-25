@@ -37,6 +37,19 @@ void nanos6_device_memcpy(nanos6_device_t device, int device_id, void* host_ptr,
     (*symbol)(device,device_id,host_ptr,size);
 }
 
+void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+{
+    typedef void nanos6_set_home_t(nanos6_device_t device, int device_id, void* host_ptr, size_t size);
+
+    static nanos6_set_home_t *symbol = NULL;
+    if (__builtin_expect(symbol == NULL, 0))
+    {
+        symbol = (nanos6_set_home_t *) _nanos6_resolve_symbol("nanos6_set_home", "essential", NULL);
+    }
+    
+    (*symbol)(device,device_id,host_ptr,size);
+}
+
 
 
 void nanos6_print_directory()
@@ -51,6 +64,7 @@ void nanos6_print_directory()
     
     (*symbol)();
 }
+
 
 
 void nanos6_enable_noflush()

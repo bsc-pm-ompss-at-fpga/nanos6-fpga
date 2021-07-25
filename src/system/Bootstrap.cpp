@@ -40,8 +40,9 @@
 #include <InstrumentInitAndShutdown.hpp>
 #include <InstrumentThreadManagement.hpp>
 
-
+#ifdef USE_FPGA
 #include <libxtasks.h>
+#endif
 static ExternalThread *mainThread = nullptr;
 
 void nanos6_shutdown(void);
@@ -68,7 +69,11 @@ void nanos6_preinit(void)
 			"this executable was compiled for a different Nanos6 version. Please recompile and link it."
 		);
 	}
-    if(xtasksInit() != XTASKS_SUCCESS) std::cout<<"ERROR INITIALIZING XTASKS"<<std::endl;;
+
+
+	#ifdef USE_FPGA
+	FatalErrorHandler::failIf(xtasksInit() != XTASKS_SUCCESS, "Error: Xtasks can't be initialized.");
+	#endif
 
 	// Initialize all runtime options if needed
 	ConfigCentral::initializeOptionsIfNeeded();

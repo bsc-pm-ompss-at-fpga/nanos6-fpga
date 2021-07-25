@@ -174,7 +174,7 @@ void Accelerator::serviceCompleted(void *data)
   // accelerator
   AcceleratorStream::activatorReturnsChecker
   Accelerator::copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-          [[maybe_unused]] size_t size, [[maybe_unused]] Task *) {
+          [[maybe_unused]] size_t size, [[maybe_unused]] void *) {
     return [] { return [] { return true; }; };
   }
 
@@ -182,7 +182,7 @@ void Accelerator::serviceCompleted(void *data)
   // memory
   AcceleratorStream::activatorReturnsChecker
   Accelerator::copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-           [[maybe_unused]] size_t size, [[maybe_unused]] Task *) {
+           [[maybe_unused]] size_t size, [[maybe_unused]] void *) {
     return [] { return [] { return true; }; };
   }
 
@@ -192,7 +192,7 @@ void Accelerator::serviceCompleted(void *data)
   Accelerator::copy_between(
       [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
       [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
-      [[maybe_unused]] size_t size, [[maybe_unused]] Task *) {
+      [[maybe_unused]] size_t size, [[maybe_unused]] void *) {
     return [] { return [] { return true; }; };
   }
 

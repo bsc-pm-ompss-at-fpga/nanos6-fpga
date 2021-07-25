@@ -13,6 +13,7 @@
 
 #include <DataAccessRegistration.hpp>
 #include <DataAccessRegistrationImplementation.hpp>
+#include "lowlevel/FatalErrorHandler.hpp"
 
 
 
@@ -25,16 +26,22 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_supports_async(ConfigVariable<bool>("devices.fpga.real_async"))
 {
 
-	size_t _deviceCount = 0, _handlesCount=0;
-	if(xtasksGetNumAccs(&_deviceCount) != XTASKS_SUCCESS) abort();
+	size_t deviceCount = 0, handlesCount=0;
 
-	int numAccel = _deviceCount;
+	FatalErrorHandler::failIf(
+		xtasksGetNumAccs(&deviceCount) != XTASKS_SUCCESS,
+		"Xtasks: Can't get number of accelerators"
+	);
 
-	std::vector<xtasks_acc_info> info(numAccel);
-	std::vector<xtasks_acc_handle> handles(numAccel);
-	if(xtasksGetAccs(numAccel, &handles[0], &_handlesCount) != XTASKS_SUCCESS) abort();
+	std::vector<xtasks_acc_info> info(deviceCount);
+	std::vector<xtasks_acc_handle> handles(deviceCount);
 
-	for(int i=0; i<numAccel;++i)
+	FatalErrorHandler::failIf(
+		xtasksGetAccs(deviceCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
+		"Xtasks: Can't get the accelerators"
+	);
+
+	for(size_t i=0; i<deviceCount;++i)
 	{
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
@@ -54,16 +61,16 @@ inline void FPGAAccelerator::generateDeviceEvironment(Task *task)
 
 
 
-	std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
-	{
-		return _allocator.allocate(size);
-	}
+std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
+{
+	return _allocator.allocate(size);
+}
 
-	void FPGAAccelerator::accel_free(void* ptr)
-	{
-		_allocator.free(ptr);
-	}
-	
+void FPGAAccelerator::accel_free(void* ptr)
+{
+	_allocator.free(ptr);
+}
+
 
 void FPGAAccelerator::postRunTask(Task *)
 {
@@ -78,10 +85,12 @@ void FPGAAccelerator::callBody(Task *task)
 			{ 
 				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
-				if (xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS)
-				{
-					abort();
-				}
+
+				FatalErrorHandler::failIf(
+					xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
+					"Xtasks: Submit Task failed"
+				);
+
 				return [=]()->bool{
 					xtasks_task_handle hand;
 					xtasks_task_id tid;
@@ -95,19 +104,20 @@ void FPGAAccelerator::callBody(Task *task)
 				};
 			}
 		);
-	else abort();
+	else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
+
 }
 
 void FPGAAccelerator::preRunTask(Task *task)
 {
 	if (DeviceDirectoryInstance::useDirectory)
 			DeviceDirectoryInstance::instance->register_regions(task);
-		else abort();
+		else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
 }
 
 
 
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  Task *task)
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task)
 {
 
 	if(_supports_async)
@@ -156,7 +166,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] Task *task) 
+AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) 
 {
 	if(_supports_async)
 		{
@@ -210,7 +220,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(
 	[[maybe_unused]] void *src, 
 	[[maybe_unused]] int srcDevice,
 	[[maybe_unused]] size_t size,
-	[[maybe_unused]] Task *task)
+	[[maybe_unused]] void *task)
 {
 	return []() -> AcceleratorStream::checker
 	{

@@ -789,6 +789,11 @@ noinst_HEADERS = \
 	src/hardware/device/openacc/OpenAccDeviceInfo.hpp \
 	src/hardware/device/openacc/OpenAccFunctions.hpp \
 	src/hardware/device/openacc/OpenAccQueuePool.hpp \
+	src/hardware/device/fpga/FPGAAccelerator.hpp \
+	src/hardware/device/fpga/FPGADeviceInfo.hpp \
+	src/hardware/device/directory/IntervalMap.hpp \
+	src/hardware/device/directory/DirectoryEntry.hpp \
+	src/hardware/device/directory/DeviceDirectory.hpp \
 	src/hardware/hwinfo/DeviceInfo.hpp \
 	src/hardware/hwinfo/HostInfo.hpp \
 	src/hardware/places/ComputePlace.hpp \
@@ -1227,6 +1232,7 @@ noinst_HEADERS = \
 	src/tasks/StreamExecutor.hpp \
 	src/tasks/StreamManager.hpp \
 	src/tasks/Task.hpp \
+	src/tasks/Symbols.hpp \
 	src/tasks/TaskDebuggingInterface.hpp \
 	src/tasks/Taskfor.hpp \
 	src/tasks/TaskImplementation.hpp \

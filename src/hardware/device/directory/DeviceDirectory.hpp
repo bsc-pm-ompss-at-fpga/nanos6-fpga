@@ -11,7 +11,6 @@
 
 #include "tasks/Task.hpp"
 
-#include "IntervalMap.hpp"
 #include "hardware/device/Accelerator.hpp"
 #include "hardware/device/AcceleratorStream.hpp"
 #include "lowlevel/EnvironmentVariable.hpp"
@@ -21,6 +20,10 @@
 
 using checker = int;
 
+
+
+class IntervalMap;
+class DirectoryEntry;
 struct SymbolRepresentation;
 class DeviceDirectory
 {
@@ -34,7 +37,6 @@ private:
     std::vector<Accelerator *> _accelerators;
     std::vector<std::shared_ptr<DeviceAllocation>> _symbol_allocations;
 
-    Task *_current_task;
     IntervalMap *_dirMap;
 
     AcceleratorStream _taskwaitStream;
@@ -50,6 +52,7 @@ private:
     //This function can fail if there is no space for allocation in the device. In this case, the user is responsible of calling the free
     //memory function.
     bool register_regions(Task *task);
+    bool register_regions(std::vector<SymbolRepresentation>& symbolInfo, Accelerator* accelerator, AcceleratorStream* acceleratorStream, void* copy_extra);
 
     //This function registers an accelerator to the directory.
     //Each accelerator is defined by it's address space, if more than one accelerator share 
@@ -65,7 +68,7 @@ private:
 
     void taskwait(const DataAccessRegion& taskwaitRegion, std::function<void()> release);
     //returns the accelerator given a directory handle
-    Accelerator *getAcceleratorByHandle(int handle);
+    Accelerator *getAcceleratorByHandle(const int handle);
 
 
     void initializeTaskwaitService()
@@ -101,6 +104,11 @@ private:
     //This generates a setValid function for a directory range.
     AcceleratorStream::checker setValid(int handler, const std::pair<uintptr_t,uintptr_t> & entry);
 
+    IntervalMap* getIntervalMap()
+    {
+        return _dirMap;
+    }
+
 private:
 
 	inline bool shouldStopService() const
@@ -111,36 +119,36 @@ private:
 
     //This function makes a copy betwen two devices, if you are implementing a new device, you must add here the 
     //interaction between the devices.
-    AcceleratorStream::activatorReturnsChecker generateCopy(const DirectoryEntry &entry, int dstHandle, Task* task);
+    AcceleratorStream::activatorReturnsChecker generateCopy(const DirectoryEntry &entry, int dstHandle, void* copy_extra);
 
     //This function forwards to processSymbolRegions the task dependences of each type
-    void processSymbol(SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation>& deviceAllocation);
+    void processSymbol(const int handle, void *copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation>& deviceAllocation);
     //This function checks for old allocations or the necessity of a reallocation, after forwards each region of the symbol
     //to check for validity
-    void processSymbolRegions(const std::vector<DataAccessRegion> &dataAccessVector,std::shared_ptr<DeviceAllocation>& region, DataAccessType RW_TYPE);
+    void processSymbolRegions(const int handle, void *copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation>& region, DataAccessType RW_TYPE);
 
     //generates the needed copies in need of reallocation/old allocations
-    void processRegionWithOldAllocation(int handle, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation>& region, DataAccessType type);
+    void processRegionWithOldAllocation(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> &region, DataAccessType type);
 
 
     //Updates the directory and generates the copies and steps needed for perform the copies and ensure the coherence of the directory
-    void processSymbolRegions_in(int handle, DirectoryEntry &entry);
-    void processSymbolRegions_out(int handle, DirectoryEntry &entry);
-    void processSymbolRegions_inout(int handle, DirectoryEntry &entry);
+    void processSymbolRegions_in(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
+    void processSymbolRegions_out(const int handle, DirectoryEntry &entry);
+    void processSymbolRegions_inout(const int handle, void* copy_extra,  Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
 
     //This function gets the current allocation for a symbol range. In case it doesn't exists or it's not enough to
     //contain the new symbol, it tries to allocate a new device address.
-    std::shared_ptr<DeviceAllocation> getDeviceAllocation(int handle, SymbolRepresentation &symbol);
+    std::shared_ptr<DeviceAllocation> getDeviceAllocation(const int handle, SymbolRepresentation &symbol);
 
     //This function allocates a new device address for a directory range.
-    std::shared_ptr<DeviceAllocation> getNewAllocation(int handle, SymbolRepresentation &symbol );
+    std::shared_ptr<DeviceAllocation> getNewAllocation(const int handle, SymbolRepresentation &symbol );
 
 
     //Since two tasks could want to use the same symbol or region, we must ensure that the copy is done only one time.
     //We cannot setup the directory at the moment of generating the copies because if another task wants to use the data
     //this could mean that the data is not valid.
     //For fixing this we create a transitory step, and the task will need to wait for directory validity. 
-    AcceleratorStream::checker awaitToValid(int handler, const std::pair<uintptr_t,uintptr_t> & entry);
+    AcceleratorStream::checker awaitToValid(const int handler, const std::pair<uintptr_t,uintptr_t> & entry);
 
 
 };

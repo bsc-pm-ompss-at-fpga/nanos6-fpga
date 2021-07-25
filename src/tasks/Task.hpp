@@ -99,6 +99,8 @@ private:
 
 	Accelerator 	  *_accel;
 
+	bool _ignoreDirectory;
+
 protected:
 	//! The thread assigned to this task, nullptr if the task has finished (but possibly waiting its children)
 	std::atomic<WorkerThread *> _thread;
@@ -188,10 +190,13 @@ public:
 		_symbolInfo[index].addDataAccess(region, type);
 	}
 
-		Accelerator* getAccelerator(){return _accel;}
+	Accelerator* getAccelerator(){return _accel;}
+
+	
 	void setAccelerator(Accelerator* acc){_accel = acc;}
 
-
+	bool ignoreDirectory(){ return _ignoreDirectory;}
+	void setIgnoreDirectory(bool id){ _ignoreDirectory = id;}
 
 	AcceleratorStream *getAcceleratorStream()
 	{
