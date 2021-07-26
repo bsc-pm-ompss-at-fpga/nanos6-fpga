@@ -97,19 +97,19 @@ public:
   void setDirectoryHandler(int directoryHandler);
   // this function performs a copy from a host address space into the
   // accelerator
-  virtual AcceleratorStream::activatorReturnsChecker
+  virtual std::function<std::function<bool(void)>()>
   copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
           [[maybe_unused]] size_t size, [[maybe_unused]] void *);
 
   // this functions performs a copy from the accelerator address space to host
   // memory
-  virtual AcceleratorStream::activatorReturnsChecker
+  virtual std::function<std::function<bool(void)>()>
   copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
            [[maybe_unused]] size_t size, [[maybe_unused]] void *);
 
   // this functions performs a copy from two accelerators that can share it's
   // data without the host intervention
-  virtual AcceleratorStream::activatorReturnsChecker copy_between(
+  virtual std::function<std::function<bool(void)>()> copy_between(
       [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
       [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
       [[maybe_unused]] size_t size, [[maybe_unused]] void *);

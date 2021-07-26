@@ -58,9 +58,9 @@ private:
 	cudaStream_t   _cudaCopyStream;
 
 
-	AcceleratorStream::activatorReturnsChecker copy_in(void *dst, void *src, size_t size, void* task) override;
-    AcceleratorStream::activatorReturnsChecker copy_out(void *dst, void *src, size_t size, void* task) override;
-    AcceleratorStream::activatorReturnsChecker copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) override;
+	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* task) override;
+    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* task) override;
+    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) override;
 
 
 public:

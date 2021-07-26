@@ -81,7 +81,7 @@ void FPGAAccelerator::callBody(Task *task)
 {
 	if(DeviceDirectoryInstance::useDirectory)
 		task->getAcceleratorStream()->addOperation(
-			[task = task]() -> AcceleratorStream::checker 
+			[task = task]() -> std::function<bool(void)> 
 			{ 
 				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
@@ -117,12 +117,12 @@ void FPGAAccelerator::preRunTask(Task *task)
 
 
 
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task)
+std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task)
 {
 
 	if(_supports_async)
 		{
-			return [=]() -> AcceleratorStream::checker
+			return [=]() -> std::function<bool(void)>
 			{
 				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_HOST_TO_ACC);
 				return [this, checkFinalization]() -> bool
@@ -133,7 +133,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 		}
 	else
 	{
-		return [=]() -> AcceleratorStream::checker
+		return [=]() -> std::function<bool(void)>
 		{
 
 			bool* copy_finished_flag = new bool;
@@ -166,11 +166,11 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_in(void *dst, v
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) 
+std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) 
 {
 	if(_supports_async)
 		{
-			return [=]() -> AcceleratorStream::checker
+			return [=]() -> std::function<bool(void)>
 			{
 				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_ACC_TO_HOST);
 				return [this, checkFinalization]() -> bool
@@ -181,7 +181,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, 
 		}
 	else
 	{
-		return [=]() -> AcceleratorStream::checker
+		return [=]() -> std::function<bool(void)>
 		{
 
 			bool* copy_finished_flag = new bool;
@@ -214,7 +214,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_out(void *dst, 
 }
 
 //this functions performs a copy from two accelerators that can share it's data without the host intervention
-AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(
+std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 	[[maybe_unused]] void *dst,
 	[[maybe_unused]] int dstDevice, 
 	[[maybe_unused]] void *src, 
@@ -222,7 +222,7 @@ AcceleratorStream::activatorReturnsChecker FPGAAccelerator::copy_between(
 	[[maybe_unused]] size_t size,
 	[[maybe_unused]] void *task)
 {
-	return []() -> AcceleratorStream::checker
+	return []() -> std::function<bool(void)>
 	{
 		return []() -> bool{return true;}; 
 	};

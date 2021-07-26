@@ -43,9 +43,9 @@ private:
 	void postRunTask(Task *task) override;
 
 
-	AcceleratorStream::activatorReturnsChecker copy_in(void *dst, void *src, size_t size, void* copy_extra) override;
-    AcceleratorStream::activatorReturnsChecker copy_out(void *dst, void *src, size_t size, void* copy_extra) override;
-    AcceleratorStream::activatorReturnsChecker copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) override;
+	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) override;
+    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) override;
+    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) override;
 
 
 public:

@@ -27,15 +27,11 @@
 //will be the same as in an async finalization check
 class AcceleratorStream {
 public:
-	using checker = std::function<bool(void)>;
-	using activatorReturnsChecker = std::function<checker(void)>;
-	using activatorQueue = std::queue<activatorReturnsChecker>;
-	using checkerQueue = std::queue<checker>;
 
 private:
-	activatorQueue _queuedStreamExecutors;
-	checkerQueue _queuedEventFinalization;
-	checker _currentStreamExecutorFinished;
+	std::queue<std::function<std::function<bool(void)>(void)>> _queuedStreamExecutors;
+	std::queue<std::function<bool(void)>> _queuedEventFinalization;
+	std::function<bool(void)> _currentStreamExecutorFinished;
 	bool _ongoingExecutor;
 	std::function<void(void)> _activateContext; 
 
@@ -61,15 +57,19 @@ public:
 
 	//a free operation is an operation that doesn't require
 	//an activator
-	virtual void addOperation(checker fun)
+	virtual void addOperation(std::function<bool()> fun)
 	{
-		addOperation([f = std::move(fun)] { return f; });
+		std::function<std::function<bool(void)>(void)> operation = [f = std::move(fun)]() -> std::function<bool(void)> 
+		{ 
+				return f; 
+		};
+		addOperation(operation);
 	}
 
 	//an operation that requieres an activator (does the functionality)
 	//and then, the activator function returns a checker which is used
 	//to know if the activated function has finished, asynchronously.
-	virtual void addOperation(activatorReturnsChecker operation)
+	virtual void addOperation(std::function<std::function<bool(void)>(void)> operation)
 	{
 
 		std::lock_guard<std::mutex> guard(_operations_mtx);
@@ -91,7 +91,7 @@ public:
 		return _queuedStreamExecutors.size() || _ongoingExecutor || _queuedEventFinalization.size();
 	}
 
-    virtual void streamAddEventListener(checker eventListener)
+    virtual void streamAddEventListener(std::function<bool(void)> eventListener)
 	{
 		std::lock_guard<std::mutex> guard(_events_mtx);
 		_queuedEventFinalization.push(std::move(eventListener));

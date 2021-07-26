@@ -172,7 +172,7 @@ void Accelerator::serviceCompleted(void *data)
 
   // this function performs a copy from a host address space into the
   // accelerator
-  AcceleratorStream::activatorReturnsChecker
+  std::function<std::function<bool(void)>()>
   Accelerator::copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
           [[maybe_unused]] size_t size, [[maybe_unused]] void *) {
     return [] { return [] { return true; }; };
@@ -180,7 +180,7 @@ void Accelerator::serviceCompleted(void *data)
 
   // this functions performs a copy from the accelerator address space to host
   // memory
-  AcceleratorStream::activatorReturnsChecker
+  std::function<std::function<bool(void)>()>
   Accelerator::copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
            [[maybe_unused]] size_t size, [[maybe_unused]] void *) {
     return [] { return [] { return true; }; };
@@ -188,7 +188,7 @@ void Accelerator::serviceCompleted(void *data)
 
   // this functions performs a copy from two accelerators that can share it's
   // data without the host intervention
-  AcceleratorStream::activatorReturnsChecker 
+  std::function<std::function<bool(void)>()> 
   Accelerator::copy_between(
       [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
       [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
@@ -207,11 +207,8 @@ void Accelerator::serviceCompleted(void *data)
         []{}
       ), true};
 
-    const uintptr_t page_down = get_page(region.getStartAddress());
-    const uintptr_t page_up = get_page_up((uintptr_t)(region.getEndAddress())-1);
 
-    //printf("page_down: %p page_up %p diff: %p\n", page_down, page_up, page_up-page_down);
-    std::pair<void*, bool> allocation = accel_allocate(page_up - page_down);
+    std::pair<void*, bool> allocation = accel_allocate(region.getSize());
     if (!allocation.second) return {nullptr, false};
 
     void* ptr = allocation.first;
