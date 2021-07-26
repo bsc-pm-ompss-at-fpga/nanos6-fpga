@@ -32,6 +32,7 @@ class DirectoryEntry
 	shared_allocations  _perDeviceAllocation;
     int   _modified_location;
     int   _home;
+    bool  _no_flush;
     std::pair<uintptr_t, uintptr_t> _range;
 
  
@@ -41,17 +42,19 @@ class DirectoryEntry
         _perDeviceAllocation(shared_allocations(size, nullptr)),
         _modified_location(NOT_MODIFIED),
         _home(0),
+        _no_flush(false),
         _range({0,0})
     {
         _valid_locations[0] = STATUS::VALID;
     };
   
 
-    DirectoryEntry(DirectoryEntry* itb):
+    DirectoryEntry(const DirectoryEntry* itb):
         _valid_locations(itb->_valid_locations),
         _perDeviceAllocation(itb->_perDeviceAllocation),
         _modified_location(itb->_modified_location),
         _home(itb->_home),
+        _no_flush(itb->_no_flush),
         _range(itb->_range)
     {
 
@@ -78,6 +81,8 @@ class DirectoryEntry
     void setHome(int handler){ _home = handler;}
     int  getHome() { return _home;}
 
+    void setNoFlushState(bool flush_state ){ _no_flush = flush_state;}
+    bool getNoFlush(){ return _no_flush; }
 	void setValid(int handler ) {_valid_locations[handler] = STATUS::VALID;}
 	void setPending(int handler){_valid_locations[handler] = STATUS::PENDING_TO_VALID;}
 	void setInvalid(int handler){_valid_locations[handler] = STATUS::INVALID;}

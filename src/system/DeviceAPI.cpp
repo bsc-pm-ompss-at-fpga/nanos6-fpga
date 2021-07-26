@@ -119,35 +119,45 @@ Task* createTaskWithInDep(nanos6_device_t device, int device_id, void* host_ptr,
     return task;
 }
 
-
-void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
-{    
-    
-    Task* task = createTaskWithInDep(device, device_id, host_ptr, size);
-    
-    task->getTaskInfo()->implementations[0].run = [](void* args, void*, nanos6_address_translation_entry_t*)
+    void nanos6_set_noflush(void* host_ptr, size_t size)
     {
-        taskArgsDeps *_argsBlock = (taskArgsDeps*) args;
-        DataAccessRegion dar(_argsBlock->host_ptr, _argsBlock->size);
-        DeviceDirectoryInstance::instance->getIntervalMap()->addRange(dar);
-
-        const auto directoryHandle = HardwareInfo::getDeviceInfo(_argsBlock->device)->getAccelerators()[_argsBlock->device_id]->getDirectoryHandler();
-        const auto set_home_lambda = [=](DirectoryEntry *entry) {
-            entry->setHome(directoryHandle);
-            return true;
+        const DataAccessRegion dar(host_ptr, size);
+        const auto set_noflush_lambda = [=](DirectoryEntry *entry) {
+                entry->setNoFlushState(true);
+                return true;
         };
-        DeviceDirectoryInstance::instance->getIntervalMap()->applyToRange(dar, set_home_lambda);
-    };
+        DeviceDirectoryInstance::instance->getIntervalMap()->addRange(dar);
+        DeviceDirectoryInstance::instance->getIntervalMap()->applyToRange(dar, set_noflush_lambda);
+    }
+
+    void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size_t size)
+    {    
+        
+        Task* task = createTaskWithInDep(device, device_id, host_ptr, size);
+        
+        task->getTaskInfo()->implementations[0].run = [](void* args, void*, nanos6_address_translation_entry_t*)
+        {
+            taskArgsDeps *_argsBlock = (taskArgsDeps*) args;
+            DataAccessRegion dar(_argsBlock->host_ptr, _argsBlock->size);
+            DeviceDirectoryInstance::instance->getIntervalMap()->addRange(dar);
+
+            const auto directoryHandle = HardwareInfo::getDeviceInfo(_argsBlock->device)->getAccelerators()[_argsBlock->device_id]->getDirectoryHandler();
+            const auto set_home_lambda = [=](DirectoryEntry *entry) {
+                entry->setHome(directoryHandle);
+                return true;
+            };
+            DeviceDirectoryInstance::instance->getIntervalMap()->applyToRange(dar, set_home_lambda);
+        };
 
 
-    WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
-	assert(workerThread != nullptr);
+        WorkerThread *workerThread = WorkerThread::getCurrentWorkerThread();
+        assert(workerThread != nullptr);
 
-	Task *parent = workerThread->getTask();
-	assert(parent != nullptr);
+        Task *parent = workerThread->getTask();
+        assert(parent != nullptr);
 
-    AddTask::submitTask(task,parent);
-}
+        AddTask::submitTask(task,parent);
+    }
 
 
 

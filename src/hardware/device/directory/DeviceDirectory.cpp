@@ -324,9 +324,10 @@ void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra
 	generateCopy(acceleratorStream, entry, handle, copy_extra);
 
 	entry.setPending(handle);
-   if (entry.getModifiedLocation() >= 0) {
+	
+    if (entry.getModifiedLocation() >= 0) 
 	   entry.setValid(entry.getModifiedLocation());
-   }
+    
 	entry.setModified(NO_DEVICE);
 
 	accelerator->createEvent([itvMap = _dirMap, accelerator, left = entry.getLeft(), right = entry.getRight(), handle](AcceleratorEvent *own) 
@@ -367,7 +368,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 
 	{
-		if (!entry->isValid(entry->getHome()))
+		if (!entry->getNoFlush() && !entry->isValid(entry->getHome()))
 		{
 			generateCopy(&_taskwaitStream,*entry, entry->getHome(), nullptr);
 		}
@@ -383,6 +384,11 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 					taskwaitRegion,
 					[&](DirectoryEntry *entry) 
 					{
+						if(entry->getNoFlush())
+						{
+							entry->setNoFlushState(false);
+							return true;
+						}
 						//clearing allocations is not easy, we can make it so it stays allocated
 						//and if we fail to allocate afterwards, try to cleanup
 						entry->clearAllocations(entry->getHome());//ignore home node

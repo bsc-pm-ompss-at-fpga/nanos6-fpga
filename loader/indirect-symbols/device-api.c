@@ -51,6 +51,20 @@ void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size
 }
 
 
+void nanos6_set_noflush(void* host_ptr, size_t size)
+{
+    typedef void nanos6_set_noflush_t(void* host_ptr, size_t size);
+
+    static nanos6_set_noflush_t *symbol = NULL;
+    if (__builtin_expect(symbol == NULL, 0))
+    {
+        symbol = (nanos6_set_noflush_t *) _nanos6_resolve_symbol("nanos6_set_noflush", "essential", NULL);
+    }
+    
+    (*symbol)(host_ptr,size);
+}
+
+
 
 void nanos6_print_directory()
 {

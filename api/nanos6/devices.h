@@ -36,6 +36,8 @@ void nanos6_device_memcpy(nanos6_device_t device, int device_id, void* host_ptr,
 
 void nanos6_set_home(nanos6_device_t device, int device_id, void* host_ptr, size_t size);
 
+void nanos6_set_noflush(void* host_ptr, size_t size);
+
 void nanos6_print_directory();
 
 void nanos6_enable_noflush();
