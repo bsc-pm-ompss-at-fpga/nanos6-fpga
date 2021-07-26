@@ -379,16 +379,13 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		[=](AcceleratorEvent* own) 
 		{
 		/*release taskwait*/
-
 		_dirMap->applyToRange(
 					taskwaitRegion,
 					[&](DirectoryEntry *entry) 
 					{
 						if(entry->getNoFlush())
-						{
-							entry->setNoFlushState(false);
 							return true;
-						}
+						
 						//clearing allocations is not easy, we can make it so it stays allocated
 						//and if we fail to allocate afterwards, try to cleanup
 						entry->clearAllocations(entry->getHome());//ignore home node
@@ -398,7 +395,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 						return true;
 					});
 
-		_dirMap->remRange(taskwaitRegion, SMP_HANDLER);
+		_dirMap->remRangeOnFlush(taskwaitRegion, SMP_HANDLER);
 
 		release();
 		delete own;

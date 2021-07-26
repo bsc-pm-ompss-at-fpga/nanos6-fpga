@@ -138,14 +138,14 @@ public:
 	}
 
 
-	void remRange(const DataAccessRegion& dar, const int remove_only_if_handle_equals = -1)
+	void remRangeOnFlush(const DataAccessRegion& dar, const int remove_only_if_handle_equals = -1)
 	{
 		const std::pair<uintptr_t, uintptr_t> range((uintptr_t)dar.getStartAddress(), (uintptr_t)dar.getStartAddress() + (uintptr_t) dar.getSize());
-		remRange(range,remove_only_if_handle_equals);
+		remRangeOnFlush(range,remove_only_if_handle_equals);
 
 	}
 
-	void remRange(const std::pair<uintptr_t, uintptr_t>& range_to_del, const int remove_only_if_handle_equals = -1)
+	void remRangeOnFlush(const std::pair<uintptr_t, uintptr_t>& range_to_del, const int remove_only_if_handle_equals = -1)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
 
@@ -153,9 +153,18 @@ public:
 
 		while(it != std::end(_inner_m) && it->second->getRight() <= range_to_del.second)
 		{
-			if(remove_only_if_handle_equals == -1 || remove_only_if_handle_equals == it->second->getHome())
-				it = deleteIt(it);
-			else ++it;
+			if(it->second->getNoFlush())
+			{
+				it->second->setNoFlushState(false);
+				++it;
+			}
+			else 
+			{
+				if(remove_only_if_handle_equals == -1 || remove_only_if_handle_equals == it->second->getHome())
+					it = deleteIt(it);
+				else ++it;
+			}
+
 		}
 
 	}
