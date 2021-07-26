@@ -109,9 +109,6 @@ private:
     }
 
 
-    //This generates a setValid function for a directory range.
-    AcceleratorStream::checker setValid(int handler, const std::pair<uintptr_t,uintptr_t> & entry);
-
     IntervalMap* getIntervalMap()
     {
         return _dirMap;
@@ -127,7 +124,7 @@ private:
 
     //This function makes a copy betwen two devices, if you are implementing a new device, you must add here the 
     //interaction between the devices.
-    AcceleratorStream::activatorReturnsChecker generateCopy(const DirectoryEntry &entry, int dstHandle, void* copy_extra);
+    void generateCopy(AcceleratorStream* acceleratorStream, const DirectoryEntry &entry, int dstHandle, void* copy_extra);
 
     //This function forwards to processSymbolRegions the task dependences of each type
     void processSymbol(const int handle, void *copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation>& deviceAllocation);
@@ -156,7 +153,7 @@ private:
     //We cannot setup the directory at the moment of generating the copies because if another task wants to use the data
     //this could mean that the data is not valid.
     //For fixing this we create a transitory step, and the task will need to wait for directory validity. 
-    AcceleratorStream::checker awaitToValid(const int handler, const std::pair<uintptr_t,uintptr_t> & entry);
+    void awaitToValid(AcceleratorStream* acceleratorStream, const int handler, const std::pair<uintptr_t,uintptr_t> & entry);
 
 
 };

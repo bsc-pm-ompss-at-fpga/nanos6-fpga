@@ -77,7 +77,7 @@ Task *DeviceUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
 	return task;
 }
 
-void DeviceUnsyncScheduler::addReadyTask(Task *task, ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
+void DeviceUnsyncScheduler::addReadyTask(Task *task, [[maybe_unused]] ComputePlace *computePlace, ReadyTaskHint hint = NO_HINT)
 {
 	assert(task != nullptr);
 
