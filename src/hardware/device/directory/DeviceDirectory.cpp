@@ -25,15 +25,66 @@ namespace DeviceDirectoryInstance {
 };
 
 
+int DeviceDirectory::computeAffininty(std::vector<SymbolRepresentation>& symbolInfo, int deviceType )
+{
+	static unsigned int affinityCounter = 0;
 
+	const auto handle_to_accel_num = [&](int handle) -> int{ return _accelerators[handle]->getVendorDeviceId();};
+
+	std::unordered_map<int, int> affinity;
+
+	const std::vector<int>& accelerator_handles = _directory_handles_devicetype_deviceid[deviceType];
+	
+	if(accelerator_handles.size() == 1) 
+		return handle_to_accel_num(accelerator_handles[0]);
+
+
+	const auto compare_lambda = [](const decltype(affinity)::value_type &p1, const decltype(affinity)::value_type &p2)
+	{
+		return p1.second < p2.second;
+	};
+
+	auto affinity_fun = [&](DirectoryEntry* centry) -> bool
+	{
+		for(const auto& handle : accelerator_handles)
+			if(centry->isValid(handle)) affinity[handle] += centry->getSize();
+
+		return true;
+	};
+
+
+	for(auto& symbol : symbolInfo)
+	{
+		for(auto& in_region : symbol.getInputRegions())
+			_dirMap->applyToRange(in_region,affinity_fun);
+		for(auto& inout_region : symbol.getInputOutputRegions())
+			_dirMap->applyToRange(inout_region, affinity_fun);
+		//there are no copies involved in an out region
+	}
+
+	if(affinity.empty()) 
+		return handle_to_accel_num(accelerator_handles[(affinityCounter++)%accelerator_handles.size()]);
+
+	return handle_to_accel_num(std::max_element(
+		std::begin(affinity), std::end(affinity), compare_lambda
+	)->first);
+
+}
 
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
+	_directory_handles_devicetype_deviceid(nanos6_device_type_num),
 	_dirMap(new IntervalMap(accels.size())),
 	_taskwaitStream(), _stopService(false), _finishedService(false)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
+	{
 		_accelerators[i]->setDirectoryHandle(i);
+		int deviceType = (int) _accelerators[i]->getDeviceType();
+		std::vector<int> &deviceVec = _directory_handles_devicetype_deviceid[deviceType];
+		deviceVec.push_back(i);
+	}
+	
 
 }
 

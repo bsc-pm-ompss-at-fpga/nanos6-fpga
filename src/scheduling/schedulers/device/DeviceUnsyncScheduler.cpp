@@ -5,9 +5,9 @@
 */
 
 #include "DeviceUnsyncScheduler.hpp"
-#include "hardware/device/DeviceMemManager.hpp"
 #include "scheduling/ready-queues/ReadyQueueDeque.hpp"
 #include "scheduling/ready-queues/ReadyQueueMap.hpp"
+#include "hardware/device/directory/DeviceDirectory.hpp"
 
 DeviceUnsyncScheduler::DeviceUnsyncScheduler(
 	SchedulingPolicy policy,
@@ -89,37 +89,8 @@ void DeviceUnsyncScheduler::addReadyTask(Task *task, ComputePlace *computePlace,
 		return;
 	}
 
-	// -- DISABLED for devices
-	if (_enableImmediateSuccessor) {
-		if (computePlace != nullptr && hint == SIBLING_TASK_HINT) {
-			size_t immediateSuccessorId = computePlace->getIndex();
-			if (!task->isTaskfor()) {
-				Task *currentIS = _immediateSuccessorTasks[immediateSuccessorId];
-				if (currentIS != nullptr) {
-					assert(!currentIS->isTaskfor());
-					_readyTasks->addReadyTask(currentIS, false);
-				}
-				_immediateSuccessorTasks[immediateSuccessorId] = task;
-			} else {
-				// Multiply by 2 because there are 2 slots per group
-				immediateSuccessorId = ((CPU *)computePlace)->getGroupId()*2;
-				Task *currentIS1 = _immediateSuccessorTaskfors[immediateSuccessorId];
-				Task *currentIS2 = _immediateSuccessorTaskfors[immediateSuccessorId+1];
-				if (currentIS1 == nullptr) {
-					_immediateSuccessorTaskfors[immediateSuccessorId] = task;
-				} else if (currentIS2 == nullptr) {
-					_immediateSuccessorTaskfors[immediateSuccessorId+1] = task;
-				} else {
-					_readyTasks->addReadyTask(currentIS1, false);
-					_immediateSuccessorTaskfors[immediateSuccessorId] = task;
-				}
-			}
-			return;
-		}
-	} // DISABLED
-
-	int devId = DeviceMemManager::computeDeviceAffinity(task);
-
+	//int devId = DeviceMemManager::computeDeviceAffinity(task);
+	int devId = DeviceDirectoryInstance::instance->computeAffininty(task->getSymbolInfo(), task->getDeviceType());
 	// _readyTasks->addReadyTask(task, hint == UNBLOCKED_TASK_HINT);
 	// The above should probably be ignored, just leaving it for testing
 	_readyTasksDevice[devId]->addReadyTask(task, hint == UNBLOCKED_TASK_HINT);

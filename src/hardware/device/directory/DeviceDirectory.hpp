@@ -35,6 +35,8 @@ private:
     std::mutex device_directory_mutex;
 
     std::vector<Accelerator *> _accelerators;
+
+    std::vector<std::vector<int>> _directory_handles_devicetype_deviceid;
     std::vector<std::shared_ptr<DeviceAllocation>> _symbol_allocations;
 
     IntervalMap *_dirMap;
@@ -47,6 +49,12 @@ private:
 
     DeviceDirectory(const std::vector<Accelerator*>& accels);
     ~DeviceDirectory();
+
+
+    //This function computes the affinity for a device over a region, if there is no affinity, it returns a pseudo-random one.
+    //It only checks for IN and INOUT tasks, since OUT tasks only require an allocation, but not a copy.
+    int computeAffininty(std::vector<SymbolRepresentation>& symbolInfo, int deviceType);
+
     //This function tries to register the task dependences in the directory. 
     //As a parameter it accepts the task which dependences are going to be registered, and two steps that will be used for synchronization
     //This function can fail if there is no space for allocation in the device. In this case, the user is responsible of calling the free
