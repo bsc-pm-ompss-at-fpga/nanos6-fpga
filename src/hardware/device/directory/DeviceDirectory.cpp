@@ -139,7 +139,7 @@ bool DeviceDirectory::register_regions(std::vector<SymbolRepresentation>& symbol
 
 	const int handle = accelerator->getDirectoryHandler();
 
-	std::lock_guard<std::mutex> guard(device_directory_mutex);
+	std::lock_guard<std::mutex> guard(_device_directory_mutex);
 
 	_symbol_allocations.clear();
 	_symbol_allocations.resize(symbolInfo.size());

@@ -32,7 +32,7 @@ class DeviceDirectory
 
 
 private:
-    std::mutex device_directory_mutex;
+    std::mutex _device_directory_mutex;
 
     std::vector<Accelerator *> _accelerators;
 
