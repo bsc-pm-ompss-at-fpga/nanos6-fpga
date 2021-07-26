@@ -6,31 +6,28 @@
 #ifndef DEVICE_DIRECTORY_HPP
 #define DEVICE_DIRECTORY_HPP
 
+
+#include <dependencies/DataAccessType.hpp>
+
+
 #include <functional>
 #include <mutex>
+#include <vector>
+#include <memory>
+#include <atomic>
 
-#include "tasks/Task.hpp"
-
-#include "hardware/device/Accelerator.hpp"
-#include "hardware/device/AcceleratorStream.hpp"
-#include "lowlevel/EnvironmentVariable.hpp"
-
-
-
-
-using checker = int;
-
-
-
+class Accelerator;
+class AcceleratorStream;
+class Task;
 class IntervalMap;
 class DirectoryEntry;
+class DeviceAllocation;
+class DataAccessRegion;
+
 struct SymbolRepresentation;
+
 class DeviceDirectory
 {
-    public:
-        void print();
-
-
 private:
     std::mutex _device_directory_mutex;
 
@@ -41,7 +38,7 @@ private:
 
     IntervalMap *_dirMap;
 
-    AcceleratorStream _taskwaitStream;
+    AcceleratorStream *_taskwaitStream;
 	std::atomic<bool> _stopService;
 	std::atomic<bool> _finishedService;
     
@@ -50,6 +47,7 @@ private:
     DeviceDirectory(const std::vector<Accelerator*>& accels);
     ~DeviceDirectory();
 
+    void print();
 
     //This function computes the affinity for a device over a region, if there is no affinity, it returns a pseudo-random one.
     //It only checks for IN and INOUT tasks, since OUT tasks only require an allocation, but not a copy.
@@ -79,48 +77,15 @@ private:
     Accelerator *getAcceleratorByHandle(const int handle);
 
 
-    void initializeTaskwaitService()
-    {
-        // Spawn service function
-        SpawnFunction::spawnFunction(
-            [](void* t)
-            {
-                DeviceDirectory* devDir = ((DeviceDirectory*) t);
-                while(!devDir->shouldStopService())
-                {
-                    while(devDir->_taskwaitStream.streamPendingExecutors())
-                        devDir->_taskwaitStream.streamServiceLoop();
-                    BlockingAPI::waitForUs(300);
-                }
-            }, this,
-            [](void* t)
-            {
-                ((DeviceDirectory*) t)->_finishedService = true;
-            }, this,
-            "Taskwait service", false
-            );
-    }
+    void initializeTaskwaitService();
 
-    void shutdownTaskwaitService()
-    {
-        _stopService = true;
-        // Wait until the service completes
-        while (!_finishedService);
-    }
+    void shutdownTaskwaitService();
 
-
-    IntervalMap* getIntervalMap()
-    {
-        return _dirMap;
-    }
+    IntervalMap* getIntervalMap();
 
 private:
 
-	inline bool shouldStopService() const
-	{
-		return _stopService.load(std::memory_order_relaxed);
-	}
-
+	inline bool shouldStopService() const;
 
     //This function makes a copy betwen two devices, if you are implementing a new device, you must add here the 
     //interaction between the devices.

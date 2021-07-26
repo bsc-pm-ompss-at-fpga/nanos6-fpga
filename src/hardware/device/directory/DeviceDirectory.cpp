@@ -4,6 +4,15 @@
 	Copyright (C) 2020 Barcelona Supercomputing Center (BSC)
 */
 #include "DeviceDirectory.hpp"
+
+
+#include "tasks/Task.hpp"
+
+#include "hardware/device/Accelerator.hpp"
+#include "hardware/device/AcceleratorStream.hpp"
+#include "lowlevel/EnvironmentVariable.hpp"
+
+
 #include "DirectoryEntry.hpp"
 #include "DeviceDirectory.hpp"
 
@@ -14,8 +23,8 @@
 #include "api/nanos6/library-mode.h"
 #include "lowlevel/FatalErrorHandler.hpp"
 
-
 #include "IntervalMap.hpp"
+
 static constexpr int SMP_HANDLER = 0;
 static constexpr int NO_DEVICE = -1;
 namespace DeviceDirectoryInstance {
@@ -74,7 +83,7 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_directory_handles_devicetype_deviceid(nanos6_device_type_num),
 	_dirMap(new IntervalMap(accels.size())),
-	_taskwaitStream(), _stopService(false), _finishedService(false)
+	_taskwaitStream(new AcceleratorStream), _stopService(false), _finishedService(false)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
 	{
@@ -363,7 +372,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 	{
 		if (!entry->getNoFlush() && !entry->isValid(entry->getHome()))
 		{
-			generateCopy(&_taskwaitStream,*entry, entry->getHome(), nullptr);
+			generateCopy(_taskwaitStream,*entry, entry->getHome(), nullptr);
 		}
 		return true;
 	});
@@ -393,7 +402,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		release();
 		delete own;
 		}
-	))->record(&_taskwaitStream);
+	))->record(_taskwaitStream);
 	
 
 }
@@ -451,3 +460,47 @@ void DeviceDirectory::print()
 	printf("END OF DIR\n\n");
 
 }
+
+
+
+void DeviceDirectory::initializeTaskwaitService()
+{
+	// Spawn service function
+	SpawnFunction::spawnFunction(
+		[](void* t)
+		{
+			DeviceDirectory* devDir = ((DeviceDirectory*) t);
+			while(!devDir->shouldStopService())
+			{
+				while(devDir->_taskwaitStream->streamPendingExecutors())
+					devDir->_taskwaitStream->streamServiceLoop();
+				BlockingAPI::waitForUs(300);
+			}
+		}, this,
+		[](void* t)
+		{
+			((DeviceDirectory*) t)->_finishedService = true;
+		}, this,
+		"Taskwait service", false
+		);
+}
+
+void DeviceDirectory::shutdownTaskwaitService()
+{
+	_stopService = true;
+	// Wait until the service completes
+	while (!_finishedService);
+}
+
+
+IntervalMap* DeviceDirectory::getIntervalMap()
+{
+	return _dirMap;
+}
+
+
+bool DeviceDirectory::shouldStopService() const
+{
+	return _stopService.load(std::memory_order_relaxed);
+}
+

@@ -13,17 +13,19 @@
 #include <TaskDataAccessesInfo.hpp>
 
 #include "tasks/TaskImplementation.hpp"
-#include "hardware/HardwareInfo.hpp"
-#include "hardware/device/AcceleratorStream.hpp"
-#include "dependencies/DataAccessType.hpp"
 
+#include "hardware/HardwareInfo.hpp"
 
 #include "hardware/device/directory/DeviceDirectory.hpp"
 #include "hardware/device/directory/IntervalMap.hpp"
 #include "hardware/device/directory/DirectoryEntry.hpp"
 
+#include "hardware/device/Accelerator.hpp"
+#include "hardware/device/AcceleratorStream.hpp"
 
 #include <Dependencies.hpp>
+#include "dependencies/DataAccessType.hpp"
+
 #include "ompss/AddTask.hpp"
 extern "C" {
 
@@ -37,8 +39,6 @@ int nanos6_get_device_num(nanos6_device_t device)
 {
     return HardwareInfo::getDeviceInfo(device)==nullptr?0:HardwareInfo::getDeviceInfo(device)->getComputePlaceCount();
 }
-
-
 
 
 nanos6_task_invocation_info_t global_device_api_src{"Directory Home API src"};
