@@ -81,32 +81,4 @@ void nanos6_print_directory()
 
 
 
-void nanos6_enable_noflush()
-{
-    typedef void nanos6_enable_noflush_t();
-
-    static nanos6_enable_noflush_t *symbol = NULL;
-    if (__builtin_expect(symbol == NULL, 0))
-    {
-        symbol = (nanos6_enable_noflush_t *) _nanos6_resolve_symbol("nanos6_enable_noflush", "essential", NULL);
-    }
-    
-    (*symbol)();
-}
-
-
-void nanos6_disable_noflush()
-{
-    typedef void nanos6_disable_noflush_t();
-
-    static nanos6_disable_noflush_t *symbol = NULL;
-    if (__builtin_expect(symbol == NULL, 0))
-    {
-        symbol = (nanos6_disable_noflush_t *) _nanos6_resolve_symbol("nanos6_disable_noflush", "essential", NULL);
-    }
-    
-    (*symbol)();
-}
-
-
 #pragma GCC visibility pop

@@ -28,17 +28,6 @@
 extern "C" {
 
 
-void nanos6_enable_noflush()
-{
-    DeviceDirectoryInstance::noflush = true;
-}
-
-void nanos6_disable_noflush()
-{
-    DeviceDirectoryInstance::noflush = false;
-}
-
-
 void nanos6_print_directory()
 {
     DeviceDirectoryInstance::instance->print();

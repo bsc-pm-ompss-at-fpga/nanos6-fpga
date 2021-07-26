@@ -21,7 +21,6 @@ static constexpr int NO_DEVICE = -1;
 namespace DeviceDirectoryInstance {
 	DeviceDirectory *instance = nullptr;
 	bool useDirectory =	ConfigVariable<bool>("devices.directory");
-    bool noflush = false;
 };
 
 
@@ -358,12 +357,6 @@ void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* cop
 
 void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::function<void()> release)
 {
-
-	if(DeviceDirectoryInstance::noflush)
-	{
-		release();
-		return;
-	}
 
 	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 

@@ -164,7 +164,6 @@ namespace DeviceDirectoryInstance
 {
     extern DeviceDirectory *instance;
     extern bool useDirectory;
-    extern bool noflush;
 };
 
 #endif //DEVICE_DIRECTORY_HPP

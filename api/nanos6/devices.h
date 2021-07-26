@@ -40,9 +40,6 @@ void nanos6_set_noflush(void* host_ptr, size_t size);
 
 void nanos6_print_directory();
 
-void nanos6_enable_noflush();
-
-void nanos6_disable_noflush();
 
 #ifdef __cplusplus
 }
