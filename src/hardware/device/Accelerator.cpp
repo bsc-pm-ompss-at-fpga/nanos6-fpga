@@ -241,7 +241,7 @@ void Accelerator::serviceCompleted(void *data)
 	void Accelerator::postRunTask(Task *){}
 
 
-	  void Accelerator::acceleratorServiceLoop() {
+	void Accelerator::acceleratorServiceLoop() {
     while (!shouldStopService()) 
     {
       setActiveDevice();
@@ -266,7 +266,7 @@ void Accelerator::serviceCompleted(void *data)
   }
 
 
-   bool Accelerator::shouldStopService() const {
+  bool Accelerator::shouldStopService() const {
     return _stopService.load(std::memory_order_relaxed);
   }
 

@@ -40,6 +40,7 @@ void nanos6_set_noflush(void* host_ptr, size_t size);
 
 void nanos6_print_directory();
 
+void nanos6_register_device_spawned_task(uint64_t spawned_task_id, void* function_addr);
 
 #ifdef __cplusplus
 }
