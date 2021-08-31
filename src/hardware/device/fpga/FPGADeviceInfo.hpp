@@ -14,17 +14,25 @@
 #include "FPGAAccelerator.hpp"
 #include <libxtasks.h>
 
-
-
-
 class FPGADeviceInfo : public DeviceInfo {
 
 public:
 	FPGADeviceInfo()
 	{
-		_accelerators.push_back(new FPGAAccelerator(0));
+        FatalErrorHandler::failIf(
+            xtasksInit() != XTASKS_SUCCESS,
+            "Error: Xtasks can't be initialized."
+        );
+
+        FatalErrorHandler::failIf(
+            xtasksGetNumDevices(&_deviceCount) != XTASKS_SUCCESS,
+            "Xtasks: Can't get number of devices"
+        );
+        _accelerators.resize(_deviceCount);
+        for (size_t i = 0; i < _deviceCount; ++i) {
+            _accelerators[i] = new FPGAAccelerator(i);
+        }
 		_deviceInitialized = true;
-		_deviceCount = 1;
 	}
 
 	~FPGADeviceInfo()

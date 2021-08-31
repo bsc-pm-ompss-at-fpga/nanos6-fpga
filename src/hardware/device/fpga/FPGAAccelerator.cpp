@@ -16,50 +16,53 @@
 #include "lowlevel/FatalErrorHandler.hpp"
 
 
-
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	Accelerator(fpgaDeviceIndex,
 		nanos6_fpga_device,
 		ConfigVariable<uint32_t>("devices.fpga.streams"),
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
-		_supports_async(ConfigVariable<bool>("devices.fpga.real_async"))
+        _supports_async(ConfigVariable<bool>("devices.fpga.real_async")),
+        _allocator(fpgaDeviceIndex)
 {
 
-	size_t deviceCount = 0, handlesCount=0;
+    size_t accCount = 0, handlesCount=0;
 
 	FatalErrorHandler::failIf(
-		xtasksGetNumAccs(&deviceCount) != XTASKS_SUCCESS,
+        xtasksGetNumAccs(&accCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get number of accelerators"
 	);
 
-	std::vector<xtasks_acc_info> info(deviceCount);
-	std::vector<xtasks_acc_handle> handles(deviceCount);
+    std::vector<xtasks_acc_info> info(accCount);
+    std::vector<xtasks_acc_handle> handles(accCount);
 
 	FatalErrorHandler::failIf(
-		xtasksGetAccs(deviceCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
+        xtasksGetAccs(accCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get the accelerators"
 	);
 
-	for(size_t i=0; i<deviceCount;++i)
+    for(size_t i=0; i<accCount;++i)
 	{
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
 }
 
-
-
 inline void FPGAAccelerator::generateDeviceEvironment(Task *task) 
 {
+#ifndef NDEBUG
+    std::stringstream ss;
+    ss << "Device subtype " << task->getDeviceSubType() << " not found";
+    FatalErrorHandler::failIf(
+        _inner_accelerators.find(task->getDeviceSubType()) == _inner_accelerators.end(),
+        ss.str()
+    );
+#endif
 	xtasks_acc_handle accelerator = _inner_accelerators[task->getDeviceSubType()].getHandle();
 	xtasks_task_id parent = 0;
 	xtasksCreateTask((xtasks_task_id) task, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &task->getDeviceEnvironment().fpga.taskHandle);
 	task->getDeviceEnvironment().fpga.taskFinished = false;
 }
-
-
-
 
 std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
 {
@@ -76,18 +79,17 @@ void FPGAAccelerator::postRunTask(Task *)
 {
 }
 
-
 void FPGAAccelerator::callBody(Task *task)
 {
-	if(DeviceDirectoryInstance::useDirectory)
+    if(DeviceDirectoryInstance::useDirectory) {
 		task->getAcceleratorStream()->addOperation(
-			[task = task]() -> std::function<bool(void)> 
+            [task = task, handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{ 
 				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
 
 				FatalErrorHandler::failIf(
-					xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
+                    xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
 					"Xtasks: Submit Task failed"
 				);
 
@@ -104,8 +106,8 @@ void FPGAAccelerator::callBody(Task *task)
 				};
 			}
 		);
-	else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
-
+    }
+    else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
 }
 
 void FPGAAccelerator::preRunTask(Task *task)
@@ -114,8 +116,6 @@ void FPGAAccelerator::preRunTask(Task *task)
 			DeviceDirectoryInstance::instance->register_regions(task);
 		else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
 }
-
-
 
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task)
 {
@@ -227,5 +227,3 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 		return []() -> bool{return true;}; 
 	};
 }
-
-

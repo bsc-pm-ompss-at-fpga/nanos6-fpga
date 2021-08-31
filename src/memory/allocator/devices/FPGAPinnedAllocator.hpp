@@ -1,6 +1,7 @@
 #pragma once
 
 #include "support/config/ConfigCentral.hpp"
+#include "support/config/ConfigVariable.hpp"
 #include "SimpleAllocator.hpp"
 #include <libxtasks.h>
 class FPGAPinnedAllocator: public SimpleAllocator 
@@ -13,18 +14,18 @@ class FPGAPinnedAllocator: public SimpleAllocator
 
    public: 
    
-   FPGAPinnedAllocator() 
+   FPGAPinnedAllocator(int deviceId)
    {
       const size_t userRequestedSize = ConfigVariable<size_t>("devices.fpga.requested_fpga_memory").getValue();
       size_t size = userRequestedSize > 0 ? userRequestedSize :512*1024*1024; 
       
-      xtasks_stat status = xtasksMalloc(size, &_handle);
+      xtasks_stat status = xtasksMalloc(deviceId, size, &_handle);
       if (status != XTASKS_SUCCESS) 
       {
          // Before fail, try to allocate less memory
          do {
             size = size / 2;
-            status = xtasksMalloc(size, & _handle);
+            status = xtasksMalloc(deviceId, size, & _handle);
          } while (status != XTASKS_SUCCESS && size > 32768 /* 32KB */ );
          _allocated_memory = size;
          // Emit a warning with the allocation result
