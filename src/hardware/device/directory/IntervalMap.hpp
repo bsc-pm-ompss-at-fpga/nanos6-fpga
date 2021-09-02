@@ -87,12 +87,11 @@ public:
 		assert(toAdd->getRight() > new_itv.second);
 
 		toAdd->updateRange({new_itv});
-		deleteIt(it);
+		_inner_m.erase(it);
 		
 		uintptr_t key = toAdd->getLeft();
 	
-		std::pair<uintptr_t, DirectoryEntry  *> t = {key, toAdd};
-		return _inner_m.insert(std::begin(_inner_m), t);
+		return _inner_m.emplace(key, toAdd).first;
 	}
 
 

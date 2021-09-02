@@ -66,7 +66,7 @@ SchedulerInterface::SchedulerInterface()
 #if USE_FPGA
 	_deviceSchedulers[nanos6_fpga_device] =
 		SchedulerGenerator::createDeviceScheduler(
-			1, policy, _enablePriority,
+			HardwareInfo::getComputePlaceCount(nanos6_fpga_device), policy, _enablePriority,
 			_enableImmediateSuccessor, nanos6_fpga_device);
 #endif
 }

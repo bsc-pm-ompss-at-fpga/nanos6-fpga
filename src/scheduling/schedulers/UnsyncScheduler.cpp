@@ -28,15 +28,14 @@ UnsyncScheduler::UnsyncScheduler(
 
 UnsyncScheduler::~UnsyncScheduler()
 {
-	assert(_numQueues > 0);
-
 	for (uint64_t i = 0; i < _numQueues; i++) {
 		if (_queues[i] != nullptr) {
 			delete _queues[i];
 		}
 	}
 
-	MemoryAllocator::free(_queues, _numQueues * sizeof(ReadyQueue *));
+	if (_numQueues > 0)
+		MemoryAllocator::free(_queues, _numQueues * sizeof(ReadyQueue *));
 }
 
 void UnsyncScheduler::regularAddReadyTask(Task *task, bool unblocked)
