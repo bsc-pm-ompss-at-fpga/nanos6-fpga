@@ -44,6 +44,7 @@ ConfigCentral::ConfigCentral() :
 
 
 	// FPGA Devices
+	registerOption<integer_t>("devices.fpga.alignment", 16);
 	registerOption<integer_t>("devices.fpga.page_size", 0x8000);
 	registerOption<memory_t>("devices.fpga.requested_fpga_memory",0x200000000);
 

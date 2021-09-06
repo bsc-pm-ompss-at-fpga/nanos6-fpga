@@ -36,7 +36,7 @@ namespace DeviceDirectoryInstance {
 int DeviceDirectory::computeAffininty(std::vector<SymbolRepresentation>& symbolInfo, int deviceType )
 {
 	if(_dirMap->_inner_m.size()==0)
-		return 1;
+		return 0;
 	static unsigned int affinityCounter = 0;
 
 	const auto handle_to_accel_num = [&](int handle) -> int{ return _accelerators[handle]->getVendorDeviceId();};

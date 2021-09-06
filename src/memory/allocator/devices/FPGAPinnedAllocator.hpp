@@ -10,15 +10,16 @@ class FPGAPinnedAllocator: public SimpleAllocator
    private: 
    xtasks_mem_handle _handle; //!< Memory chunk handler for xTasks library
    size_t _allocated_memory;
+   const size_t align;
    uint64_t _phys_base_addr;
 
    public: 
    
-   FPGAPinnedAllocator(int deviceId)
+   FPGAPinnedAllocator(int deviceId) : align(ConfigVariable<size_t>("devices.fpga.alignment").getValue())
    {
       const size_t userRequestedSize = ConfigVariable<size_t>("devices.fpga.requested_fpga_memory").getValue();
       size_t size = userRequestedSize > 0 ? userRequestedSize :512*1024*1024; 
-      
+
       xtasks_stat status = xtasksMalloc(deviceId, size, &_handle);
       if (status != XTASKS_SUCCESS) 
       {
@@ -27,7 +28,6 @@ class FPGAPinnedAllocator: public SimpleAllocator
             size = size / 2;
             status = xtasksMalloc(deviceId, size, & _handle);
          } while (status != XTASKS_SUCCESS && size > 32768 /* 32KB */ );
-         _allocated_memory = size;
          // Emit a warning with the allocation result
 
          FatalErrorHandler::failIf(status != XTASKS_SUCCESS, "Xtasks: failed to allocate memory");
@@ -35,7 +35,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
          FatalErrorHandler::warnIf(userRequestedSize > 0,
             "Could not allocate requested amount of FPGA device memory (",userRequestedSize," bytes). Only " , size , " bytes have been allocated.");
       }
-
+      _allocated_memory = size;
 
       FatalErrorHandler::failIf(
          xtasksGetAccAddress(_handle, &_phys_base_addr) != XTASKS_SUCCESS,
@@ -56,11 +56,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
 
    std::pair<void *, bool> allocate(size_t size) 
    {
-      static const std::size_t align = 16;
-      FatalErrorHandler::failIf(
-		   size > _allocated_memory,
-		   "FPGA Pinned Allocator: Can't allocate this much memory for FPGA"
-	   );
+      assert(size <= _allocated_memory);
       lock();
       //Force the allocated sizes to be multiples of align
       //This prevents allocation of unaligned chunks

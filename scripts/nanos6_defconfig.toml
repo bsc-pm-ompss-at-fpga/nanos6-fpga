@@ -140,6 +140,8 @@ __!require_PQOS
 __require_FPGA
 	# OmpSs-2 @ FPGA
 	[devices.fpga]
+		# Byte aligment of the fpga memory allocations
+		alignment = 16
 		# If xtasks supports async copies, this can be true, if not, the runtime will use the default xtasks memcpy and
 		# simulate an asynchronous copy spawning a new thread.
 		real_async = false
