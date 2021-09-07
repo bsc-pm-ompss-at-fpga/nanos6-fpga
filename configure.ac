@@ -277,6 +277,18 @@ if test x"${ac_use_fpga}" = x"yes" ; then
 	AC_DEFINE([USE_FPGA], [1], [Define if FPGA is enabled.])
 fi
 
+AC_ARG_ENABLE([distributed], [AS_HELP_STRING([--enable-distributed], [Enable distributed task support])])
+if test x"${enable_distributed}" = x"yes" ; then
+	ac_use_distributed=yes
+else
+	ac_use_distributed=no
+fi
+AM_CONDITIONAL([USE_DISTRIBUTED], [test x${ac_use_distributed} = x"yes"])
+
+if test x"${ac_use_distributed}" = x"yes" ; then
+	AC_DEFINE([USE_DISTRIBUTED], [1], [Define if broadcaster device is enabled.])
+fi
+
 
 AC_CHECK_MAIN_WRAPPER_TYPE
 AC_CHECK_SYMBOL_RESOLUTION_STRATEGY
@@ -378,6 +390,13 @@ else
 	AC_MSG_RESULT([no])
 fi
 
+_AS_ECHO([])
+_AS_ECHO_N([   distributed tasks are enabled... ])
+if test x"${ac_use_distributed}" = x"yes" ; then
+	AC_MSG_RESULT([yes])
+else
+	AC_MSG_RESULT([no])
+fi
 
 _AS_ECHO([])
 _AS_ECHO_N([   Memkind is enabled... ])

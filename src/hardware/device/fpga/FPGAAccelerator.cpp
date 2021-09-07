@@ -48,7 +48,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	}
 }
 
-inline void FPGAAccelerator::generateDeviceEvironment(Task *task) 
+inline void FPGAAccelerator::generateDeviceEvironment(Task *task)
 {
 #ifndef NDEBUG
     std::stringstream ss;
@@ -64,6 +64,21 @@ inline void FPGAAccelerator::generateDeviceEvironment(Task *task)
 	task->getDeviceEnvironment().fpga.taskFinished = false;
 }
 
+void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment* env, uint64_t deviceSubtypeId) {
+#ifndef NDEBUG
+    std::stringstream ss;
+    ss << "Device subtype " << deviceSubtypeId << " not found";
+    FatalErrorHandler::failIf(
+        _inner_accelerators.find(deviceSubtypeId) == _inner_accelerators.end(),
+        ss.str()
+    );
+#endif
+    xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
+    xtasks_task_id parent = 0;
+    xtasksCreateTask((xtasks_task_id) env, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env->fpga.taskHandle);
+    env->fpga.taskFinished = false;
+}
+
 std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
 {
 	return _allocator.allocate(size);
@@ -74,9 +89,27 @@ void FPGAAccelerator::accel_free(void* ptr)
 	_allocator.free(ptr);
 }
 
-
 void FPGAAccelerator::postRunTask(Task *)
 {
+}
+
+void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) const {
+    FatalErrorHandler::failIf(
+        xtasksSubmitTask(getDeviceHandler(), deviceEnvironment.fpga.taskHandle)!= XTASKS_SUCCESS,
+        "Xtasks: Submit Task failed"
+    );
+}
+
+bool FPGAAccelerator::checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const {
+    xtasks_task_handle hand;
+    xtasks_task_id tid;
+    while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+    {
+        xtasksDeleteTask(&hand);
+        DeviceEnvironment* env  = (DeviceEnvironment*) tid;
+        env->fpga.taskFinished = true;
+    }
+    return deviceEnvironment.fpga.taskFinished;
 }
 
 void FPGAAccelerator::callBody(Task *task)
@@ -85,13 +118,12 @@ void FPGAAccelerator::callBody(Task *task)
 		task->getAcceleratorStream()->addOperation(
             [task = task, handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{ 
-				Accelerator::setCurrentTask(task);
 				task->body(&task->_symbolTranslations[0]);
 
-				FatalErrorHandler::failIf(
+                FatalErrorHandler::failIf(
                     xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
-					"Xtasks: Submit Task failed"
-				);
+                    "Xtasks: Submit Task failed"
+                );
 
 				return [=]()->bool{
 					xtasks_task_handle hand;
@@ -117,7 +149,7 @@ void FPGAAccelerator::preRunTask(Task *task)
 		else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
 }
 
-std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task)
+std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task) const
 {
 
 	if(_supports_async)
@@ -166,7 +198,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) 
+std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) const
 {
 	if(_supports_async)
 		{
@@ -213,14 +245,14 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 	}
 }
 
-//this functions performs a copy from two accelerators that can share it's data without the host intervention
+//this functions performs a copy from two accelerators that can share their data without the host intervention
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 	[[maybe_unused]] void *dst,
 	[[maybe_unused]] int dstDevice, 
 	[[maybe_unused]] void *src, 
 	[[maybe_unused]] int srcDevice,
 	[[maybe_unused]] size_t size,
-	[[maybe_unused]] void *task)
+    [[maybe_unused]] void *task) const
 {
 	return []() -> std::function<bool(void)>
 	{

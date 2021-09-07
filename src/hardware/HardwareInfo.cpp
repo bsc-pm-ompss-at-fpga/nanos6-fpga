@@ -23,6 +23,10 @@
 #include "hardware/device/fpga/FPGADeviceInfo.hpp"
 #endif
 
+#ifdef USE_DISTRIBUTED
+#include "hardware/device/broadcaster/BroadcasterDeviceInfo.hpp"
+#endif
+
 std::vector<DeviceInfo *> HardwareInfo::_infos;
 
 void HardwareInfo::initialize()
@@ -53,6 +57,10 @@ void HardwareInfo::initialize()
 			for(Accelerator* accel: deviceInfo->getAccelerators())
 			 _accelerators.push_back(accel);
 	}
+#ifdef USE_DISTRIBUTED
+    _infos[nanos6_broadcaster_device] = new BroadcasterDeviceInfo(_accelerators);
+    _accelerators.push_back(getDeviceInfo(nanos6_broadcaster_device)->getAccelerators()[0]);
+#endif
 	DeviceDirectoryInstance::instance = new DeviceDirectory(_accelerators);
 }
 
@@ -70,6 +78,9 @@ void HardwareInfo::initializeDeviceServices()
 	_infos[nanos6_fpga_device]->initializeDeviceServices();
 #endif
 
+#ifdef USE_DISTRIBUTED
+    _infos[nanos6_broadcaster_device]->initializeDeviceServices();
+#endif
 
 	DeviceDirectoryInstance::instance->initializeTaskwaitService();
 }
@@ -92,9 +103,11 @@ void HardwareInfo::shutdownDeviceServices()
 #ifdef USE_CUDA
 	_infos[nanos6_cuda_device]->shutdownDeviceServices();
 #endif
-
 #ifdef USE_FPGA
 	_infos[nanos6_fpga_device]->shutdownDeviceServices();
+#endif
+#ifdef USE_DISTRIBUTED
+    _infos[nanos6_broadcaster_device]->shutdownDeviceServices();
 #endif
 	DeviceDirectoryInstance::instance->shutdownTaskwaitService();
 	delete DeviceDirectoryInstance::instance;

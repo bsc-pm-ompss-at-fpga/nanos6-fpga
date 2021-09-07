@@ -32,7 +32,11 @@ private:
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
 
-	inline void generateDeviceEvironment(Task *task) override;
+    void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
+    bool checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const override;
+    void generateDeviceEvironment(DeviceEnvironment* env, uint64_t deviceSubtypeId) override;
+
+    inline void generateDeviceEvironment(Task *task) override;
 
 	inline void finishTaskCleanup([[maybe_unused]] Task *task) override{}
 
@@ -43,9 +47,9 @@ private:
 	void postRunTask(Task *task) override;
 
 
-	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) override;
-    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) override;
-    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) override;
+    std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
+    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
+    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
 
 
 public:

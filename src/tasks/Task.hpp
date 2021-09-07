@@ -50,7 +50,6 @@ public:
 		wait_flag,
 		preallocated_args_block_flag,
 		lint_verified_flag,
-        distributed_flag,
 		//! Flags added by the Nanos6 runtime. Note that
 		//! these flags must be always declared after the
 		//! Mercurium flags
@@ -97,6 +96,7 @@ private:
 	uint64_t _NUMAHint;
 
 	std::vector<SymbolRepresentation> _symbolInfo;
+	std::vector<DistributedSymbol> _distSymbolInfo;
 
 	Accelerator 	  *_accel;
 
@@ -185,7 +185,9 @@ public:
 
 	virtual inline ~Task();
 
-	std::vector<SymbolRepresentation>& getSymbolInfo(){return _symbolInfo;	}
+	std::vector<SymbolRepresentation>& getSymbolInfo() {return _symbolInfo;}
+	const std::vector<DistributedSymbol>& getDistSymbolInfo() const {return _distSymbolInfo;}
+
 	void addAccessToSymbol(uint32_t index, DataAccessRegion region, DataAccessType type)
 	{
 		_symbolInfo[index].addDataAccess(region, type);
@@ -645,11 +647,6 @@ public:
 	{
 		return _flags[preallocated_args_block_flag];
 	}
-
-    bool isDistributed() const
-    {
-        return _flags[distributed_flag];
-    }
 
 	bool isSpawned() const
 	{

@@ -32,7 +32,7 @@ public:
         for (size_t i = 0; i < _deviceCount; ++i) {
             _accelerators[i] = new FPGAAccelerator(i);
         }
-		_deviceInitialized = true;
+        _deviceInitialized = true;
 	}
 
 	~FPGADeviceInfo()

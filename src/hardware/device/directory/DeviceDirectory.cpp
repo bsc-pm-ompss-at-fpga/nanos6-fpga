@@ -33,7 +33,7 @@ namespace DeviceDirectoryInstance {
 };
 
 
-int DeviceDirectory::computeAffininty(std::vector<SymbolRepresentation>& symbolInfo, int deviceType )
+int DeviceDirectory::computeAffininty(const std::vector<SymbolRepresentation>& symbolInfo, int deviceType )
 {
 	if(_dirMap->_inner_m.size()==0)
 		return 0;
@@ -222,7 +222,7 @@ void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, A
 
 //ALLOCATIONS
 
-std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int handle, SymbolRepresentation &symbol)
+std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int handle, const SymbolRepresentation &symbol)
 {
 	std::pair<std::shared_ptr<DeviceAllocation>, bool> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
@@ -244,7 +244,7 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int ha
 	return deviceAllocation.first;
 }
 
-std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int handle, SymbolRepresentation &symbol)
+std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int handle, const SymbolRepresentation &symbol)
 {
 	_dirMap->addRange(symbol.getHostRegion());
 

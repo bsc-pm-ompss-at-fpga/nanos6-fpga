@@ -69,7 +69,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
       return pair_ptr_success;
    }
 
-   size_t free(void * address) 
+   size_t free(void * address)
    {
       size_t ret;
       lock();
@@ -79,8 +79,8 @@ class FPGAPinnedAllocator: public SimpleAllocator
    }
 
 
-	void memcpy(void *dst, void *src, size_t count, xtasks_memcpy_kind kind)
-	{
+   void memcpy(void *dst, void *src, size_t count, xtasks_memcpy_kind kind) const
+   {
       size_t fpga_addr = (size_t) (kind==XTASKS_HOST_TO_ACC? dst : src);
       void* host_addr = (void*) (kind==XTASKS_HOST_TO_ACC? src : dst);
 	   FatalErrorHandler::failIf(
@@ -89,8 +89,8 @@ class FPGAPinnedAllocator: public SimpleAllocator
 	   );
    }
 
-	xtasks_memcpy_handle* memcpyAsync(void *dst,  void *src, size_t count, xtasks_memcpy_kind kind)
-	{
+   xtasks_memcpy_handle* memcpyAsync(void *dst,  void *src, size_t count, xtasks_memcpy_kind kind) const
+   {
       xtasks_memcpy_handle *cpyHandle = new xtasks_memcpy_handle;		
 
       
@@ -115,7 +115,7 @@ class FPGAPinnedAllocator: public SimpleAllocator
 
    /* \brief Returns the xTasks library handle for the memory region that is being managed
    */
-   xtasks_mem_handle getBufferHandle() 
+   xtasks_mem_handle getBufferHandle() const
    {
       return _handle;
    }

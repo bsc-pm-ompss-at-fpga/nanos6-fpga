@@ -469,7 +469,10 @@ common_sources += \
 	src/system/FPGADeviceAPI.cpp 
 endif
 
-
+if USE_DISTRIBUTED
+common_sources += \
+	src/hardware/device/broadcaster/BroadcasterAccelerator.cpp
+endif
 
 common_sources += $(cuda_sources)
 
@@ -791,6 +794,8 @@ noinst_HEADERS = \
 	src/hardware/device/openacc/OpenAccQueuePool.hpp \
 	src/hardware/device/fpga/FPGAAccelerator.hpp \
 	src/hardware/device/fpga/FPGADeviceInfo.hpp \
+	src/hardware/device/broadcaster/BroadcasterAccelerator.hpp \
+	src/hardware/device/broadcaster/BroadcasterDeviceInfo.hpp \
 	src/hardware/device/directory/IntervalMap.hpp \
 	src/hardware/device/directory/DirectoryEntry.hpp \
 	src/hardware/device/directory/DeviceDirectory.hpp \

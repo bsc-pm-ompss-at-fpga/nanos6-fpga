@@ -51,7 +51,7 @@ private:
 
     //This function computes the affinity for a device over a region, if there is no affinity, it returns a pseudo-random one.
     //It only checks for IN and INOUT tasks, since OUT tasks only require an allocation, but not a copy.
-    int computeAffininty(std::vector<SymbolRepresentation>& symbolInfo, int deviceType);
+    int computeAffininty(const std::vector<SymbolRepresentation>& symbolInfo, int deviceType);
 
     //This function tries to register the task dependences in the directory. 
     //As a parameter it accepts the task which dependences are going to be registered, and two steps that will be used for synchronization
@@ -108,10 +108,10 @@ private:
 
     //This function gets the current allocation for a symbol range. In case it doesn't exists or it's not enough to
     //contain the new symbol, it tries to allocate a new device address.
-    std::shared_ptr<DeviceAllocation> getDeviceAllocation(const int handle, SymbolRepresentation &symbol);
+    std::shared_ptr<DeviceAllocation> getDeviceAllocation(const int handle, const SymbolRepresentation &symbol);
 
     //This function allocates a new device address for a directory range.
-    std::shared_ptr<DeviceAllocation> getNewAllocation(const int handle, SymbolRepresentation &symbol );
+    std::shared_ptr<DeviceAllocation> getNewAllocation(const int handle, const SymbolRepresentation &symbol);
 
 
     //Since two tasks could want to use the same symbol or region, we must ensure that the copy is done only one time.

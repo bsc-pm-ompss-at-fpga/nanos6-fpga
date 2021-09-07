@@ -81,7 +81,7 @@ void CUDAAccelerator::preRunTask(Task *task)
 
 
 
-std::function<std::function<bool(void)>()> CUDAAccelerator::copy_in(void *dst, void *src, size_t size, void* task)
+std::function<std::function<bool(void)>()> CUDAAccelerator::copy_in(void *dst, void *src, size_t size, void* task) const
 {
 	if (task == nullptr) return [=]() -> std::function<bool(void)> 
 	{
@@ -99,7 +99,7 @@ std::function<std::function<bool(void)>()> CUDAAccelerator::copy_in(void *dst, v
 }
 
 //this functions performs a copy from the accelerator address space to host memory
-std::function<std::function<bool(void)>()> CUDAAccelerator::copy_out(void *dst, void *src, size_t size, void* task) 
+std::function<std::function<bool(void)>()> CUDAAccelerator::copy_out(void *dst, void *src, size_t size, void* task) const
 {
 	if (task == nullptr) return [=]() -> std::function<bool(void)> {
 			setActiveDevice();//since this can be processed by a host-task or taskwait (in a future)
@@ -116,7 +116,7 @@ std::function<std::function<bool(void)>()> CUDAAccelerator::copy_out(void *dst, 
 }
 
 //this functions performs a copy from two accelerators that can share it's data without the host intervention
-std::function<std::function<bool(void)>()> CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task)
+std::function<std::function<bool(void)>()> CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) const
 {
 	if (task == nullptr) return [=]() -> std::function<bool(void)> 
 	{

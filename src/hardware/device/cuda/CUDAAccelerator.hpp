@@ -58,9 +58,9 @@ private:
 	cudaStream_t   _cudaCopyStream;
 
 
-	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* task) override;
-    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* task) override;
-    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) override;
+    std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* task) const override;
+    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* task) const override;
+    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) const override;
 
 
 public:
@@ -100,12 +100,12 @@ public:
 	void destroyEvent(AcceleratorEvent *event) override;
 	
 	// Set current device as the active in the runtime
-	inline void setActiveDevice() override
+    inline void setActiveDevice() const override
 	{
 		CUDAFunctions::setActiveDevice(_deviceHandler);
 	}
 
-    virtual int getVendorDeviceId() override { return _cudaDeviceId;}
+    virtual int getVendorDeviceId() const override { return _cudaDeviceId;}
 
 	// In CUDA, the async FIFOs used are CUDA streams
 	inline void *getAsyncHandle() override

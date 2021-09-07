@@ -27,149 +27,154 @@
 
 class Accelerator {
 private:
-  std::atomic<bool> _stopService;
-  std::atomic<bool> _finishedService;
+    std::atomic<bool> _stopService;
+    std::atomic<bool> _finishedService;
 
-  thread_local static Task *_currentTask;
+    thread_local static Task *_currentTask;
 
 public:
 
-  Accelerator(int handler, nanos6_device_t type, uint32_t numOfStreams,
-              size_t pollingPeriodUs, bool isPinnedPolling);
+    Accelerator(int handler, nanos6_device_t type, uint32_t numOfStreams,
+                size_t pollingPeriodUs, bool isPinnedPolling);
 
-              
-    virtual void setActiveDevice();
-    virtual int getVendorDeviceId();
+
+    virtual void setActiveDevice() const;
+    virtual int getVendorDeviceId() const;
+    // Generate the appropriate device_env pointer Mercurium uses for device tasks
+    virtual inline void generateDeviceEvironment(Task *);
 protected:
-  // Used also to denote the device number
-  int _deviceHandler;
-  nanos6_device_t _deviceType;
-  MemoryPlace *_memoryPlace;
-  ComputePlace *_computePlace;
-  AcceleratorStreamPool _streamPool;
+    // Used also to denote the device number
+    int _deviceHandler;
+    nanos6_device_t _deviceType;
+    MemoryPlace *_memoryPlace;
+    ComputePlace *_computePlace;
+    AcceleratorStreamPool _streamPool;
 
-  int _directoryHandler;
-  uintptr_t _pageSize = 0x1000;
+    int _directoryHandler;
+    uintptr_t _pageSize = 0x1000;
 
-  size_t _pollingPeriodUs;
-  bool _isPinnedPolling;
+    size_t _pollingPeriodUs;
+    bool _isPinnedPolling;
 
 
 
-  inline bool shouldStopService() const;
-  // Set the current instance as the selected/active device for subsequent
-  // operations
+    inline bool shouldStopService() const;
+    // Set the current instance as the selected/active device for subsequent
+    // operations
 
-  void acceleratorServiceLoop();
+    void acceleratorServiceLoop();
 
-  // Each device may use these methods to prepare or conclude task launch if
-  // needed
-  virtual inline void preRunTask(Task *task);
+    // Each device may use these methods to prepare or conclude task launch if
+    // needed
+    virtual inline void preRunTask(Task *task);
 
-  virtual inline void postRunTask(Task *);
+    virtual inline void postRunTask(Task *);
 
-  // The main device task launch method; It will call pre- & postRunTask
-  virtual void runTask(Task *task);
+    // The main device task launch method; It will call pre- & postRunTask
+    virtual void runTask(Task *task);
 
-  // Device specific operations after task completion may go here (e.g. free
-  // environment)
-  virtual inline void finishTaskCleanup(Task *);
+    // Device specific operations after task completion may go here (e.g. free
+    // environment)
+    virtual inline void finishTaskCleanup(Task *);
 
-  // Generate the appropriate device_env pointer Mercurium uses for device tasks
-  virtual inline void generateDeviceEvironment(Task *);
+    virtual void callBody(Task *task);
 
-  virtual void callBody(Task *task);
-
-  virtual void finishTask(Task *task);
+    virtual void finishTask(Task *task);
 
 public:
-  virtual ~Accelerator() {
-    delete _computePlace;
-    delete _memoryPlace;
-  }
+    virtual ~Accelerator() {
+        delete _computePlace;
+        delete _memoryPlace;
+    }
 
-  void initializeService();
+    void initializeService();
 
-  void shutdownService();
+    void shutdownService();
 
-  int getDirectoryHandler() const;
+    int getDirectoryHandler() const;
 
-  void setDirectoryHandler(int directoryHandler);
-  // this function performs a copy from a host address space into the
-  // accelerator
-  virtual std::function<std::function<bool(void)>()>
-  copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-          [[maybe_unused]] size_t size, [[maybe_unused]] void *);
+    void setDirectoryHandler(int directoryHandler);
+    // this function performs a copy from a host address space into the
+    // accelerator
+    virtual std::function<std::function<bool(void)>()>
+    copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
+    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
 
-  // this functions performs a copy from the accelerator address space to host
-  // memory
-  virtual std::function<std::function<bool(void)>()>
-  copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-           [[maybe_unused]] size_t size, [[maybe_unused]] void *);
+    // this functions performs a copy from the accelerator address space to host
+    // memory
+    virtual std::function<std::function<bool(void)>()>
+    copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
+    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
 
-  // this functions performs a copy from two accelerators that can share it's
-  // data without the host intervention
-  virtual std::function<std::function<bool(void)>()> copy_between(
-      [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
-      [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
-      [[maybe_unused]] size_t size, [[maybe_unused]] void *);
+    // this functions performs a copy from two accelerators that can share it's
+    // data without the host intervention
+    virtual std::function<std::function<bool(void)>()> copy_between(
+            [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
+    [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
+    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
 
-  void setDirectoryHandle(int handle);
+    void setDirectoryHandle(int handle);
 
-  std::pair<std::shared_ptr<DeviceAllocation>, bool>   createNewDeviceAllocation(const DataAccessRegion &region);
+    virtual std::pair<std::shared_ptr<DeviceAllocation>, bool> createNewDeviceAllocation(const DataAccessRegion &region);
 
-  MemoryPlace *getMemoryPlace();
+    MemoryPlace *getMemoryPlace();
 
-  ComputePlace *getComputePlace();
+    ComputePlace *getComputePlace();
 
-  nanos6_device_t getDeviceType() const;
+    nanos6_device_t getDeviceType() const;
 
-  int getDeviceHandler() const;
+    int getDeviceHandler() const;
 
-  // We use FIFO queues that we launch the tasks on. These are used to check
-  // for task completion or to enqueue related operations (in the case of
-  // the Cache-Directory).  The actual object type is device-specific: In
-  // CUDA, this will be a cudaStream_t, in OpenACC an asynchronous queue,
-  // in FPGA a custom FPGA stream, etc.
+    // We use FIFO queues that we launch the tasks on. These are used to check
+    // for task completion or to enqueue related operations (in the case of
+    // the Cache-Directory).  The actual object type is device-specific: In
+    // CUDA, this will be a cudaStream_t, in OpenACC an asynchronous queue,
+    // in FPGA a custom FPGA stream, etc.
 
-  // This call requests an available FIFO from the runtime and returns a pointer
-  // to it.
-  virtual void *getAsyncHandle();
+    // This call requests an available FIFO from the runtime and returns a pointer
+    // to it.
+    virtual void *getAsyncHandle();
 
-  // Return the FIFO for re-use after task has finished.
-  virtual void releaseAsyncHandle(void *asyncHandle);
+    // Return the FIFO for re-use after task has finished.
+    virtual void releaseAsyncHandle(void *asyncHandle);
 
-  static inline Task *getCurrentTask() { return _currentTask; }
+    static inline Task *getCurrentTask() { return _currentTask; }
 
-	inline static void setCurrentTask(Task* task){ _currentTask = task;}
+    inline static void setCurrentTask(Task* task){ _currentTask = task;}
+
+    virtual void submitDevice([[maybe_unused]] const DeviceEnvironment& deviceEnvironment) const {}
+    virtual bool checkDeviceSubmissionFinished([[maybe_unused]] const DeviceEnvironment& deviceEnvironment) const
+    {
+        return true;
+    }
+    virtual void generateDeviceEvironment([[maybe_unused]] DeviceEnvironment* env, [[maybe_unused]] uint64_t deviceSubtypeId) {}
+
+    virtual void accel_free(void *);
 
 
-  virtual void accel_free(void *);
+    AcceleratorEvent *createEvent();
+    virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);
+    virtual std::pair<void *, bool> accel_allocate(size_t size);
 
-
-  AcceleratorEvent *createEvent();
-  virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);
-  virtual std::pair<void *, bool> accel_allocate(size_t size);
-
-  virtual void destroyEvent(AcceleratorEvent *event);
+    virtual void destroyEvent(AcceleratorEvent *event);
 
 private:
-  static void serviceFunction(void *data);
+    static void serviceFunction(void *data);
 
-  static void serviceCompleted(void *data);
+    static void serviceCompleted(void *data);
 
-  template <class T> uintptr_t get_page(T addr) {
-    uintptr_t u_addr = (uintptr_t)addr;
-    uintptr_t u_page_mask = ~(_pageSize - 1);
-    return (u_addr & u_page_mask);
-  }
+    template <class T> uintptr_t get_page(T addr) {
+        uintptr_t u_addr = (uintptr_t)addr;
+        uintptr_t u_page_mask = ~(_pageSize - 1);
+        return (u_addr & u_page_mask);
+    }
 
-  // helper for getting the beginning of the next page of the current address
-  template <class T> uintptr_t get_page_up(T addr) {
-    uintptr_t u_addr = (uintptr_t)addr;
-    return (u_addr % _pageSize) ? get_page(u_addr + _pageSize)
-                                : get_page(u_addr);
-  }
+    // helper for getting the beginning of the next page of the current address
+    template <class T> uintptr_t get_page_up(T addr) {
+        uintptr_t u_addr = (uintptr_t)addr;
+        return (u_addr % _pageSize) ? get_page(u_addr + _pageSize)
+                                    : get_page(u_addr);
+    }
 };
 
 #endif // ACCELERATOR_HPP
