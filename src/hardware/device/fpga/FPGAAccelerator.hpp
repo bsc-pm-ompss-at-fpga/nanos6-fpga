@@ -17,7 +17,12 @@
 
 class FPGAAccelerator : public Accelerator {
 private:
-	bool _supports_async;
+	enum {
+		REAL_ASYNC,
+		FORCED_ASYNC,
+		SYNC
+	} _mem_sync_type;
+
 	FPGAPinnedAllocator _allocator;
 
 	struct _fpgaAccel

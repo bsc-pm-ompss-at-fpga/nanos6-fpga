@@ -142,9 +142,9 @@ __require_FPGA
 	[devices.fpga]
 		# Byte aligment of the fpga memory allocations
 		alignment = 16
-		# If xtasks supports async copies, this can be true, if not, the runtime will use the default xtasks memcpy and
-		# simulate an asynchronous copy spawning a new thread.
-		real_async = false
+		# If xtasks supports async copies, it can be "async", if not, the runtime can use the default xtasks memcpy and
+		# simulate an asynchronous copy spawning a new thread with "forced async". Copies can also be synchronous with "sync".
+		mem_sync_type = "sync"
 		page_size = 0x8000
 		requested_fpga_memory = 0x200000000
 		# Maximum number of FPGA tasks running at the same time

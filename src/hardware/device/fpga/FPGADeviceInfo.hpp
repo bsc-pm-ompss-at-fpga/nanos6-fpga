@@ -19,10 +19,10 @@ class FPGADeviceInfo : public DeviceInfo {
 public:
 	FPGADeviceInfo()
 	{
-        FatalErrorHandler::failIf(
-            xtasksInit() != XTASKS_SUCCESS,
-            "Error: Xtasks can't be initialized."
-        );
+		_deviceInitialized = false;
+		_deviceCount = 0;
+		if (xtasksInit() != XTASKS_SUCCESS)
+			return;
 
         FatalErrorHandler::failIf(
             xtasksGetNumDevices(&_deviceCount) != XTASKS_SUCCESS,

@@ -22,10 +22,21 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<uint32_t>("devices.fpga.streams"),
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
-        _supports_async(ConfigVariable<bool>("devices.fpga.real_async")),
         _allocator(fpgaDeviceIndex)
 {
-
+	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
+	if (memSyncString == "async") {
+		_mem_sync_type = REAL_ASYNC;
+	}
+	else if (memSyncString == "forced async") {
+		_mem_sync_type = FORCED_ASYNC;
+	}
+	else if (memSyncString == "sync") {
+		_mem_sync_type = SYNC;
+	}
+	else {
+		FatalErrorHandler::fail("Config value %s not valid for devices.fpga.mem_sync_type", memSyncString);
+	}
     size_t accCount = 0, handlesCount=0;
 
 	FatalErrorHandler::failIf(
@@ -152,7 +163,7 @@ void FPGAAccelerator::preRunTask(Task *task)
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task) const
 {
 
-	if(_supports_async)
+	if(_mem_sync_type == REAL_ASYNC)
 		{
 			return [=]() -> std::function<bool(void)>
 			{
@@ -163,7 +174,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 				};
 			};
 		}
-	else
+	else if (_mem_sync_type == FORCED_ASYNC)
 	{
 		return [=]() -> std::function<bool(void)>
 		{
@@ -193,14 +204,21 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 				//IF FINISHED FLAG -> CONTINUE
 			};
 		};
-
+	}
+	else {
+		return [&, dst, src, size]() -> std::function<bool(void)> {
+			return [&, dst, src, size]() -> bool {
+				_allocator.memcpy(dst, src, size, XTASKS_HOST_TO_ACC);
+				return true;
+			};
+		};
 	}
 }
 
 //this functions performs a copy from the accelerator address space to host memory
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) const
 {
-	if(_supports_async)
+	if(_mem_sync_type == REAL_ASYNC)
 		{
 			return [=]() -> std::function<bool(void)>
 			{
@@ -211,7 +229,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 				};
 			};
 		}
-	else
+	else if (_mem_sync_type == FORCED_ASYNC)
 	{
 		return [=]() -> std::function<bool(void)>
 		{
@@ -241,7 +259,13 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 				//IF FINISHED FLAG -> CONTINUE
 			};
 		};
-
+	} else {
+		return [&, dst, src, size]() -> std::function<bool(void)> {
+			return [&, dst, src, size]() -> bool {
+				_allocator.memcpy(dst, src, size, XTASKS_ACC_TO_HOST);
+				return true;
+			};
+		};
 	}
 }
 

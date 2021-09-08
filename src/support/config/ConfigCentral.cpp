@@ -50,7 +50,7 @@ ConfigCentral::ConfigCentral() :
 
 	registerOption<integer_t>("devices.fpga.streams", 16);
 	registerOption<bool_t>("devices.fpga.polling.pinned", true);
-	registerOption<bool_t>("devices.fpga.real_async", false);
+	registerOption<string_t>("devices.fpga.mem_sync_type", "sync");
 	registerOption<integer_t>("devices.fpga.polling.period_us", 1000);
 
 	// DLB
