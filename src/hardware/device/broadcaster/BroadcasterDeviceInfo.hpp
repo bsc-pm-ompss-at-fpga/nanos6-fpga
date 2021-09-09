@@ -19,6 +19,13 @@ class BroadcasterDeviceInfo : public DeviceInfo {
 public:
     BroadcasterDeviceInfo(std::vector<Accelerator*>& cluster)
 	{
+		if (cluster.size() == 0)
+		{
+			_deviceCount = 0;
+			_deviceInitialized = false;
+			return;
+		}
+		_deviceCount = 1;
         _accelerators.resize(1);
         _accelerators[0] = new BroadcasterAccelerator(cluster);
 		_deviceInitialized = true;
@@ -26,22 +33,25 @@ public:
 
     ~BroadcasterDeviceInfo()
 	{
-        delete _accelerators[0];
+		if (_deviceInitialized)
+			delete _accelerators[0];
 	}
 
 	inline void initializeDeviceServices() override
 	{
-        _accelerators[0]->initializeService();
+		if (_deviceInitialized)
+			_accelerators[0]->initializeService();
 	}
 
 	inline void shutdownDeviceServices() override
 	{
-        _accelerators[0]->shutdownService();
+		if (_deviceInitialized)
+			_accelerators[0]->shutdownService();
 	}
 
 	inline size_t getComputePlaceCount() const override
 	{
-        return 1;
+		return _deviceCount;
 	}
 
     inline ComputePlace *getComputePlace([[maybe_unused]] int handler) const override
@@ -51,7 +61,7 @@ public:
 
 	inline size_t getMemoryPlaceCount() const override
 	{
-        return 1;
+		return _deviceCount;
 	}
 
     inline MemoryPlace *getMemoryPlace([[maybe_unused]] int handler) const override

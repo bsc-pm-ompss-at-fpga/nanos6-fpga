@@ -16,7 +16,7 @@
 
 class HardwareInfo {
 private:
-	static std::vector<DeviceInfo *> _infos;
+	static DeviceInfo* _infos[nanos6_device_type_num];
 
 public:
 

@@ -27,14 +27,11 @@
 #include "hardware/device/broadcaster/BroadcasterDeviceInfo.hpp"
 #endif
 
-std::vector<DeviceInfo *> HardwareInfo::_infos;
+DeviceInfo* HardwareInfo::_infos[nanos6_device_type_num];
 
 void HardwareInfo::initialize()
 {
 	std::vector<Accelerator*> _accelerators;
-
-
-	_infos.resize(nanos6_device_type_num);
 
 	_infos[nanos6_host_device] = new HostInfo();
 	// Prioritizing OpenACC over CUDA, as CUDA calls appear to break PGI contexts.
@@ -49,6 +46,17 @@ void HardwareInfo::initialize()
 #ifdef USE_FPGA
 	_infos[nanos6_fpga_device] = new FPGADeviceInfo();
 #endif
+#ifdef USE_DISTRIBUTED
+	std::vector<Accelerator*> cluster;
+#ifdef USE_FPGA //Distributed tasks are implemented only for FPGAs at this moment
+	cluster.reserve(_infos[nanos6_fpga_device]->getAccelerators().size());
+	for (Accelerator* acc : _infos[nanos6_fpga_device]->getAccelerators())
+	{
+		cluster.push_back(acc);
+	}
+#endif
+	_infos[nanos6_broadcaster_device] = new BroadcasterDeviceInfo(cluster);
+#endif
 
 	for(int i = 0; i < (int)nanos6_device_t::nanos6_device_type_num; ++i)
 	{
@@ -57,10 +65,6 @@ void HardwareInfo::initialize()
 			for(Accelerator* accel: deviceInfo->getAccelerators())
 			 _accelerators.push_back(accel);
 	}
-#ifdef USE_DISTRIBUTED
-    _infos[nanos6_broadcaster_device] = new BroadcasterDeviceInfo(_accelerators);
-    _accelerators.push_back(getDeviceInfo(nanos6_broadcaster_device)->getAccelerators()[0]);
-#endif
 	DeviceDirectoryInstance::instance = new DeviceDirectory(_accelerators);
 }
 

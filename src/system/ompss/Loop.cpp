@@ -31,7 +31,7 @@ void nanos6_create_loop(
 
 	nanos6_device_t deviceType = (nanos6_device_t) task_info->implementations[0].device_type_id;
 	if (!HardwareInfo::canDeviceRunTasks(deviceType)) {
-		FatalErrorHandler::fail("No hardware associated for task device type", deviceType);
+		FatalErrorHandler::fail("No hardware associated for task device type ", deviceType);
 	}
 
 	// The compiler passes either the num deps of a single child or -1. However, the parent taskloop

@@ -37,6 +37,8 @@ public:
 
 	~FPGADeviceInfo()
 	{
+		if (!_deviceInitialized)
+			return;
 		xtasksFini();
 		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
@@ -57,7 +59,6 @@ public:
 		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
 			((FPGAAccelerator *)accelerator)->shutdownService();
-
 		}
 	}
 

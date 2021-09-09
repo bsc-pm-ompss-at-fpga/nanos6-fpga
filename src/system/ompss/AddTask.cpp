@@ -256,7 +256,7 @@ void nanos6_create_task(
 
 	nanos6_device_t deviceType = (nanos6_device_t) task_info->implementations[0].device_type_id;
 	if (!HardwareInfo::canDeviceRunTasks(deviceType)) {
-		FatalErrorHandler::fail("No hardware associated for task device type", deviceType);
+		FatalErrorHandler::fail("No hardware associated for task device type ", deviceType);
 	}
 
 	Task *task = AddTask::createTask(

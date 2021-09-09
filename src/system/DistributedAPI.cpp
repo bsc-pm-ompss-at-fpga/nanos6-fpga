@@ -4,9 +4,13 @@
  Copyright (C) 2015-2017 Barcelona Supercomputing Center (BSC)
  */
 
+#include <config.h>
+
 #ifdef USE_DISTRIBUTED
 #include "hardware/device/broadcaster/BroadcasterDeviceInfo.hpp"
 #include "hardware/device/broadcaster/BroadcasterAccelerator.hpp"
+
+#include <nanos6/distributed.h>
 
 extern "C" {
 
