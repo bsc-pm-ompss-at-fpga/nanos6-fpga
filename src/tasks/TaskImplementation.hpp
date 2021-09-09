@@ -58,11 +58,12 @@ inline Task::Task(
 	_parentSpawnCallback(nullptr),
 	_nestingLevel(0),
 	_symbolTranslations(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1))
-
 {
 	_ignoreDirectory = false;
+	_symbolInfo.reserve(_symbolTranslations.size());
 	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
-	_symbolInfo.push_back(SymbolRepresentation(&_symbolTranslations[i]));
+		_symbolInfo.emplace_back(&_symbolTranslations[i]);
+	_distSymbolInfo.resize(_symbolTranslations.size());
 
 	if (parent != nullptr) {
 		parent->addChild(this);
@@ -92,8 +93,11 @@ inline void Task::reinitialize(
 	_symbolTranslations.resize(std::max(taskInfo->num_symbols,1));
 
 	_symbolInfo.clear();
+	_symbolInfo.reserve(_symbolTranslations.size());
 	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
-		_symbolInfo.push_back(SymbolRepresentation(&_symbolTranslations[i]));
+		_symbolInfo.emplace_back(&_symbolTranslations[i]);
+	_distSymbolInfo.clear();
+	_distSymbolInfo.resize(_symbolTranslations.size());
 
 	_argsBlock = argsBlock;
 	_argsBlockSize = argsBlockSize;

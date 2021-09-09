@@ -190,6 +190,8 @@ public:
 
 	void addAccessToSymbol(uint32_t index, DataAccessRegion region, DataAccessType type)
 	{
+		_distSymbolInfo[index].startAddress = region.getStartAddress();
+		_distSymbolInfo[index].size = region.getSize();
 		_symbolInfo[index].addDataAccess(region, type);
 	}
 

@@ -64,6 +64,7 @@ nanos6include_HEADERS = \
 	api/nanos6/numa.h \
 	api/nanos6/openacc_device.h \
 	api/nanos6/fpga_device.h \
+	api/nanos6/distributed.h \
 	api/nanos6/polling.h \
 	api/nanos6/reductions.h \
 	api/nanos6/runtime-info.h \
@@ -208,6 +209,10 @@ if USE_FPGA
 symbol_resolution += loader/symbol-resolver/fpga.c 
 endif
 
+if USE_DISTRIBUTED
+symbol_resolution += loader/symbol-resolver/distributed.c
+endif
+
 multidimensional_regions += \
 	multidim-region-dependency-resolvers.c \
 	multidim-release-resolvers.c \
@@ -247,6 +252,10 @@ endif
 
 if USE_FPGA
 symbol_resolution += loader/indirect-symbols/fpga.c 
+endif
+
+if USE_DISTRIBUTED
+symbol_resolution += loader/indirect-symbols/distributed.c
 endif
 
 multidimensional_regions += \
@@ -471,7 +480,8 @@ endif
 
 if USE_DISTRIBUTED
 common_sources += \
-	src/hardware/device/broadcaster/BroadcasterAccelerator.cpp
+	src/hardware/device/broadcaster/BroadcasterAccelerator.cpp \
+	src/system/DistributedAPI.cpp
 endif
 
 common_sources += $(cuda_sources)

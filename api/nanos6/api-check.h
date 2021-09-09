@@ -40,11 +40,16 @@ enum nanos6_cuda_device_api_t { nanos6_cuda_device_api = 1 };
 enum nanos6_openacc_device_api_t { nanos6_openacc_device_api = 1 };
 #endif
 
-
 #if USE_FPGA
 #include "fpga_device.h"
 #else
 enum nanos6_fpga_device_api_t { nanos6_fpga_device_api = 1 };
+#endif
+
+#if USE_DISTRIBUTED
+#include "distributed.h"
+#else
+enum nanos6_distributed_api_t { nanos6_distributed_api = 1 };
 #endif
 
 #pragma GCC visibility push(default)
@@ -69,6 +74,7 @@ typedef struct {
 	enum nanos6_cuda_device_api_t cuda_device_api_version;
 	enum nanos6_openacc_device_api_t openacc_device_api_version;
 	enum nanos6_fpga_device_api_t fpga_device_api_version;
+   enum nanos6_distributed_api_t distributed_api_version;
 	enum nanos6_final_api_t final_api_version;
 	enum nanos6_instantiation_api_t instantiation_api_version;
 	enum nanos6_library_mode_api_t library_mode_api_version;

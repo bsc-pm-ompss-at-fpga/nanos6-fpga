@@ -4,8 +4,6 @@
  Copyright (C) 2015-2017 Barcelona Supercomputing Center (BSC)
  */
 
-#include <config.h>
-
 #ifdef USE_DISTRIBUTED
 #include "hardware/device/broadcaster/BroadcasterDeviceInfo.hpp"
 #include "hardware/device/broadcaster/BroadcasterAccelerator.hpp"
@@ -18,13 +16,13 @@ int nanos6_dist_num_devices()
 	return ((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->getNumDevices();
 }
 
-void nanos6_dist_map_symbol(void* address, size_t size)
+void nanos6_dist_map_address(void* address, size_t size)
 {
 	BroadcasterDeviceInfo* devInfo = (BroadcasterDeviceInfo*)HardwareInfo::getDeviceInfo(nanos6_broadcaster_device);
 	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->mapSymbol(address, size);
 }
 
-void nanos6_dist_unmap_symbol(void* address)
+void nanos6_dist_unmap_address(void* address)
 {
 	BroadcasterDeviceInfo* devInfo = (BroadcasterDeviceInfo*)HardwareInfo::getDeviceInfo(nanos6_broadcaster_device);
 	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->unmapSymbol(address);
