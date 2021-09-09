@@ -53,7 +53,14 @@ DeviceScheduler *SchedulerGenerator::createDeviceScheduler(
 				enableImmediateSuccessor,
 				deviceType,
 				"FPGADeviceScheduler");
-				break;
+		case nanos6_broadcaster_device:
+			return new DeviceScheduler(
+				totalComputePlaces,
+				policy,
+				enablePriority,
+				enableImmediateSuccessor,
+				deviceType,
+				"BroadcasterDeviceScheduler");
 		case nanos6_cluster_device:
 			FatalErrorHandler::fail("Cluster is not actually a device.");
 			break;
