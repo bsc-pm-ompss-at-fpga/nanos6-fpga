@@ -70,6 +70,13 @@ SchedulerInterface::SchedulerInterface()
 				HardwareInfo::getComputePlaceCount(nanos6_fpga_device), policy, _enablePriority,
 				_enableImmediateSuccessor, nanos6_fpga_device);
 #endif
+#if USE_DISTRIBUTED
+	if (HardwareInfo::canDeviceRunTasks(nanos6_broadcaster_device))
+		_deviceSchedulers[nanos6_broadcaster_device] =
+			SchedulerGenerator::createDeviceScheduler(
+				HardwareInfo::getComputePlaceCount(nanos6_broadcaster_device), policy, _enablePriority,
+				_enableImmediateSuccessor, nanos6_broadcaster_device);
+#endif
 }
 
 SchedulerInterface::~SchedulerInterface()
@@ -87,5 +94,9 @@ SchedulerInterface::~SchedulerInterface()
 #if USE_FPGA
 	if (_deviceSchedulers[nanos6_fpga_device])
 		delete _deviceSchedulers[nanos6_fpga_device];
+#endif
+#if USE_DISTRIBUTED
+	if (_deviceSchedulers[nanos6_broadcaster_device])
+		delete _deviceSchedulers[nanos6_broadcaster_device];
 #endif
 }
