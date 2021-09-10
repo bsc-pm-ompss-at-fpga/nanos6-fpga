@@ -12,7 +12,9 @@ BroadcasterAccelerator::BroadcasterAccelerator(const std::vector<Accelerator*>& 
 				1,
 				ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 				ConfigVariable<bool>("devices.fpga.polling.pinned")),
-	cluster(_cluster)
+	cluster(_cluster),
+	deviceEnvironments(_cluster.size()),
+	acceleratorStreams(_cluster.size())
 {
 
 }
@@ -99,9 +101,9 @@ void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t si
 	}
 }
 
-void BroadcasterAccelerator::preRunTask(Task* task)
+void BroadcasterAccelerator::preRunTask([[maybe_unused]] Task* task)
 {
-	task->getAcceleratorStream()->addOperation(
+	/*task->getAcceleratorStream()->addOperation(
 		[&, task] () -> std::function<bool()> {
 			for (int i = 0; i < (int)cluster.size(); ++i) {
 				AcceleratorStream& stream = acceleratorStreams[i];
@@ -145,7 +147,7 @@ void BroadcasterAccelerator::preRunTask(Task* task)
 				return !anyOngoing;
 			};
 		}
-	);
+	);*/
 }
 
 void BroadcasterAccelerator::callBody(Task *task) {
@@ -154,11 +156,13 @@ void BroadcasterAccelerator::callBody(Task *task) {
 			const std::vector<DistributedSymbol>& distSymbolInfo = task->getDistSymbolInfo();
 			std::vector<nanos6_address_translation_entry_t> translation_table(distSymbolInfo.size());
 			std::vector<const std::vector<void*>*> device_addresses(distSymbolInfo.size());
+			char *argsBlock = new char[task->getArgsBlockSize()];
 
 			for (int i = 0; i < (int)distSymbolInfo.size(); ++i) {
 				const DistributedSymbol& sym = distSymbolInfo[i];
 				assert(translationTable.find(sym.startAddress) != translationTable.end());
 				device_addresses[i] = &translationTable[sym.startAddress];
+				translation_table[i].local_address = (size_t)sym.startAddress;
 			}
 
 			for (int i = 0; i < (int)cluster.size(); ++i) {
@@ -167,15 +171,18 @@ void BroadcasterAccelerator::callBody(Task *task) {
 					translation_table[j].device_address = (size_t)device_addresses[j]->at(i);
 				}
 				dev->generateDeviceEvironment(&deviceEnvironments[i], task->getDeviceSubType());
-				task->getTaskInfo()->implementations[0].run(task->getArgsBlock(), &deviceEnvironments[i], translation_table.data());
+				memcpy(argsBlock, task->getArgsBlock(), task->getArgsBlockSize());
+				task->getTaskInfo()->implementations[0].run(argsBlock, &deviceEnvironments[i], translation_table.data());
 				acceleratorStreams[i].addOperation(
-					[&]() -> std::function<bool(void)> {
+					[&, dev, i]() -> std::function<bool(void)> {
 						dev->submitDevice(deviceEnvironments[i]);
-						return [&]() -> bool {
+						return [&, dev, i]() -> bool {
 							return dev->checkDeviceSubmissionFinished(deviceEnvironments[i]);
 						};
 					});
 			}
+
+			delete argsBlock;
 			return [&] () -> bool {
 				bool anyOngoing = false;
 				for (AcceleratorStream& stream : acceleratorStreams) {
@@ -189,8 +196,8 @@ void BroadcasterAccelerator::callBody(Task *task) {
 	);
 }
 
-void BroadcasterAccelerator::postRunTask(Task *task) {
-	task->getAcceleratorStream()->addOperation(
+void BroadcasterAccelerator::postRunTask([[maybe_unused]] Task *task) {
+	/*task->getAcceleratorStream()->addOperation(
 		[&, task] () -> std::function<bool()> {
 			for (int i = 0; i < (int)cluster.size(); ++i) {
 				AcceleratorStream& stream = acceleratorStreams[i];
@@ -244,7 +251,7 @@ void BroadcasterAccelerator::postRunTask(Task *task) {
 				return true;
 			};
 		}
-	);
+	);*/
 }
 
 //Broadcaster device is the host

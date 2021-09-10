@@ -48,7 +48,7 @@ void Accelerator::runTask(Task *task)
     //There are no copies after the execution of a normal task
 #ifdef USE_DISTRIBUTED
     AcceleratorEvent *event_copies_post = createEvent();
-    event_copies->record(acceleratorStream);
+    event_copies_post->record(acceleratorStream);
 
     postRunTask(task);
 #endif
