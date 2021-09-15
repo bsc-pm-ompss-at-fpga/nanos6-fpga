@@ -45,6 +45,8 @@ inline Task::Task(
 	_deadline(0),
 	_schedulingHint(NO_HINT),
 	_NUMAHint((uint64_t)-1),
+	_ignoreDirectory(false),
+	_accel_affinity(-1),
 	_thread(nullptr),
 	_dataAccesses(taskAccessInfo),
 	_flags(flags),
@@ -59,7 +61,6 @@ inline Task::Task(
 	_nestingLevel(0),
 	_symbolTranslations(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1))
 {
-	_ignoreDirectory = false;
 	_symbolInfo.reserve(_symbolTranslations.size());
 	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
 		_symbolInfo.emplace_back(&_symbolTranslations[i]);
@@ -86,7 +87,7 @@ inline void Task::reinitialize(
 	Instrument::task_id_t instrumentationTaskId,
 	size_t flags
 ) {
-
+	_accel_affinity = -1;
 	_ignoreDirectory = false;
 
 	_symbolTranslations.clear();

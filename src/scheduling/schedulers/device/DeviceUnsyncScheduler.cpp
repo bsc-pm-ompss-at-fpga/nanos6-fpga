@@ -90,7 +90,11 @@ void DeviceUnsyncScheduler::addReadyTask(Task *task, [[maybe_unused]] ComputePla
 	}
 
 	//int devId = DeviceMemManager::computeDeviceAffinity(task);
-	int devId = DeviceDirectoryInstance::instance->computeAffininty(task->getSymbolInfo(), task->getDeviceType());
+	int devId = task->getAccelAffinity();
+	if (devId < 0) {
+		devId = DeviceDirectoryInstance::instance->computeAffininty(task->getSymbolInfo(), task->getDeviceType());
+	}
+	assert(devId < (int)_readyTasksDevice.size());
 	// _readyTasks->addReadyTask(task, hint == UNBLOCKED_TASK_HINT);
 	// The above should probably be ignored, just leaving it for testing
 	_readyTasksDevice[devId]->addReadyTask(task, hint == UNBLOCKED_TASK_HINT);

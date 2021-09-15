@@ -98,9 +98,11 @@ private:
 	std::vector<SymbolRepresentation> _symbolInfo;
 	std::vector<DistributedSymbol> _distSymbolInfo;
 
-	Accelerator 	  *_accel;
+	Accelerator *_accel;
 
 	bool _ignoreDirectory;
+
+	int _accel_affinity;
 
 protected:
 	//! The thread assigned to this task, nullptr if the task has finished (but possibly waiting its children)
@@ -196,7 +198,6 @@ public:
 	}
 
 	Accelerator* getAccelerator(){return _accel;}
-
 	
 	void setAccelerator(Accelerator* acc){_accel = acc;}
 
@@ -574,6 +575,15 @@ public:
 		int res = (_predecessorCount-= amount);
 		assert(res >= 0);
 		return (res == 0);
+	}
+
+	void setAccelAffinity(int affinity)
+	{
+		_accel_affinity = affinity;
+	}
+	int getAccelAffinity() const
+	{
+		return _accel_affinity;
 	}
 
 	//! \brief Set or unset the final flag

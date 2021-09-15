@@ -205,15 +205,15 @@ typedef enum {
 //! \param[out] task_pointer a pointer to a location to store the task handler
 //! \param[in] flags the flags of the task
 //! \param[in] num_deps the expected number of dependencies of this task or -1 if undefined
-void nanos6_create_task(
-	nanos6_task_info_t *task_info,
+//! \param[in] affinity the device where this task will be executed or -1 if any
+void nanos6_create_task(nanos6_task_info_t *task_info,
 	nanos6_task_invocation_info_t *task_invocation_info,
 	size_t args_block_size,
 	/* OUT */ void **args_block_pointer,
 	/* OUT */ void **task_pointer,
 	size_t flags,
-	size_t num_deps
-);
+	size_t num_deps,
+	int affinity);
 
 
 //! \brief Submit a task

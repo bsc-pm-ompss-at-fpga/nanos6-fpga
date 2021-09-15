@@ -249,7 +249,8 @@ void nanos6_create_task(
 	void **args_block_pointer,
 	void **task_pointer,
 	size_t flags,
-	size_t num_deps
+	size_t num_deps,
+	int affinity
 ) {
 	// TODO: Temporary check until multiple implementations are supported
 	assert(task_info->implementation_count == 1);
@@ -265,6 +266,8 @@ void nanos6_create_task(
 		flags, num_deps, true
 	);
 	assert(task != nullptr);
+
+	task->setAccelAffinity(affinity);
 
 	*task_pointer = (void *) task;
 	*args_block_pointer = task->getArgsBlock();
