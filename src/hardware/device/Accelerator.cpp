@@ -206,18 +206,8 @@ std::pair<std::shared_ptr<DeviceAllocation>, bool> Accelerator::createNewDeviceA
     
 }
 
-void Accelerator::callBody([[maybe_unused]] Task *task){};
-
-// Device specific operations after task completion may go here (e.g. free
-// environment)
-void Accelerator::finishTaskCleanup(Task *) {}
-
 // Generate the appropriate device_env pointer Mercurium uses for device tasks
 //void Accelerator::generateDeviceEvironment(Task *) {}
-
-void Accelerator::preRunTask(Task*){}
-
-void Accelerator::postRunTask(Task *){}
 
 void Accelerator::acceleratorServiceLoop() {
     while (!shouldStopService())
@@ -246,9 +236,6 @@ void Accelerator::acceleratorServiceLoop() {
 bool Accelerator::shouldStopService() const {
     return _stopService.load(std::memory_order_relaxed);
 }
-
-void Accelerator::setActiveDevice() const {};
-int Accelerator::getVendorDeviceId() const { return 0;}
 
 void Accelerator::destroyEvent(AcceleratorEvent *event) { delete event; }
 

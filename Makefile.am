@@ -809,6 +809,7 @@ noinst_HEADERS = \
 	src/hardware/device/directory/IntervalMap.hpp \
 	src/hardware/device/directory/DirectoryEntry.hpp \
 	src/hardware/device/directory/DeviceDirectory.hpp \
+   src/hardware/device/host/HostAccelerator.hpp \
 	src/hardware/hwinfo/DeviceInfo.hpp \
 	src/hardware/hwinfo/HostInfo.hpp \
 	src/hardware/places/ComputePlace.hpp \

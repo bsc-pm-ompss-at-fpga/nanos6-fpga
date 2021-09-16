@@ -61,20 +61,20 @@ protected:
 
     // Each device may use these methods to prepare or conclude task launch if
     // needed
-    virtual inline void preRunTask(Task *task);
+	virtual inline void preRunTask(Task *) {}
 
-    virtual inline void postRunTask(Task *);
+	virtual inline void postRunTask(Task *) {}
 
     // The main device task launch method; It will call pre- & postRunTask
-    virtual void runTask(Task *task);
+	virtual void runTask(Task *);
 
     // Device specific operations after task completion may go here (e.g. free
     // environment)
-    virtual inline void finishTaskCleanup(Task *);
+	virtual inline void finishTaskCleanup(Task *) {}
 
-    virtual void callBody(Task *task);
+	virtual void callBody(Task *) {}
 
-    virtual void finishTask(Task *task);
+	virtual void finishTask(Task *);
 
 public:
     virtual ~Accelerator() {
@@ -142,11 +142,11 @@ public:
 	virtual bool checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const = 0;
 	virtual inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) = 0;
 
+	virtual std::pair<void *, bool> accel_allocate(size_t size) = 0;
 	virtual void accel_free(void *) = 0;
 
     AcceleratorEvent *createEvent();
     virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);
-    virtual std::pair<void *, bool> accel_allocate(size_t size);
 
     virtual void destroyEvent(AcceleratorEvent *event);
 
