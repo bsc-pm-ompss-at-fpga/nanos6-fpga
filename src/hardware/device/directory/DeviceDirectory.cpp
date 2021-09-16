@@ -128,12 +128,16 @@ void DeviceDirectory::generateCopy(AcceleratorStream* acceleratorStream, const D
 	{
 		if (dstA->getDeviceType() == nanos6_host_device)
 			acceleratorStream->addOperation(srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, copy_extra));
+		else 
+		{
+			//fallback - copy the value to the host, and pass it to the device
+			acceleratorStream->addOperation(srcA->copy_out((void*) smpAddr, (void*) srcAddr, size, nullptr));
+			acceleratorStream->addOperation(dstA->copy_in((void*) dstAddr, (void*) smpAddr, size, nullptr));
+		}
 	}
-	else 
+	else
 	{
-		//fallback - copy the value to the host, and pass it to the device
-		acceleratorStream->addOperation(srcA->copy_out((void*) smpAddr, (void*) srcAddr, size, nullptr));
-		acceleratorStream->addOperation(dstA->copy_in((void*) dstAddr, (void*) smpAddr, size, nullptr));
+		assert(false);
 	}
 }
 
