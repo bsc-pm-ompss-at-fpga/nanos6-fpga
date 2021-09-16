@@ -108,36 +108,26 @@ void DeviceDirectory::generateCopy(AcceleratorStream* acceleratorStream, const D
 
 	Accelerator *srcA = getAcceleratorByHandle(srcHandle);
 	Accelerator *dstA = getAcceleratorByHandle(dstHandle);
+	nanos6_device_t srcType = srcA->getDeviceType();
+	nanos6_device_t dstType = dstA->getDeviceType();
 
-
-	if (srcA->getDeviceType() == nanos6_host_device) 
+	if (srcType == nanos6_host_device) //host -> device
 	{
-		if (dstA->getDeviceType() == nanos6_cuda_device)
-			acceleratorStream->addOperation(dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, copy_extra));
-		else if (dstA->getDeviceType() == nanos6_fpga_device)
-			acceleratorStream->addOperation(dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, copy_extra));
+		acceleratorStream->addOperation(dstA->copy_in((void *)dstAddr, (void *)srcAddr, size, copy_extra));
 	}
-	else if (srcA->getDeviceType() == nanos6_cuda_device) 
+	else if (dstType == nanos6_host_device) //device -> host
 	{
-		if (dstA->getDeviceType() == nanos6_host_device)
-			acceleratorStream->addOperation(srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, nullptr)); //since it's from GPU->CPU, there is no cuda stream associated to the task
-		else if (dstA->getDeviceType() == nanos6_cuda_device)
-			acceleratorStream->addOperation(dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, copy_extra));
+		acceleratorStream->addOperation(srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, nullptr));
 	}
-	else if (srcA->getDeviceType() == nanos6_fpga_device) 
+	else if (srcType == nanos6_cuda_device && dstType == nanos6_cuda_device)
 	{
-		if (dstA->getDeviceType() == nanos6_host_device)
-			acceleratorStream->addOperation(srcA->copy_out((void *)dstAddr, (void *)srcAddr, size, copy_extra));
-		else 
-		{
-			//fallback - copy the value to the host, and pass it to the device
-			acceleratorStream->addOperation(srcA->copy_out((void*) smpAddr, (void*) srcAddr, size, nullptr));
-			acceleratorStream->addOperation(dstA->copy_in((void*) dstAddr, (void*) smpAddr, size, nullptr));
-		}
+		acceleratorStream->addOperation(dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, copy_extra));
 	}
-	else
+	else //device -> device
 	{
-		assert(false);
+		//fallback - copy the value to the host, and pass it to the device
+		acceleratorStream->addOperation(srcA->copy_out((void*) smpAddr, (void*) srcAddr, size, nullptr));
+		acceleratorStream->addOperation(dstA->copy_in((void*) dstAddr, (void*) smpAddr, size, nullptr));
 	}
 }
 
