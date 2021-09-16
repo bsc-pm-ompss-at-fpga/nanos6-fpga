@@ -113,10 +113,10 @@ void FPGAAccelerator::callBody(Task *task)
 			{ 
 				task->bodyWithInternalTranslation();
 
-                FatalErrorHandler::failIf(
-                    xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
-                    "Xtasks: Submit Task failed"
-                );
+				FatalErrorHandler::failIf(
+					xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
+					"Xtasks: Submit Task failed"
+				);
 
 				return [=]() -> bool {
 					xtasks_task_handle hand;
