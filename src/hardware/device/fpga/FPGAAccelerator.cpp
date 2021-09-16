@@ -111,7 +111,7 @@ void FPGAAccelerator::callBody(Task *task)
 		task->getAcceleratorStream()->addOperation(
 			[task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{ 
-				task->body();
+				task->bodyWithInternalTranslation();
 
                 FatalErrorHandler::failIf(
                     xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
