@@ -24,7 +24,8 @@ typedef struct {
     char   taskFinished;
 } nanos6_fpga_device_environment_t;
 
-void nanos6_fpga_addArg(int index, int symbolData, void *taskHandle, void *address);
+void nanos6_fpga_addArg(int index, unsigned char flags, unsigned long long value, void* taskHandle);
+void nanos6_fpga_addArgs(int num, unsigned char flags, const unsigned long long* values, void* taskHandle);
 
 #ifdef __cplusplus
 }

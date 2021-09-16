@@ -30,7 +30,8 @@
 HostInfo::HostInfo() :
 	_validMemoryPlaces(0)
 {
-	_accelerators.push_back(new HostAccelerator());
+	_accelerators.resize(1);
+	_accelerators[0] = new HostAccelerator();
 
 //! Check that hwloc headers match with runtime.
 #if HWLOC_API_VERSION >= 0x00020000
