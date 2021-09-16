@@ -36,12 +36,9 @@ private:
 	};
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
-
     void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
     bool checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const override;
-    void generateDeviceEvironment(DeviceEnvironment* env, uint64_t deviceSubtypeId) override;
-
-    inline void generateDeviceEvironment(Task *task) override;
+	inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) override;
 
 	inline void finishTaskCleanup([[maybe_unused]] Task *task) override{}
 
@@ -56,7 +53,6 @@ private:
     std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
     std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
 
-
 public:
 	FPGAAccelerator(int fpgaDeviceIndex);
 	
@@ -64,6 +60,12 @@ public:
 
 	void accel_free(void* ptr) override;
 
+	int getVendorDeviceId() const override
+	{
+		return _deviceHandler;
+	}
+
+	inline void setActiveDevice() const override {}
 
 };
 

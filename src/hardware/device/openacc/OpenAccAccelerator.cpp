@@ -11,15 +11,8 @@
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
 
-
-ConfigVariable<bool> OpenAccAccelerator::_pinnedPolling("devices.openacc.polling.pinned");
-ConfigVariable<size_t> OpenAccAccelerator::_usPollingPeriod("devices.openacc.polling.period_us");
-
-
 void OpenAccAccelerator::acceleratorServiceLoop()
 {
-	const size_t sleepTime = _usPollingPeriod.getValue();
-
 	while (!shouldStopService()) {
 		bool activeDevice = false;
 		do {
@@ -45,10 +38,10 @@ void OpenAccAccelerator::acceleratorServiceLoop()
 			}
 
 			// Iterate while there are running tasks and pinned polling is enabled
-		} while (_pinnedPolling && !_activeQueues.empty());
+		} while (_isPinnedPolling && !_activeQueues.empty());
 
 		// Sleep for 500 microseconds
-		BlockingAPI::waitForUs(sleepTime);
+		BlockingAPI::waitForUs(_pollingPeriodUs);
 	}
 }
 

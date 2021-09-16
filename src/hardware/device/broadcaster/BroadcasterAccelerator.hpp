@@ -24,11 +24,6 @@ private:
 
 	void postRunTask(Task *task) override;
 
-	void generateDeviceEvironment([[maybe_unused]] Task* task) override
-	{
-		return;
-	}
-
 	void finishTaskCleanup([[maybe_unused]] Task* task) override
 	{
 		return;
@@ -62,6 +57,11 @@ public:
 		return cluster.size();
 	}
 
+	inline void setActiveDevice() const override {}
+	inline int getVendorDeviceId() const override {return 0;}
+	inline void submitDevice([[maybe_unused]] const DeviceEnvironment&) const override {}
+	inline bool checkDeviceSubmissionFinished(const DeviceEnvironment&) const override {return true;}
+	inline void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
 };
 
 #endif // BROADCASTER_ACCELERATOR_HPP

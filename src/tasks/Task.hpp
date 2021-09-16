@@ -130,9 +130,6 @@ private:
 	//! MemoryPlace "attached" to the ComputePlace the Task is running on
 	MemoryPlace *_memoryPlace;
 
-	//! Device Specific data
-	void *_deviceData;
-
 	//! Device Environment
 	DeviceEnvironment _deviceEnvironment;
 
@@ -737,15 +734,6 @@ public:
 	inline uint64_t getDeviceSubType()
 	{
 		return _taskInfo->implementations[0].device_subtype_id;
-	}
-
-	inline void *getDeviceData()
-	{
-		return _deviceData;
-	}
-	inline void setDeviceData(void *deviceData)
-	{
-		_deviceData = deviceData;
 	}
 
 	inline DeviceEnvironment &getDeviceEnvironment()

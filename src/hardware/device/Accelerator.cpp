@@ -28,7 +28,7 @@ void Accelerator::runTask(Task *task)
     task->setAcceleratorStream(acceleratorStream);
     task->setAccelerator(this);
 
-    generateDeviceEvironment(task);
+	generateDeviceEvironment(task->getDeviceEnvironment(), task->getDeviceSubType());
 
     AcceleratorEvent *event_copies = createEvent();
     event_copies->record(acceleratorStream);
@@ -122,10 +122,7 @@ AcceleratorEvent *Accelerator::createEvent()
 
 void *Accelerator::getAsyncHandle() { return nullptr; };
 
-
 void Accelerator::releaseAsyncHandle([[maybe_unused]] void *asyncHandle){}
-
-
 
 void Accelerator::accel_free(void *){}
 
@@ -180,32 +177,6 @@ void  Accelerator::setDirectoryHandler(int directoryHandler) {
     _directoryHandler = directoryHandler;
 }
 
-// this function performs a copy from a host address space into the
-// accelerator
-std::function<std::function<bool(void)>()>
-Accelerator::copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-[[maybe_unused]] size_t size, [[maybe_unused]] void *) const {
-    return [] { return [] { return true; }; };
-}
-
-// this functions performs a copy from the accelerator address space to host
-// memory
-std::function<std::function<bool(void)>()>
-Accelerator::copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-[[maybe_unused]] size_t size, [[maybe_unused]] void *) const {
-    return [] { return [] { return true; }; };
-}
-
-// this functions performs a copy from two accelerators that can share it's
-// data without the host intervention
-std::function<std::function<bool(void)>()>
-Accelerator::copy_between(
-        [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
-[[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
-[[maybe_unused]] size_t size, [[maybe_unused]] void *) const {
-    return [] { return [] { return true; }; };
-}
-
 void Accelerator::setDirectoryHandle(int handle) { _directoryHandler = handle; }
 
 std::pair<std::shared_ptr<DeviceAllocation>, bool> Accelerator::createNewDeviceAllocation(const DataAccessRegion &region)
@@ -235,21 +206,18 @@ std::pair<std::shared_ptr<DeviceAllocation>, bool> Accelerator::createNewDeviceA
     
 }
 
-
 void Accelerator::callBody([[maybe_unused]] Task *task){};
-
 
 // Device specific operations after task completion may go here (e.g. free
 // environment)
 void Accelerator::finishTaskCleanup(Task *) {}
 
 // Generate the appropriate device_env pointer Mercurium uses for device tasks
-void Accelerator::generateDeviceEvironment(Task *) {}
+//void Accelerator::generateDeviceEvironment(Task *) {}
 
 void Accelerator::preRunTask(Task*){}
 
 void Accelerator::postRunTask(Task *){}
-
 
 void Accelerator::acceleratorServiceLoop() {
     while (!shouldStopService())
@@ -274,7 +242,6 @@ void Accelerator::acceleratorServiceLoop() {
     }
 
 }
-
 
 bool Accelerator::shouldStopService() const {
     return _stopService.load(std::memory_order_relaxed);

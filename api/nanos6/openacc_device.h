@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 typedef struct {
+	void* queue;
 	int asyncId;
 } nanos6_openacc_device_environment_t;
 

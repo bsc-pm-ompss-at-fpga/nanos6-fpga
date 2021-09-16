@@ -30,7 +30,7 @@
 HostInfo::HostInfo() :
 	_validMemoryPlaces(0)
 {
-	_accelerators.push_back(new Accelerator(0, nanos6_host_device, 0, 0, 0));
+	//_accelerators.push_back(new Accelerator(0, nanos6_host_device, 0, 0, 0));
 
 
 //! Check that hwloc headers match with runtime.

@@ -35,7 +35,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_mem_sync_type = SYNC;
 	}
 	else {
-		FatalErrorHandler::fail("Config value %s not valid for devices.fpga.mem_sync_type", memSyncString);
+		FatalErrorHandler::fail("Config value", memSyncString, " is not valid for devices.fpga.mem_sync_type");
 	}
     size_t accCount = 0, handlesCount=0;
 
@@ -59,35 +59,17 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	}
 }
 
-inline void FPGAAccelerator::generateDeviceEvironment(Task *task)
-{
+inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) {
 #ifndef NDEBUG
-    std::stringstream ss;
-    ss << "Device subtype " << task->getDeviceSubType() << " not found";
-    FatalErrorHandler::failIf(
-        _inner_accelerators.find(task->getDeviceSubType()) == _inner_accelerators.end(),
-        ss.str()
-    );
-#endif
-	xtasks_acc_handle accelerator = _inner_accelerators[task->getDeviceSubType()].getHandle();
-	xtasks_task_id parent = 0;
-	xtasksCreateTask((xtasks_task_id) task, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &task->getDeviceEnvironment().fpga.taskHandle);
-	task->getDeviceEnvironment().fpga.taskFinished = false;
-}
-
-void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment* env, uint64_t deviceSubtypeId) {
-#ifndef NDEBUG
-    std::stringstream ss;
-    ss << "Device subtype " << deviceSubtypeId << " not found";
-    FatalErrorHandler::failIf(
-        _inner_accelerators.find(deviceSubtypeId) == _inner_accelerators.end(),
-        ss.str()
-    );
+	FatalErrorHandler::failIf(
+		_inner_accelerators.find(deviceSubtypeId) == _inner_accelerators.end(),
+		"Device subtype ", deviceSubtypeId, " not found"
+	);
 #endif
     xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
     xtasks_task_id parent = 0;
-    xtasksCreateTask((xtasks_task_id) env, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env->fpga.taskHandle);
-    env->fpga.taskFinished = false;
+	xtasksCreateTask((xtasks_task_id) &env, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env.fpga.taskHandle);
+	env.fpga.taskFinished = false;
 }
 
 std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
@@ -127,25 +109,25 @@ void FPGAAccelerator::callBody(Task *task)
 {
     if(DeviceDirectoryInstance::useDirectory) {
 		task->getAcceleratorStream()->addOperation(
-            [task = task, handler = getDeviceHandler()]() -> std::function<bool(void)>
+			[task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{ 
-				task->body(&task->_symbolTranslations[0]);
+				task->body();
 
                 FatalErrorHandler::failIf(
                     xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
                     "Xtasks: Submit Task failed"
                 );
 
-				return [=]()->bool{
+				return [=]() -> bool {
 					xtasks_task_handle hand;
 					xtasks_task_id tid;
 					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
 					{
 						xtasksDeleteTask(&hand);
-						Task* _task  = (Task*) tid;
-						_task->getDeviceEnvironment().fpga.taskFinished=true;
+						DeviceEnvironment* _env = (DeviceEnvironment*) tid;
+						_env->fpga.taskFinished = true;
 					}
-					return task->getDeviceEnvironment().fpga.taskFinished;
+					return env->fpga.taskFinished;
 				};
 			}
 		);

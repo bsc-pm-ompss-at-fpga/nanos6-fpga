@@ -37,11 +37,8 @@ public:
     Accelerator(int handler, nanos6_device_t type, uint32_t numOfStreams,
                 size_t pollingPeriodUs, bool isPinnedPolling);
 
-
-    virtual void setActiveDevice() const;
-    virtual int getVendorDeviceId() const;
-    // Generate the appropriate device_env pointer Mercurium uses for device tasks
-    virtual inline void generateDeviceEvironment(Task *);
+	virtual void setActiveDevice() const = 0;
+	virtual int getVendorDeviceId() const = 0;
 protected:
     // Used also to denote the device number
     int _deviceHandler;
@@ -56,13 +53,11 @@ protected:
     size_t _pollingPeriodUs;
     bool _isPinnedPolling;
 
-
-
     inline bool shouldStopService() const;
     // Set the current instance as the selected/active device for subsequent
     // operations
 
-    void acceleratorServiceLoop();
+	virtual void acceleratorServiceLoop();
 
     // Each device may use these methods to prepare or conclude task launch if
     // needed
@@ -94,24 +89,25 @@ public:
     int getDirectoryHandler() const;
 
     void setDirectoryHandler(int directoryHandler);
+
     // this function performs a copy from a host address space into the
     // accelerator
     virtual std::function<std::function<bool(void)>()>
     copy_in([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
+	[[maybe_unused]] size_t size, [[maybe_unused]] void *) const = 0;
 
     // this functions performs a copy from the accelerator address space to host
     // memory
     virtual std::function<std::function<bool(void)>()>
     copy_out([[maybe_unused]] void *dst, [[maybe_unused]] void *src,
-    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
+	[[maybe_unused]] size_t size, [[maybe_unused]] void *) const = 0;
 
     // this functions performs a copy from two accelerators that can share it's
     // data without the host intervention
     virtual std::function<std::function<bool(void)>()> copy_between(
             [[maybe_unused]] void *dst, [[maybe_unused]] int dst_device_handler,
     [[maybe_unused]] void *src, [[maybe_unused]] int src_device_handler,
-    [[maybe_unused]] size_t size, [[maybe_unused]] void *) const;
+	[[maybe_unused]] size_t size, [[maybe_unused]] void *) const = 0;
 
     void setDirectoryHandle(int handle);
 
@@ -142,15 +138,11 @@ public:
 
     inline static void setCurrentTask(Task* task){ _currentTask = task;}
 
-    virtual void submitDevice([[maybe_unused]] const DeviceEnvironment& deviceEnvironment) const {}
-    virtual bool checkDeviceSubmissionFinished([[maybe_unused]] const DeviceEnvironment& deviceEnvironment) const
-    {
-        return true;
-    }
-    virtual void generateDeviceEvironment([[maybe_unused]] DeviceEnvironment* env, [[maybe_unused]] uint64_t deviceSubtypeId) {}
+	virtual void submitDevice(const DeviceEnvironment& deviceEnvironment) const = 0;
+	virtual bool checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const = 0;
+	virtual inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) = 0;
 
-    virtual void accel_free(void *);
-
+	virtual void accel_free(void *) = 0;
 
     AcceleratorEvent *createEvent();
     virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);

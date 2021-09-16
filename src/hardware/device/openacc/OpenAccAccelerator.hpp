@@ -22,12 +22,6 @@ private:
 
 	OpenAccQueuePool _queuePool;
 
-	// Whether the device service should run while there are running tasks
-	static ConfigVariable<bool> _pinnedPolling;
-
-	// The time period in microseconds between device service runs
-	static ConfigVariable<size_t> _usPollingPeriod;
-
 	inline bool isQueueAvailable()
 	{
 		return _queuePool.isQueueAvailable();
@@ -38,33 +32,33 @@ private:
 	// the found acc pragmas to e.g.:
 	// from:	#pragma acc kernels
 	// to:		#pragma acc kernels async(asyncId)
-	inline void generateDeviceEvironment(Task *task) override
+	inline void generateDeviceEvironment(DeviceEnvironment& env, [[maybe_unused]] uint64_t deviceSubType) override
 	{
-		nanos6_openacc_device_environment_t &env = task->getDeviceEnvironment().openacc;
+		nanos6_openacc_device_environment_t &openAccEnv = env.openacc;
 		OpenAccQueue *queue = _queuePool.getAsyncQueue();
-		// Use the deviceData to pass the queue object to further stages without having to
+		// Use the deviceEnvironment to pass the queue object to further stages without having to
 		// iterate through all queues to detect the task that has it.
-		task->setDeviceData((void *)queue);
-		env.asyncId = queue->getQueueId();
+		openAccEnv.queue = queue;
+		openAccEnv.asyncId = queue->getQueueId();
 	}
 
 	inline void preRunTask(Task *task) override
 	{
-		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceData();
+		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceEnvironment().openacc.queue;
 		assert(queue != nullptr);
 		queue->setTask(task);
 	}
 
 	inline void postRunTask(Task *task) override
 	{
-		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceData();
+		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceEnvironment().openacc.queue;
 		assert(queue != nullptr);
 		_activeQueues.push_back(queue);
 	}
 
 	inline void finishTaskCleanup(Task *task) override
 	{
-		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceData();
+		OpenAccQueue *queue = (OpenAccQueue *)task->getDeviceEnvironment().openacc.queue;
 		_queuePool.releaseAsyncQueue(queue);
 	}
 
@@ -74,7 +68,10 @@ private:
 
 public:
 	OpenAccAccelerator(int openaccDeviceIndex) :
-		Accelerator(openaccDeviceIndex, nanos6_openacc_device),
+		Accelerator(openaccDeviceIndex, nanos6_openacc_device,
+					0, //numOfStreams, using OpenAccQueues instead of generic streams,
+					ConfigVariable<size_t>("devices.openacc.polling.period_us"),
+					ConfigVariable<bool>("devices.openacc.polling.pinned")),
 		_queuePool()
 	{
 	}
@@ -84,7 +81,7 @@ public:
 	}
 
 	// Set current device as the active in the runtime
-	inline void setActiveDevice() override
+	inline void setActiveDevice() const override
 	{
 		OpenAccFunctions::setActiveDevice(_deviceHandler);
 	}

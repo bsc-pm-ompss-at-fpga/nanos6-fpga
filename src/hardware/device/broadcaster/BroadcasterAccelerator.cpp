@@ -170,7 +170,7 @@ void BroadcasterAccelerator::callBody(Task *task) {
 				for (int j = 0; j < (int)distSymbolInfo.size(); ++j) {
 					translation_table[j].device_address = (size_t)device_addresses[j]->at(i);
 				}
-				dev->generateDeviceEvironment(&deviceEnvironments[i], task->getDeviceSubType());
+				dev->generateDeviceEvironment(deviceEnvironments[i], task->getDeviceSubType());
 				memcpy(argsBlock, task->getArgsBlock(), task->getArgsBlockSize());
 				task->getTaskInfo()->implementations[0].run(argsBlock, &deviceEnvironments[i], translation_table.data());
 				acceleratorStreams[i].addOperation(

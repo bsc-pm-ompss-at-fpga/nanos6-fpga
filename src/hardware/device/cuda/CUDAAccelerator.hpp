@@ -33,11 +33,11 @@ private:
 
 	// To be used in order to obtain the current task in nanos6_get_current_cuda_stream() call
 
-	inline void generateDeviceEvironment(Task *task) override
+	inline void generateDeviceEvironment(DeviceEnvironment& env, [[maybe_unused]] uint64_t deviceSubtType) override
 	{
 		// The Accelerator::runTask() function has already set the device so it's safe to proceed
-		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
-		env.stream = _cudaStreamPool.getCUDAStream();
+		nanos6_cuda_device_environment_t &cudaEnv = env.cuda;
+		cudaEnv.stream = _cudaStreamPool.getCUDAStream();
 	}
 
 	inline void finishTaskCleanup(Task *task) override
@@ -45,7 +45,6 @@ private:
 		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
 		_cudaStreamPool.releaseCUDAStream(env.stream);
 	}
-
 
 	void processCUDAEvents();
 
