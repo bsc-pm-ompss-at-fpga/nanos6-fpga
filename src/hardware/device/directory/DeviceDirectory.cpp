@@ -1,4 +1,4 @@
-/*
+﻿/*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
 	Copyright (C) 2020 Barcelona Supercomputing Center (BSC)
@@ -8,10 +8,9 @@
 
 #include "tasks/Task.hpp"
 
-#include "hardware/device/Accelerator.hpp"
+#include "hardware/device/AcceleratorStreamThreadSafe.hpp"
 #include "hardware/device/AcceleratorStream.hpp"
 #include "lowlevel/EnvironmentVariable.hpp"
-
 
 #include "DirectoryEntry.hpp"
 #include "DeviceDirectory.hpp"
@@ -85,7 +84,8 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_directory_handles_devicetype_deviceid(nanos6_device_type_num),
 	_dirMap(new IntervalMap(accels.size())),
-	_taskwaitStream(new AcceleratorStream), _stopService(false), _finishedService(false)
+	_taskwaitStream(new AcceleratorStreamThreadSafe),
+	_stopService(false), _finishedService(false)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
 	{
@@ -359,10 +359,8 @@ void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* cop
 	}
 }
 
-
 void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::function<void()> release)
 {
-
 	_dirMap->applyToRange(taskwaitRegion, 
 	[&](DirectoryEntry *entry) 
 	{
@@ -399,10 +397,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		delete own;
 		}
 	))->record(_taskwaitStream);
-	
-
 }
-
 
 DeviceDirectory::~DeviceDirectory()
 {
@@ -427,7 +422,6 @@ void DeviceDirectory::print()
 			else
 				return "P";
 		};
-
 		
 		auto left = entry.second->getRange().first;
 		auto right = entry.second->getRange().second;
@@ -454,7 +448,6 @@ void DeviceDirectory::print()
 	std::for_each(std::begin(_dirMap->_inner_m),std::end(_dirMap->_inner_m),printEntry);
 
 	printf("END OF DIR\n\n");
-
 }
 
 

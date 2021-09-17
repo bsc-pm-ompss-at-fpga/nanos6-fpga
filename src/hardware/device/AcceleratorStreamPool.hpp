@@ -7,12 +7,7 @@
 #ifndef ACCELERATOR_STREAM_POOL_HPP
 #define ACCELERATOR_STREAM_POOL_HPP
 
-#include <functional>
-#include <vector>
-#include <queue>
-
 #include "AcceleratorStream.hpp"
-
 
 //This class controls the execution of all the streams of an specific accelerator.
 //Limiting the number of streams per time and executing its logic.
@@ -22,8 +17,8 @@ private:
 	std::queue<AcceleratorStream *> _streams_avail;
 
 public:
-	AcceleratorStreamPool(uint32_t numStreams, std::function<void(void)> activate):_streams(numStreams)
-	{		
+	AcceleratorStreamPool(int numStreams, std::function<void(void)> activate) : _streams(numStreams)
+	{
 		for (auto &stream : _streams)
 		{
 			stream.addContext(activate);

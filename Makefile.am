@@ -791,6 +791,7 @@ noinst_HEADERS = \
 	src/hardware/device/Accelerator.hpp \
 	src/hardware/device/AcceleratorEvent.hpp \
 	src/hardware/device/AcceleratorStream.hpp \
+	src/hardware/device/AcceleratorStreamThreadSafe.hpp \
 	src/hardware/device/AcceleratorStreamPool.hpp \
 	src/hardware/device/DeviceEnvironment.hpp \
 	src/hardware/device/cuda/CUDAAccelerator.hpp \

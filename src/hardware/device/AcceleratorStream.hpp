@@ -9,9 +9,7 @@
 
 #include <functional>
 #include <queue>
-#include <mutex>
-#include <cassert>
-#include <iostream>
+
 //This class tries to emulate the behaviour of CUDA streams, this implementation makes it easier to make the acceleratos
 //share the same interface to talk with the runtime and control its execution workflow.
 //The stream it's its own mini-runtime
@@ -26,30 +24,23 @@
 //can be enqueued with addOperation, a dummy activation function will be performed. And the behaviour of the checker
 //will be the same as in an async finalization check
 class AcceleratorStream {
-public:
-
-private:
+protected:
 	std::queue<std::function<std::function<bool(void)>(void)>> _queuedStreamExecutors;
 	std::queue<std::function<bool(void)>> _queuedEventFinalization;
 	std::function<bool(void)> _currentStreamExecutorFinished;
 	bool _ongoingExecutor;
-	std::function<void(void)> _activateContext; 
-
-	std::mutex _operations_mtx, _events_mtx;
+	std::function<void(void)> _activateContext;
 public:
-
-   
 
 	AcceleratorStream() :
 		_ongoingExecutor(false),
-		_activateContext([]{})
-	{
+		_activateContext([]{})	{
 	}
 
 	virtual ~AcceleratorStream()
 	{
-
 	}
+
 	void addContext(std::function<void(void)> activate)
 	{
 		_activateContext = activate;
@@ -59,9 +50,9 @@ public:
 	//an activator
 	virtual void addOperation(std::function<bool()> fun)
 	{
-		std::function<std::function<bool(void)>(void)> operation = [f = std::move(fun)]() -> std::function<bool(void)> 
-		{ 
-				return f; 
+		std::function<std::function<bool(void)>(void)> operation = [f = std::move(fun)]() -> std::function<bool(void)>
+		{
+			return f;
 		};
 		addOperation(operation);
 	}
@@ -71,8 +62,6 @@ public:
 	//to know if the activated function has finished, asynchronously.
 	virtual void addOperation(std::function<std::function<bool(void)>(void)> operation)
 	{
-
-		std::lock_guard<std::mutex> guard(_operations_mtx);
 		if (!_ongoingExecutor) {
 			_currentStreamExecutorFinished = operation();
 			_activateContext();
@@ -82,49 +71,45 @@ public:
 		{
 			_queuedStreamExecutors.emplace(operation);
 		}
-
 	}
-
 
 	virtual bool streamPendingExecutors()
 	{
 		return _queuedStreamExecutors.size() || _ongoingExecutor || _queuedEventFinalization.size();
 	}
 
-    virtual void streamAddEventListener(std::function<bool(void)> eventListener)
+	virtual void streamAddEventListener(std::function<bool(void)> eventListener)
 	{
-		std::lock_guard<std::mutex> guard(_events_mtx);
 		_queuedEventFinalization.push(std::move(eventListener));
+	}
 
+	inline void processEvents()
+	{
+		while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())
+		{
+			_activateContext();
+			_queuedEventFinalization.pop();
+		}
+	}
+
+	inline void processExecutors()
+	{
+		if (_ongoingExecutor && _currentStreamExecutorFinished()) {
+			_ongoingExecutor = false;
+			_activateContext();
+			if (!_queuedStreamExecutors.empty()) {
+				//we call the activator function of the next stream executor and put the returned checker function in our probe.
+				_currentStreamExecutorFinished = _queuedStreamExecutors.front()();
+				_queuedStreamExecutors.pop();
+				_ongoingExecutor = true;
+			}
+		}
 	}
 
 	virtual void streamServiceLoop()
 	{
-		{
-            std::lock_guard<std::mutex> guard(_events_mtx);
-
-			while(!_queuedEventFinalization.empty() && _queuedEventFinalization.front()())
-			{
-				_activateContext();
-				_queuedEventFinalization.pop();
-			}
-		}
-
-		{
-			std::lock_guard<std::mutex> guard(_operations_mtx);
-
-			if (_ongoingExecutor && _currentStreamExecutorFinished()) {
-				_ongoingExecutor = false;
-				_activateContext();
-				if (!_queuedStreamExecutors.empty()) {
-					//we call the activator function of the next stream executor and put the returned checker function in our probe.
-					_currentStreamExecutorFinished = _queuedStreamExecutors.front()();
-					_queuedStreamExecutors.pop();
-					_ongoingExecutor = true;
-				}
-			}
-		}
-
+		processEvents();
+		processExecutors();
 	}
 };
 

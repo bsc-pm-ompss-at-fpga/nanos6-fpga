@@ -6,9 +6,7 @@
 #ifndef DEVICE_DIRECTORY_HPP
 #define DEVICE_DIRECTORY_HPP
 
-
 #include <dependencies/DataAccessType.hpp>
-
 
 #include <functional>
 #include <mutex>
@@ -18,6 +16,7 @@
 
 class Accelerator;
 class AcceleratorStream;
+class AcceleratorStreamThreadSafe;
 class Task;
 class IntervalMap;
 class DirectoryEntry;
@@ -38,7 +37,7 @@ private:
 
     IntervalMap *_dirMap;
 
-    AcceleratorStream *_taskwaitStream;
+	AcceleratorStreamThreadSafe *_taskwaitStream;
 	std::atomic<bool> _stopService;
 	std::atomic<bool> _finishedService;
     
