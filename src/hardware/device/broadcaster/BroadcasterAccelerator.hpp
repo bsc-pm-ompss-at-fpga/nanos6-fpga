@@ -60,7 +60,7 @@ public:
 	inline void setActiveDevice() const override {}
 	inline int getVendorDeviceId() const override {return 0;}
 	inline void submitDevice([[maybe_unused]] const DeviceEnvironment&) const override {}
-	inline bool checkDeviceSubmissionFinished(const DeviceEnvironment&) const override {return true;}
+	inline std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment&) const override {return []() -> bool {return true;};}
 	inline void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
 };
 

@@ -139,7 +139,7 @@ public:
     inline static void setCurrentTask(Task* task){ _currentTask = task;}
 
 	virtual void submitDevice(const DeviceEnvironment& deviceEnvironment) const = 0;
-	virtual bool checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const = 0;
+	virtual std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const = 0;
 	virtual inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) = 0;
 
 	virtual std::pair<void *, bool> accel_allocate(size_t size) = 0;

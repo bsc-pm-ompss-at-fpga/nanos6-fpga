@@ -68,7 +68,7 @@ inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, ui
 #endif
     xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
     xtasks_task_id parent = 0;
-	xtasksCreateTask((xtasks_task_id) &env, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env.fpga.taskHandle);
+	xtasksCreateTask((xtasks_task_id) &env.fpga, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env.fpga.taskHandle);
 	env.fpga.taskFinished = false;
 }
 
@@ -93,23 +93,25 @@ void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) c
     );
 }
 
-bool FPGAAccelerator::checkDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const {
-    xtasks_task_handle hand;
-    xtasks_task_id tid;
-    while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
-    {
-        xtasksDeleteTask(&hand);
-        DeviceEnvironment* env  = (DeviceEnvironment*) tid;
-        env->fpga.taskFinished = true;
-    }
-    return deviceEnvironment.fpga.taskFinished;
+inline std::function<bool()> FPGAAccelerator::getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const {
+	return [&] () -> bool {
+		xtasks_task_handle hand;
+		xtasks_task_id tid;
+		while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+		{
+			xtasksDeleteTask(&hand);
+			nanos6_fpga_device_environment_t* env = (nanos6_fpga_device_environment_t*) tid;
+			env->taskFinished = true;
+		}
+		return deviceEnvironment.fpga.taskFinished;
+	};
 }
 
 void FPGAAccelerator::callBody(Task *task)
 {
     if(DeviceDirectoryInstance::useDirectory) {
 		task->getAcceleratorStream()->addOperation(
-			[task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
+			[this, task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{ 
 				task->bodyWithInternalTranslation();
 
@@ -118,17 +120,7 @@ void FPGAAccelerator::callBody(Task *task)
 					"Xtasks: Submit Task failed"
 				);
 
-				return [=]() -> bool {
-					xtasks_task_handle hand;
-					xtasks_task_id tid;
-					while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
-					{
-						xtasksDeleteTask(&hand);
-						DeviceEnvironment* _env = (DeviceEnvironment*) tid;
-						_env->fpga.taskFinished = true;
-					}
-					return env->fpga.taskFinished;
-				};
+				return getDeviceSubmissionFinished(*env);
 			}
 		);
     }
@@ -138,8 +130,9 @@ void FPGAAccelerator::callBody(Task *task)
 void FPGAAccelerator::preRunTask(Task *task)
 {
 	if (DeviceDirectoryInstance::useDirectory)
-			DeviceDirectoryInstance::instance->register_regions(task);
-		else FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
+		DeviceDirectoryInstance::instance->register_regions(task);
+	else
+		FatalErrorHandler::fail("Can't use FPGA Tasks without the directory");
 }
 
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task) const
@@ -253,15 +246,53 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 
 //this functions performs a copy from two accelerators that can share their data without the host intervention
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
-	[[maybe_unused]] void *dst,
-	[[maybe_unused]] int dstDevice, 
-	[[maybe_unused]] void *src, 
-	[[maybe_unused]] int srcDevice,
-	[[maybe_unused]] size_t size,
-    [[maybe_unused]] void *task) const
+	void *dst,
+	int dstDevice,
+	void *src,
+	int srcDevice,
+	size_t size,
+	void *task) const
 {
-	return []() -> std::function<bool(void)>
+	xtasks_acc_handle sendHandle = _inner_accelerators.find(4294967299)->second.getHandle(0);
+	xtasks_acc_handle recvHandle = _inner_accelerators.find(4294967300)->second.getHandle(0);
+	return [=]() -> std::function<bool(void)>
 	{
-		return []() -> bool{return true;}; 
+		nanos6_fpga_device_environment_t* env = new nanos6_fpga_device_environment_t[2];
+		env[0].taskFinished = false;
+		env[1].taskFinished = true;
+
+		xtasksCreateTask((xtasks_task_id)&env[0], sendHandle, 0, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env[0].taskHandle);
+		xtasksCreateTask((xtasks_task_id)&env[1], recvHandle, 0, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env[1].taskHandle);
+
+		uint64_t argsSend[2];
+		uint64_t argsRecv[2];
+
+		argsSend[0] = (dstDevice << 16) | ((uint64_t)src << 32);
+		argsSend[1] = size;
+
+		argsRecv[0] = (srcDevice << 16) | ((uint64_t)dst << 32);
+		argsRecv[1] = size;
+
+		xtasksAddArgs(2, 0xFF, argsSend, env[0].taskHandle);
+		xtasksAddArgs(2, 0xFF, argsRecv, env[1].taskHandle);
+
+		xtasksSubmitTask(srcDevice, env[0].taskHandle);
+		xtasksSubmitTask(dstDevice, env[1].taskHandle);
+
+		return [env]() -> bool {
+			xtasks_task_handle hand;
+			xtasks_task_id tid;
+			while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+			{
+				xtasksDeleteTask(&hand);
+				nanos6_fpga_device_environment_t* finishedEnv = (nanos6_fpga_device_environment_t*) tid;
+				finishedEnv->taskFinished = true;
+			}
+			bool finished = env[0].taskFinished && env[1].taskFinished;
+			if (finished) {
+				delete[] env;
+			}
+			return finished;
+		};
 	};
 }

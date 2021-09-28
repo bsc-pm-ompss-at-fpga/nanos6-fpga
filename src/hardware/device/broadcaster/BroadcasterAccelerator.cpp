@@ -176,13 +176,11 @@ void BroadcasterAccelerator::callBody(Task *task) {
 				acceleratorStreams[i].addOperation(
 					[&, dev, i]() -> std::function<bool(void)> {
 						dev->submitDevice(deviceEnvironments[i]);
-						return [&, dev, i]() -> bool {
-							return dev->checkDeviceSubmissionFinished(deviceEnvironments[i]);
-						};
+						return dev->getDeviceSubmissionFinished(deviceEnvironments[i]);
 					});
 			}
 
-			delete argsBlock;
+			delete[] argsBlock;
 			return [&] () -> bool {
 				bool anyOngoing = false;
 				for (AcceleratorStream& stream : acceleratorStreams) {
