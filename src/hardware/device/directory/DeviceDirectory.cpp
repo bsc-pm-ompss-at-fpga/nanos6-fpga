@@ -123,10 +123,10 @@ void DeviceDirectory::generateCopy(AcceleratorStream* acceleratorStream, const D
 	{
 		acceleratorStream->addOperation(dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, copy_extra));
 	}
-	else if (srcType == nanos6_fpga_device && dstType == nanos6_fpga_device)
+	/*else if (srcType == nanos6_fpga_device && dstType == nanos6_fpga_device)
 	{
 		acceleratorStream->addOperation(dstA->copy_between((void *)dstAddr, dstA->getDeviceHandler(), (void *)srcAddr, srcA->getDeviceHandler(), size, copy_extra));
-	}
+	}*/
 	else //device -> device
 	{
 		//fallback - copy the value to the host, and pass it to the device

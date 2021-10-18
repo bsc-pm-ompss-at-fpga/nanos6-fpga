@@ -88,7 +88,7 @@ void FPGAAccelerator::postRunTask(Task *)
 
 void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) const {
     FatalErrorHandler::failIf(
-        xtasksSubmitTask(getDeviceHandler(), deviceEnvironment.fpga.taskHandle)!= XTASKS_SUCCESS,
+        xtasksSubmitTask(getDeviceHandler(), deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
         "Xtasks: Submit Task failed"
     );
 }
@@ -97,12 +97,14 @@ inline std::function<bool()> FPGAAccelerator::getDeviceSubmissionFinished(const 
 	return [&] () -> bool {
 		xtasks_task_handle hand;
 		xtasks_task_id tid;
-		while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+		xtasks_stat stat;
+		while((stat = xtasksTryGetFinishedTask(&hand, &tid)) == XTASKS_SUCCESS)
 		{
 			xtasksDeleteTask(&hand);
 			nanos6_fpga_device_environment_t* env = (nanos6_fpga_device_environment_t*) tid;
 			env->taskFinished = true;
 		}
+		assert(stat == XTASKS_PENDING);
 		return deviceEnvironment.fpga.taskFinished;
 	};
 }
@@ -251,7 +253,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 	void *src,
 	int srcDevice,
 	size_t size,
-	void *task) const
+	[[maybe_unused]] void *task) const
 {
 	xtasks_acc_handle sendHandle = _inner_accelerators.find(4294967299)->second.getHandle(0);
 	xtasks_acc_handle recvHandle = _inner_accelerators.find(4294967300)->second.getHandle(0);
@@ -267,27 +269,35 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 		uint64_t argsSend[2];
 		uint64_t argsRecv[2];
 
-		argsSend[0] = (dstDevice << 16) | ((uint64_t)src << 32);
+		argsSend[0] = ((dstDevice+1) << 16) | ((uint64_t)src << 32);
 		argsSend[1] = size;
 
-		argsRecv[0] = (srcDevice << 16) | ((uint64_t)dst << 32);
+		argsRecv[0] = ((srcDevice+1) << 16) | ((uint64_t)dst << 32);
 		argsRecv[1] = size;
 
 		xtasksAddArgs(2, 0xFF, argsSend, env[0].taskHandle);
 		xtasksAddArgs(2, 0xFF, argsRecv, env[1].taskHandle);
 
-		xtasksSubmitTask(srcDevice, env[0].taskHandle);
-		xtasksSubmitTask(dstDevice, env[1].taskHandle);
+		FatalErrorHandler::failIf(
+			xtasksSubmitTask(srcDevice, env[0].taskHandle) != XTASKS_SUCCESS,
+			"Xtasks: Submit Task failed"
+		);
+		FatalErrorHandler::failIf(
+			xtasksSubmitTask(dstDevice, env[1].taskHandle) != XTASKS_SUCCESS,
+			"Xtasks: Submit Task failed"
+		);
 
 		return [env]() -> bool {
 			xtasks_task_handle hand;
 			xtasks_task_id tid;
-			while(xtasksTryGetFinishedTask(&hand, &tid) == XTASKS_SUCCESS)
+			xtasks_stat stat;
+			while((stat = xtasksTryGetFinishedTask(&hand, &tid)) == XTASKS_SUCCESS)
 			{
 				xtasksDeleteTask(&hand);
 				nanos6_fpga_device_environment_t* finishedEnv = (nanos6_fpga_device_environment_t*) tid;
 				finishedEnv->taskFinished = true;
 			}
+			assert(stat == XTASKS_PENDING);
 			bool finished = env[0].taskFinished && env[1].taskFinished;
 			if (finished) {
 				delete[] env;

@@ -57,8 +57,9 @@ void BroadcasterAccelerator::memcpyToAll(void *symbol, size_t size, size_t offse
 		);
 	}
 
-	bool anyOngoing = false;
+	bool anyOngoing;
 	do {
+		anyOngoing = false;
 		for (AcceleratorStream& stream : acceleratorStreams) {
 			stream.streamServiceLoop();
 			if (!anyOngoing)

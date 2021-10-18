@@ -17,7 +17,7 @@ public:
 	{}
 
 	void submitDevice(const DeviceEnvironment&) const override {}
-	bool checkDeviceSubmissionFinished(const DeviceEnvironment&) const override {return true;}
+	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment&) const override {return []() -> bool{return true;};}
 	void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
 
 	std::pair<void *, bool> accel_allocate(size_t) override {return {nullptr, false};}
