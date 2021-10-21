@@ -16,7 +16,7 @@ private:
 	std::vector<Accelerator*> cluster;
 	std::vector<DeviceEnvironment> deviceEnvironments;
 	std::vector<AcceleratorStream> acceleratorStreams;
-	std::unordered_map<void*, std::vector<void*>> translationTable;
+	std::unordered_map<const void*, std::vector<void*>> translationTable;
 
 	void preRunTask(Task *task) override;
 
@@ -36,11 +36,13 @@ private:
 public:
 	BroadcasterAccelerator(const std::vector<Accelerator*>& cluster);
 
-	void mapSymbol(void* symbol, size_t size);
-	void unmapSymbol(void* symbol);
-	void memcpyToAll(void* symbol, size_t size, size_t offset = 0);
-	void memcpyToDevice(int devId, void* symbol, size_t size, size_t offset = 0);
+	void mapSymbol(const void* symbol, size_t size);
+	void unmapSymbol(const void* symbol);
+	void memcpyToAll(const void* symbol, size_t size, size_t offset = 0);
+	void memcpyToDevice(int devId, const void* symbol, size_t size, size_t offset = 0);
 	void memcpyFromDevice(int devId, void* symbol, size_t size, size_t offset = 0);
+	void scatter(const void* symbol, size_t size, size_t sendOffset, size_t recvOffset);
+	void gather(void* symbol, size_t size, size_t sendOffset, size_t recvOffset);
 
 	std::pair<void *, bool> accel_allocate([[maybe_unused]] size_t size) override {
 		return {nullptr, true};

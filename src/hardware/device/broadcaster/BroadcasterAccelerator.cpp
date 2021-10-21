@@ -19,7 +19,7 @@ BroadcasterAccelerator::BroadcasterAccelerator(const std::vector<Accelerator*>& 
 
 }
 
-void BroadcasterAccelerator::mapSymbol(void *symbol, size_t size)
+void BroadcasterAccelerator::mapSymbol(const void *symbol, size_t size)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
 	translationVector.resize(cluster.size());
@@ -32,9 +32,9 @@ void BroadcasterAccelerator::mapSymbol(void *symbol, size_t size)
 	}
 }
 
-void BroadcasterAccelerator::unmapSymbol(void *symbol)
+void BroadcasterAccelerator::unmapSymbol(const void *symbol)
 {
-	std::unordered_map<void*, std::vector<void*>>::iterator it = translationTable.find(symbol);
+	std::unordered_map<const void*, std::vector<void*>>::iterator it = translationTable.find(symbol);
 	std::vector<void*>& translationVector = it->second;
 	for (int i = 0; i < (int)cluster.size(); ++i) {
 		cluster[i]->accel_free(translationVector[i]);
@@ -42,7 +42,7 @@ void BroadcasterAccelerator::unmapSymbol(void *symbol)
 	translationTable.erase(it);
 }
 
-void BroadcasterAccelerator::memcpyToAll(void *symbol, size_t size, size_t offset)
+void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t offset)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
 	for (int i = 0; i < (int)cluster.size(); ++i) {
@@ -50,8 +50,8 @@ void BroadcasterAccelerator::memcpyToAll(void *symbol, size_t size, size_t offse
 		Accelerator* dev = cluster[i];
 		stream.addOperation(
 			dev->copy_in(
-				(void*)((size_t)translationVector[i] + offset),
-				(void*)((size_t)symbol + offset),
+				(void*)((uintptr_t)translationVector[i] + offset),
+				(void*)((uintptr_t)symbol + offset),
 				size, nullptr
 			)
 		);
@@ -68,15 +68,15 @@ void BroadcasterAccelerator::memcpyToAll(void *symbol, size_t size, size_t offse
 	} while (anyOngoing);
 }
 
-void BroadcasterAccelerator::memcpyToDevice(int devId, void *symbol, size_t size, size_t offset)
+void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_t size, size_t offset)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
 	AcceleratorStream& stream = acceleratorStreams[devId];
 	Accelerator* dev = cluster[devId];
 	stream.addOperation(
 		dev->copy_in(
-			(void*)((size_t)translationVector[devId] + offset),
-			(void*)((size_t)symbol + offset),
+			(void*)((uintptr_t)translationVector[devId] + offset),
+			(void*)((uintptr_t)symbol + offset),
 			size, nullptr
 		)
 	);
@@ -100,6 +100,58 @@ void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t si
 	while (stream.streamPendingExecutors()) {
 		stream.streamServiceLoop();
 	}
+}
+
+void BroadcasterAccelerator::scatter(const void *symbol, size_t size, size_t sendOffset, size_t recvOffset)
+{
+	std::vector<void*>& translationVector = translationTable[symbol];
+	for (int i = 0; i < (int)cluster.size(); ++i) {
+		AcceleratorStream& stream = acceleratorStreams[i];
+		Accelerator* dev = cluster[i];
+		stream.addOperation(
+			dev->copy_out(
+				(void*)((uintptr_t)translationVector[i] + recvOffset),
+				(void*)((uintptr_t)symbol + sendOffset + size*i),
+				size, nullptr
+			)
+		);
+	}
+
+	bool anyOngoing;
+	do {
+		anyOngoing = false;
+		for (AcceleratorStream& stream : acceleratorStreams) {
+			stream.streamServiceLoop();
+			if (!anyOngoing)
+				anyOngoing = stream.streamPendingExecutors();
+		}
+	} while (anyOngoing);
+}
+
+void BroadcasterAccelerator::gather(void *symbol, size_t size, size_t sendOffset, size_t recvOffset)
+{
+	std::vector<void*>& translationVector = translationTable[symbol];
+	for (int i = 0; i < (int)cluster.size(); ++i) {
+		AcceleratorStream& stream = acceleratorStreams[i];
+		Accelerator* dev = cluster[i];
+		stream.addOperation(
+			dev->copy_in(
+				(void*)((uintptr_t)symbol + recvOffset + size*i),
+				(void*)((uintptr_t)translationVector[i] + sendOffset),
+				size, nullptr
+			)
+		);
+	}
+
+	bool anyOngoing;
+	do {
+		anyOngoing = false;
+		for (AcceleratorStream& stream : acceleratorStreams) {
+			stream.streamServiceLoop();
+			if (!anyOngoing)
+				anyOngoing = stream.streamPendingExecutors();
+		}
+	} while (anyOngoing);
 }
 
 void BroadcasterAccelerator::preRunTask([[maybe_unused]] Task* task)
