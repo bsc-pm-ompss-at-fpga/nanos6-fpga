@@ -25,7 +25,7 @@ public:
 			return;
 
         FatalErrorHandler::failIf(
-            xtasksGetNumDevices(&_deviceCount) != XTASKS_SUCCESS,
+            xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
             "Xtasks: Can't get number of devices"
         );
         _accelerators.resize(_deviceCount);

@@ -40,7 +40,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
     size_t accCount = 0, handlesCount=0;
 
 	FatalErrorHandler::failIf(
-        xtasksGetNumAccs(&accCount) != XTASKS_SUCCESS,
+        xtasksGetNumAccs(fpgaDeviceIndex, &accCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get number of accelerators"
 	);
 
@@ -48,7 +48,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
     std::vector<xtasks_acc_handle> handles(accCount);
 
 	FatalErrorHandler::failIf(
-        xtasksGetAccs(accCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
+        xtasksGetAccs(fpgaDeviceIndex, accCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get the accelerators"
 	);
 
@@ -88,7 +88,7 @@ void FPGAAccelerator::postRunTask(Task *)
 
 void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) const {
     FatalErrorHandler::failIf(
-        xtasksSubmitTask(getDeviceHandler(), deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
+        xtasksSubmitTask(deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
         "Xtasks: Submit Task failed"
     );
 }
@@ -118,7 +118,7 @@ void FPGAAccelerator::callBody(Task *task)
 				task->bodyWithInternalTranslation();
 
 				FatalErrorHandler::failIf(
-					xtasksSubmitTask(handler, task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
+					xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
 					"Xtasks: Submit Task failed"
 				);
 
@@ -255,8 +255,8 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 	size_t size,
 	[[maybe_unused]] void *task) const
 {
-	xtasks_acc_handle sendHandle = _inner_accelerators.find(4294967299)->second.getHandle(0);
-	xtasks_acc_handle recvHandle = _inner_accelerators.find(4294967300)->second.getHandle(0);
+	xtasks_acc_handle sendHandle = (xtasks_acc_handle)(((uintptr_t)_inner_accelerators.find(4294967299)->second.getHandle(0) & 0xFFFFFFFF00000000l) | srcDevice);
+	xtasks_acc_handle recvHandle = (xtasks_acc_handle)(((uintptr_t)_inner_accelerators.find(4294967300)->second.getHandle(0) & 0xFFFFFFFF00000000l) | dstDevice);
 	return [=]() -> std::function<bool(void)>
 	{
 		nanos6_fpga_device_environment_t* env = new nanos6_fpga_device_environment_t[2];
@@ -279,11 +279,11 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 		xtasksAddArgs(2, 0xFF, argsRecv, env[1].taskHandle);
 
 		FatalErrorHandler::failIf(
-			xtasksSubmitTask(srcDevice, env[0].taskHandle) != XTASKS_SUCCESS,
+			xtasksSubmitTask(env[0].taskHandle) != XTASKS_SUCCESS,
 			"Xtasks: Submit Task failed"
 		);
 		FatalErrorHandler::failIf(
-			xtasksSubmitTask(dstDevice, env[1].taskHandle) != XTASKS_SUCCESS,
+			xtasksSubmitTask(env[1].taskHandle) != XTASKS_SUCCESS,
 			"Xtasks: Submit Task failed"
 		);
 
