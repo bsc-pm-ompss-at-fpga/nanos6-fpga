@@ -261,7 +261,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_between(
 	{
 		nanos6_fpga_device_environment_t* env = new nanos6_fpga_device_environment_t[2];
 		env[0].taskFinished = false;
-		env[1].taskFinished = true;
+		env[1].taskFinished = false;
 
 		xtasksCreateTask((xtasks_task_id)&env[0], sendHandle, 0, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env[0].taskHandle);
 		xtasksCreateTask((xtasks_task_id)&env[1], recvHandle, 0, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env[1].taskHandle);
