@@ -38,9 +38,9 @@ public:
 
 	void mapSymbol(const void* symbol, size_t size);
 	void unmapSymbol(const void* symbol);
-	void memcpyToAll(const void* symbol, size_t size, size_t offset = 0);
-	void memcpyToDevice(int devId, const void* symbol, size_t size, size_t offset = 0);
-	void memcpyFromDevice(int devId, void* symbol, size_t size, size_t offset = 0);
+	void memcpyToAll(const void* symbol, size_t size, size_t srcOffset, size_t dstOffset);
+	void memcpyToDevice(int devId, const void* symbol, size_t size, size_t srcOffset, size_t dstOffset);
+	void memcpyFromDevice(int devId, void* symbol, size_t size, size_t srcOffset, size_t dstOffset);
 	void scatter(const void* symbol, size_t size, size_t sendOffset, size_t recvOffset);
 	void gather(void* symbol, size_t size, size_t sendOffset, size_t recvOffset);
 

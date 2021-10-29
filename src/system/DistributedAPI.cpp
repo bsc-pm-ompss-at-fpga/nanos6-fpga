@@ -32,10 +32,10 @@ void nanos6_dist_unmap_address(const void* address)
 	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->unmapSymbol(address);
 }
 
-void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
 	BroadcasterDeviceInfo* devInfo = (BroadcasterDeviceInfo*)HardwareInfo::getDeviceInfo(nanos6_broadcaster_device);
-	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyToAll(address, size, offset);
+	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyToAll(address, size, srcOffset, dstOffset);
 }
 
 void nanos6_dist_scatter(const void* address, size_t size, size_t sendOffset, size_t recvOffset) {
@@ -48,16 +48,16 @@ void nanos6_dist_gather(void* address, size_t size, size_t sendOffset, size_t re
 	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->gather(address, size, sendOffset, recvOffset);
 }
 
-void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
 	BroadcasterDeviceInfo* devInfo = (BroadcasterDeviceInfo*)HardwareInfo::getDeviceInfo(nanos6_broadcaster_device);
-	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyToDevice(dev_id, address, size, offset);
+	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyToDevice(dev_id, address, size, srcOffset, dstOffset);
 }
 
-void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
 	BroadcasterDeviceInfo* devInfo = (BroadcasterDeviceInfo*)HardwareInfo::getDeviceInfo(nanos6_broadcaster_device);
-	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyFromDevice(dev_id, address, size, offset);
+	((BroadcasterAccelerator*)(devInfo->getAccelerators()[0]))->memcpyFromDevice(dev_id, address, size, srcOffset, dstOffset);
 }
 
 void OMPIF_Send([[maybe_unused]] const void* data,

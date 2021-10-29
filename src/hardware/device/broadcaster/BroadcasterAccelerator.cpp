@@ -35,23 +35,23 @@ void BroadcasterAccelerator::mapSymbol(const void *symbol, size_t size)
 void BroadcasterAccelerator::unmapSymbol(const void *symbol)
 {
 	std::unordered_map<const void*, std::vector<void*>>::iterator it = translationTable.find(symbol);
-	std::vector<void*>& translationVector = it->second;
+	const std::vector<void*>& translationVector = it->second;
 	for (int i = 0; i < (int)cluster.size(); ++i) {
 		cluster[i]->accel_free(translationVector[i]);
 	}
 	translationTable.erase(it);
 }
 
-void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t offset)
+void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	std::vector<void*>& translationVector = translationTable[symbol];
+	const std::vector<void*>& translationVector = translationTable[symbol];
 	for (int i = 0; i < (int)cluster.size(); ++i) {
 		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
 		stream.addOperation(
 			dev->copy_in(
-				(void*)((uintptr_t)translationVector[i] + offset),
-				(void*)((uintptr_t)symbol + offset),
+				(void*)((uintptr_t)translationVector[i] + dstOffset),
+				(void*)((uintptr_t)symbol + srcOffset),
 				size, nullptr
 			)
 		);
@@ -68,15 +68,15 @@ void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t
 	} while (anyOngoing);
 }
 
-void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_t size, size_t offset)
+void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	std::vector<void*>& translationVector = translationTable[symbol];
+	const std::vector<void*>& translationVector = translationTable[symbol];
 	AcceleratorStream& stream = acceleratorStreams[devId];
 	Accelerator* dev = cluster[devId];
 	stream.addOperation(
 		dev->copy_in(
-			(void*)((uintptr_t)translationVector[devId] + offset),
-			(void*)((uintptr_t)symbol + offset),
+			(void*)((uintptr_t)translationVector[devId] + dstOffset),
+			(void*)((uintptr_t)symbol + srcOffset),
 			size, nullptr
 		)
 	);
@@ -85,15 +85,15 @@ void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_
 	}
 }
 
-void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t size, size_t offset)
+void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	std::vector<void*>& translationVector = translationTable[symbol];
+	const std::vector<void*>& translationVector = translationTable[symbol];
 	AcceleratorStream& stream = acceleratorStreams[devId];
 	Accelerator* dev = cluster[devId];
 	stream.addOperation(
 		dev->copy_out(
-			(void*)((size_t)symbol + offset),
-			(void*)((size_t)translationVector[devId] + offset),
+			(void*)((size_t)symbol + dstOffset),
+			(void*)((size_t)translationVector[devId] + srcOffset),
 			size, nullptr
 		)
 	);

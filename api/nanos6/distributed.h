@@ -32,11 +32,11 @@ extern "C" {
 int nanos6_dist_num_devices();
 void nanos6_dist_map_address(const void* address, size_t size);
 void nanos6_dist_unmap_address(const void* address);
-void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t offset);
+void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t srcOffset, size_t dstOffset);
 void nanos6_dist_scatter(const void* address, size_t size, size_t sendOffset, size_t recvOffset);
 void nanos6_dist_gather(void* address, size_t size, size_t sendOffset, size_t recvOffset);
-void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t offset);
-void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t offset);
+void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t srcOffset, size_t dstOffset);
+void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t srcOffset, size_t dstOffset);
 void OMPIF_Send(const void* data, int count, OMPIF_Datatype datatype, int destination, uint8_t tag, OMPIF_Comm communicator);
 void OMPIF_Recv(void* data, int count, OMPIF_Datatype datatype, int source, uint8_t tag, OMPIF_Comm communicator);
 int OMPIF_Comm_rank(OMPIF_Comm communicator);

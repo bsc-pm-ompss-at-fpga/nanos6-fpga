@@ -49,9 +49,9 @@ void nanos6_dist_unmap_address(const void* address)
 	(*symbol)(address);
 }
 
-void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	typedef void nanos6_dist_memcpy_to_all_t(const void* address, size_t size, size_t offset);
+	typedef void nanos6_dist_memcpy_to_all_t(const void* address, size_t size, size_t srcOffset, size_t dstOffset);
 
 	static nanos6_dist_memcpy_to_all_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0))
@@ -59,7 +59,7 @@ void nanos6_dist_memcpy_to_all(const void* address, size_t size, size_t offset)
 		symbol = (nanos6_dist_memcpy_to_all_t *) _nanos6_resolve_symbol("nanos6_dist_memcpy_to_all", "essential", NULL);
 	}
 
-	(*symbol)(address, size, offset);
+	(*symbol)(address, size, srcOffset, dstOffset);
 }
 
 void nanos6_dist_scatter(const void* address, size_t size, size_t sendOffset, size_t recvOffset) {
@@ -87,9 +87,9 @@ void nanos6_dist_gather(void* address, size_t size, size_t sendOffset, size_t re
 }
 
 
-void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	typedef void nanos6_dist_memcpy_to_device_t(int dev_id, const void* address, size_t size, size_t offset);
+	typedef void nanos6_dist_memcpy_to_device_t(int dev_id, const void* address, size_t size, size_t srcOffset, size_t dstOffset);
 
 	static nanos6_dist_memcpy_to_device_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0))
@@ -97,12 +97,12 @@ void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, 
 		symbol = (nanos6_dist_memcpy_to_device_t *) _nanos6_resolve_symbol("nanos6_dist_memcpy_to_device", "essential", NULL);
 	}
 
-	(*symbol)(dev_id, address, size, offset);
+	(*symbol)(dev_id, address, size, srcOffset, dstOffset);
 }
 
-void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t offset)
+void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t srcOffset, size_t dstOffset)
 {
-	typedef void nanos6_dist_memcpy_from_device_t(int dev_id, void* address, size_t size, size_t offset);
+	typedef void nanos6_dist_memcpy_from_device_t(int dev_id, void* address, size_t size, size_t srcOffset, size_t dstOffset);
 
 	static nanos6_dist_memcpy_from_device_t *symbol = NULL;
 	if (__builtin_expect(symbol == NULL, 0))
@@ -110,7 +110,7 @@ void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size
 		symbol = (nanos6_dist_memcpy_from_device_t *) _nanos6_resolve_symbol("nanos6_dist_memcpy_from_device", "essential", NULL);
 	}
 
-	(*symbol)(dev_id, address, size, offset);
+	(*symbol)(dev_id, address, size, srcOffset, dstOffset);
 }
 
 void OMPIF_Send(const void* data, int count, OMPIF_Datatype datatype, int destination, uint8_t tag, OMPIF_Comm communicator)
