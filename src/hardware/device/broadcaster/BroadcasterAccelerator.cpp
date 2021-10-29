@@ -109,7 +109,7 @@ void BroadcasterAccelerator::scatter(const void *symbol, size_t size, size_t sen
 		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
 		stream.addOperation(
-			dev->copy_out(
+			dev->copy_in(
 				(void*)((uintptr_t)translationVector[i] + recvOffset),
 				(void*)((uintptr_t)symbol + sendOffset + size*i),
 				size, nullptr
@@ -135,7 +135,7 @@ void BroadcasterAccelerator::gather(void *symbol, size_t size, size_t sendOffset
 		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
 		stream.addOperation(
-			dev->copy_in(
+			dev->copy_out(
 				(void*)((uintptr_t)symbol + recvOffset + size*i),
 				(void*)((uintptr_t)translationVector[i] + sendOffset),
 				size, nullptr
