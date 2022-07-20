@@ -68,7 +68,7 @@ public:
 
 		// Set a implementation defined chunksize if needed
 		if (_bounds.grainsize == 0) {
-			_bounds.grainsize = std::max(totalIterations /CPUManager::getTotalCPUs(), (size_t) 1);
+			_bounds.grainsize = std::max<size_t>(totalIterations /CPUManager::getTotalCPUs(), 1);
 		}
 	}
 
@@ -141,7 +141,7 @@ public:
 	static inline size_t computeNumTasks(size_t iterations, size_t grainsize)
 	{
 		if (grainsize == 0) {
-			grainsize = std::max(iterations / CPUManager::getTotalCPUs(), (size_t) 1);
+			grainsize = std::max<size_t>(iterations / CPUManager::getTotalCPUs(), 1);
 		}
 		return MathSupport::ceil(iterations, grainsize);
 	}

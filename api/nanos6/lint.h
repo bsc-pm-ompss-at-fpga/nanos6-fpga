@@ -7,6 +7,9 @@
 #ifndef NANOS6_LINT_H
 #define NANOS6_LINT_H
 
+
+#include <stddef.h>
+
 #include "major.h"
 
 
@@ -29,7 +32,7 @@ void nanos6_lint_ignore_region_end(void);
 
 void nanos6_lint_register_alloc(
 	void *base_address,
-	unsigned long size
+	size_t size
 );
 
 void nanos6_lint_register_free(

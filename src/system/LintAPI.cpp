@@ -22,7 +22,7 @@ extern "C" void nanos6_lint_ignore_region_end(void)
 
 extern "C" void nanos6_lint_register_alloc(
 	__attribute__((unused)) void *base_address,
-	__attribute__((unused)) unsigned long size
+	__attribute__((unused)) size_t size
 )
 {
 	return;

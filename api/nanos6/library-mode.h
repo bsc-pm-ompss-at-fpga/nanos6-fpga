@@ -75,5 +75,4 @@ void nanos6_stream_spawn_function(
 
 #pragma GCC visibility pop
 
-
 #endif /* NANOS6_LIBRARY_MODE_H */
