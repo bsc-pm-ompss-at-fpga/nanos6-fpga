@@ -39,11 +39,11 @@ public:
 	{
 		if (!_deviceInitialized)
 			return;
-		xtasksFini();
 		for (Accelerator *accelerator : _accelerators) {
 			assert(accelerator != nullptr);
 			delete (FPGAAccelerator *)accelerator;
 		}
+		xtasksFini();
 	}
 
 	inline void initializeDeviceServices() override
