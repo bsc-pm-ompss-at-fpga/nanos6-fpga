@@ -475,6 +475,7 @@ endif
 if USE_FPGA
 common_sources += \
 	src/hardware/device/fpga/FPGAAccelerator.cpp \
+	src/hardware/device/fpga/FPGAReverseOffload.cpp \
 	src/system/FPGADeviceAPI.cpp 
 endif
 
@@ -804,6 +805,7 @@ noinst_HEADERS = \
 	src/hardware/device/openacc/OpenAccFunctions.hpp \
 	src/hardware/device/openacc/OpenAccQueuePool.hpp \
 	src/hardware/device/fpga/FPGAAccelerator.hpp \
+	src/hardware/device/fpga/FPGAReverseOffload.hpp \
 	src/hardware/device/fpga/FPGADeviceInfo.hpp \
 	src/hardware/device/broadcaster/BroadcasterAccelerator.hpp \
 	src/hardware/device/broadcaster/BroadcasterDeviceInfo.hpp \
