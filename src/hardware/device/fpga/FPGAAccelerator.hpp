@@ -12,8 +12,8 @@
 
 #include "hardware/device/Accelerator.hpp"
 #include "tasks/Task.hpp"
-#include "src/memory/allocator/devices/FPGAPinnedAllocator.hpp"
-
+#include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
+#include "hardware/device/fpga/FPGAReverseOffload.hpp"
 
 class FPGAAccelerator : public Accelerator {
 private:
@@ -24,6 +24,7 @@ private:
 	} _mem_sync_type;
 
 	FPGAPinnedAllocator _allocator;
+	FPGAReverseOffload _reverseOffload;
 
 	struct _fpgaAccel
 	{
@@ -51,7 +52,6 @@ private:
 
 	void postRunTask(Task *task) override;
 
-
     std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
     std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
     std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
@@ -67,6 +67,9 @@ public:
 	{
 		return _deviceHandler;
 	}
+
+	void initializeService() override;
+	void shutdownService() override;
 
 	inline void setActiveDevice() const override {}
 

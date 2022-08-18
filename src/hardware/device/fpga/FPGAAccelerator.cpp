@@ -22,7 +22,8 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<uint32_t>("devices.fpga.streams"),
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
-        _allocator(fpgaDeviceIndex)
+		_allocator(fpgaDeviceIndex),
+	_reverseOffload(_allocator, _pollingPeriodUs)
 {
 	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
 	if (memSyncString == "async") {
@@ -57,6 +58,16 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
+}
+
+void FPGAAccelerator::initializeService() {
+	Accelerator::initializeService();
+	_reverseOffload.initializeService();
+}
+
+void FPGAAccelerator::shutdownService() {
+	Accelerator::shutdownService();
+	_reverseOffload.shutdownService();
 }
 
 inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) {

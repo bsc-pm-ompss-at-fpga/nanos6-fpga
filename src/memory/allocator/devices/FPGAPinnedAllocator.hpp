@@ -4,6 +4,7 @@
 #include "support/config/ConfigVariable.hpp"
 #include "SimpleAllocator.hpp"
 #include <libxtasks.h>
+
 class FPGAPinnedAllocator: public SimpleAllocator 
 {
 

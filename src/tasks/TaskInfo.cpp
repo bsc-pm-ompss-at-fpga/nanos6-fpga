@@ -7,6 +7,7 @@
 #include <string>
 
 #include "TaskInfo.hpp"
+#include "hardware/device/fpga/FPGAReverseOffload.hpp"
 
 
 TaskInfo::task_type_map_t TaskInfo::_tasktypes;
@@ -51,6 +52,8 @@ bool TaskInfo::registerTaskInfo(nanos6_task_info_t *taskInfo)
 	// Save a reference of this task type in the task info
 	task_type_map_t::iterator it = emplacedElement.first;
 	taskInfo->task_type_data = &(it->second);
+
+	FPGAReverseOffload::addMap(taskInfo);
 
 	// true if new element, false if already existed
 	return emplacedElement.second;

@@ -82,9 +82,9 @@ public:
         delete _memoryPlace;
     }
 
-    void initializeService();
+	virtual void initializeService();
 
-    void shutdownService();
+	virtual void shutdownService();
 
     int getDirectoryHandler() const;
 
