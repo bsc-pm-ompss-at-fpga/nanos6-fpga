@@ -62,35 +62,24 @@ Task* createTaskWithInDep(nanos6_device_t device, int device_id, void* host_ptr,
         nanos6_register_read_depinfo(handler, _argsBlock->host_ptr, _argsBlock->size, 0);
     };
 
-    nanos6_task_implementation_info_t *taskImplementationInfo = 
-    [=]{
-        nanos6_task_implementation_info_t *_taskImplementationInfo = new nanos6_task_implementation_info_t;
+	nanos6_task_implementation_info_t *taskImplementationInfo;
+	taskImplementationInfo = new nanos6_task_implementation_info_t;
 
-        _taskImplementationInfo->device_type_id = nanos6_device_t::nanos6_host_device;
-        _taskImplementationInfo->task_label = "Nanos6 API\n";
-        _taskImplementationInfo->declaration_source = "Spawned HOME API task\n";
-        _taskImplementationInfo->get_constraints = nullptr;
+	taskImplementationInfo->device_type_id = nanos6_device_t::nanos6_host_device;
+	taskImplementationInfo->task_type_label = "Nanos6 API\n";
+	taskImplementationInfo->declaration_source = "Spawned HOME API task\n";
+	taskImplementationInfo->get_constraints = nullptr;
 
-        return _taskImplementationInfo;
-    }();
+	nanos6_task_info_t *taskInfo = new nanos6_task_info_t;
 
+	taskInfo->num_symbols = 1;
+	taskInfo->implementations = taskImplementationInfo;
+	taskInfo->implementation_count = 1;
 
-    nanos6_task_info_t *taskInfo = 
-    [=]
-    {
-        nanos6_task_info_t *_taskInfo = new nanos6_task_info_t;
+	taskInfo->register_depinfo = depinfoRegister;
 
-        _taskInfo->num_symbols = 1;
-        _taskInfo->implementations = taskImplementationInfo;
-        _taskInfo->implementation_count = 1;
-
-        _taskInfo->register_depinfo = depinfoRegister;
-
-        //finish callback
-        _taskInfo->destroy_args_block = [](void*){};
-
-        return _taskInfo;
-    }();
+	//finish callback
+	taskInfo->destroy_args_block = [](void*){};
 
     Task* task =  AddTask::createTask(
         taskInfo,
@@ -100,7 +89,6 @@ Task* createTaskWithInDep(nanos6_device_t device, int device_id, void* host_ptr,
         nanos6_waiting_task,
         1,//num dependencies
         false);//from_user_code
-
 
     *((taskArgsDeps*) task->getArgsBlock()) = argsBlock;
     task->setIgnoreDirectory(true);

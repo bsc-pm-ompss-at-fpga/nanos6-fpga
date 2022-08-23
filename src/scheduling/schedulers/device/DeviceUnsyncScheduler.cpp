@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2021 Barcelona Supercomputing Center (BSC)
 */
 
 #include "DeviceUnsyncScheduler.hpp"
@@ -37,9 +37,10 @@ DeviceUnsyncScheduler::~DeviceUnsyncScheduler()
 	}
 }
 
-Task *DeviceUnsyncScheduler::getReadyTask(ComputePlace *computePlace)
+Task *DeviceUnsyncScheduler::getReadyTask(ComputePlace *computePlace, bool &hasIncompatibleWork)
 {
 	Task *task = nullptr;
+	hasIncompatibleWork = false;
 
 	// Get the Accelerator's _deviceHandler
 	size_t deviceId = computePlace->getIndex();

@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -875,7 +875,7 @@ namespace DataAccessRegistration {
 			FatalErrorHandler::failIf(
 				(accessType == REDUCTION_ACCESS_TYPE) || (dataAccess->getType() == REDUCTION_ACCESS_TYPE),
 				"Task ",
-				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
+				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_type_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_type_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
 				" has non-reduction accesses that overlap a reduction");
 			if (
 				((accessType == COMMUTATIVE_ACCESS_TYPE) && (dataAccess->getType() == CONCURRENT_ACCESS_TYPE))
@@ -889,7 +889,7 @@ namespace DataAccessRegistration {
 				(accessType == REDUCTION_ACCESS_TYPE)
 					&& (dataAccess->getReductionTypeAndOperatorIndex() != reductionTypeAndOperatorIndex),
 				"Task ",
-				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
+				(dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_type_label != nullptr ? dataAccess->getOriginator()->getTaskInfo()->implementations[0].task_type_label : dataAccess->getOriginator()->getTaskInfo()->implementations[0].declaration_source),
 				" has two overlapping reductions over different types or with different operators");
 		}
 
@@ -1708,11 +1708,11 @@ namespace DataAccessRegistration {
 					((operation._parentAccessType == CONCURRENT_ACCESS_TYPE) || (operation._parentAccessType == COMMUTATIVE_ACCESS_TYPE))
 						&& access->getType() == REDUCTION_ACCESS_TYPE,
 					"Task '",
-					(access->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr) ? access->getOriginator()->getTaskInfo()->implementations[0].task_label : access->getOriginator()->getTaskInfo()->implementations[0].declaration_source,
+					(access->getOriginator()->getTaskInfo()->implementations[0].task_type_label != nullptr) ? access->getOriginator()->getTaskInfo()->implementations[0].task_type_label : access->getOriginator()->getTaskInfo()->implementations[0].declaration_source,
 					"' declares a reduction within a region registered as ",
 					(operation._parentAccessType == CONCURRENT_ACCESS_TYPE) ? "concurrent" : "commutative",
 					" by task '",
-					(task->getTaskInfo()->implementations[0].task_label != nullptr) ? task->getTaskInfo()->implementations[0].task_label : task->getTaskInfo()->implementations[0].declaration_source,
+					(task->getTaskInfo()->implementations[0].task_type_label != nullptr) ? task->getTaskInfo()->implementations[0].task_type_label : task->getTaskInfo()->implementations[0].declaration_source,
 					"' without a taskwait");
 
 				DataAccessStatusEffects initialStatus(access);
@@ -1741,9 +1741,9 @@ namespace DataAccessRegistration {
 					FatalErrorHandler::failIf(
 						(operation._parentAccessType == REDUCTION_ACCESS_TYPE) && (access->getType() != REDUCTION_ACCESS_TYPE),
 						"Task '",
-						(access->getOriginator()->getTaskInfo()->implementations[0].task_label != nullptr) ? access->getOriginator()->getTaskInfo()->implementations[0].task_label : access->getOriginator()->getTaskInfo()->implementations[0].declaration_source,
+						(access->getOriginator()->getTaskInfo()->implementations[0].task_type_label != nullptr) ? access->getOriginator()->getTaskInfo()->implementations[0].task_type_label : access->getOriginator()->getTaskInfo()->implementations[0].declaration_source,
 						"' declares a non-reduction access within a region registered as reduction by task '",
-						(task->getTaskInfo()->implementations[0].task_label != nullptr) ? task->getTaskInfo()->implementations[0].task_label : task->getTaskInfo()->implementations[0].declaration_source,
+						(task->getTaskInfo()->implementations[0].task_type_label != nullptr) ? task->getTaskInfo()->implementations[0].task_type_label : task->getTaskInfo()->implementations[0].declaration_source,
 						"'");
 
 					if (access->getType() == REDUCTION_ACCESS_TYPE) {
@@ -2570,8 +2570,7 @@ namespace DataAccessRegistration {
 		MemoryPlace const *location)
 	{
 		assert(task != nullptr);
-		//! Not true any more, since a region might be released from
-		//! inside a polling service
+		//! Not true any more, since a region might be released from an external thread
 		//! assert(computePlace != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();

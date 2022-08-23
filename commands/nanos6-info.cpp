@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #include <nanos6/bootstrap.h>
@@ -9,24 +9,40 @@
 #include <nanos6/library-mode.h>
 #include <nanos6/runtime-info.h>
 
+#include <cassert>
 #include <cstdlib>
+#include <dlfcn.h>
 #include <iostream>
 #include <list>
 #include <string>
 #include <utility>
 
 
+#ifndef NANOS6_LIBDIR
+#error "NANOS6_LIBDIR is undefined"
+#endif
+
+#ifndef NANOS6_INCDIR
+#error "NANOS6_INCDIR is undefined"
+#endif
+
+
 struct OptionHelper {
 	enum retriever_t {
 		command_help = 0,
 		runtime_branch,
+		runtime_compile_flags,
+		runtime_config_current,
+		runtime_config_default,
 		runtime_compiler_version,
 		runtime_compiler_flags,
 		runtime_copyright,
 		runtime_detailed_info,
+		runtime_full_flags,
 		runtime_full_license,
 		runtime_full_version,
 		runtime_license,
+		runtime_link_flags,
 		runtime_patches,
 		runtime_path,
 		runtime_version,
@@ -90,13 +106,23 @@ static std::list<OptionHelper> optionHelpers;
 
 static char const *emitHelp()
 {
+	size_t maxLength = 0;
+	for (const OptionHelper &optionHelper : optionHelpers) {
+		if (optionHelper._parameter.size() > maxLength)
+			maxLength = optionHelper._parameter.size();
+	}
+	assert(maxLength > 0);
+	maxLength += 4;
+
 	std::cout << "Usage: " << commandName << " <options>" << std::endl;
 	std::cout << std::endl;
 	std::cout << "Options:" << std::endl;
-	for (std::list<OptionHelper>::const_iterator it = optionHelpers.begin(); it != optionHelpers.end(); it++) {
-		OptionHelper const &optionHelper = *it;
+
+	for (const OptionHelper &optionHelper : optionHelpers) {
 		if (!optionHelper.empty()) {
-			std::cout << "\t" << optionHelper._parameter << "\t" << optionHelper._helpMessage << std::endl;
+			std::string separator(maxLength - optionHelper._parameter.size(), ' ');
+
+			std::cout << "\t" << optionHelper._parameter << separator << optionHelper._helpMessage << std::endl;
 		} else {
 			std::cout << std::endl;
 		}
@@ -148,6 +174,66 @@ static char const *dumpPatches()
 	return "";
 }
 
+static const char *dumpCurrentConfigfilePath()
+{
+	// Get the current config file path computed by the loader
+	const char *currentConfigPath = (const char *) dlsym(nullptr, "_nanos6_config_path");
+	if (currentConfigPath == nullptr) {
+		std::cerr << "Error: current config file path not available" << std::endl;
+		exit(1);
+	}
+
+	std::cout << currentConfigPath << std::endl;
+
+	return "";
+}
+
+static const char *dumpDefaultConfigfilePath()
+{
+	// Get the default config file path computed by the loader
+	const char *defaultConfigPath = (const char *) dlsym(nullptr, "_nanos6_default_config_path");
+	if (defaultConfigPath == nullptr) {
+		std::cerr << "Error: default config file path not available" << std::endl;
+		exit(1);
+	}
+
+	std::cout << defaultConfigPath << std::endl;
+
+	return "";
+}
+
+static char const *dumpCompileFlags(bool endline = true)
+{
+	std::string path(NANOS6_INCDIR);
+
+	std::cout << "-I" << path;
+	if (endline)
+		std::cout << std::endl;
+	else
+		std::cout << " ";
+
+	return "";
+}
+
+static char const *dumpLinkFlags(bool endline = true)
+{
+	std::string path(NANOS6_LIBDIR);
+
+	std::cout << path << "/nanos6-main-wrapper.o -L" << path << " -lnanos6 -Wl,-rpath=" << path;
+	if (endline)
+		std::cout << std::endl;
+	else
+		std::cout << " ";
+
+	return "";
+}
+
+static char const *dumpCompileLinkFlags()
+{
+	dumpCompileFlags(false);
+	dumpLinkFlags();
+	return "";
+}
 
 static char const *dumpRuntimeDetailedInfo()
 {
@@ -192,6 +278,10 @@ char const *OptionHelper::retrieve(retriever_t retriever)
 			return emitHelp();
 		case runtime_branch:
 			return nanos6_get_runtime_branch();
+		case runtime_config_current:
+			return dumpCurrentConfigfilePath();
+		case runtime_config_default:
+			return dumpDefaultConfigfilePath();
 		case runtime_compiler_version:
 			return nanos6_get_runtime_compiler_version();
 		case runtime_compiler_flags:
@@ -212,6 +302,12 @@ char const *OptionHelper::retrieve(retriever_t retriever)
 			return nanos6_get_runtime_path();
 		case runtime_version:
 			return nanos6_get_runtime_version();
+		case runtime_compile_flags:
+			return dumpCompileFlags();
+		case runtime_full_flags:
+			return dumpCompileLinkFlags();
+		case runtime_link_flags:
+			return dumpLinkFlags();
 		default:
 			abort();
 	}
@@ -231,6 +327,9 @@ int main(int argc, char **argv)
 
 	optionHelpers.push_back(OptionHelper("--help", "display this help message", "", OptionHelper::command_help));
 	optionHelpers.push_back(OptionHelper());
+	optionHelpers.push_back(OptionHelper("--current-config", "display the path to the current Nanos6 config file", "", OptionHelper::runtime_config_current));
+	optionHelpers.push_back(OptionHelper("--default-config", "display the path to the default Nanos6 config file", "", OptionHelper::runtime_config_default));
+	optionHelpers.push_back(OptionHelper());
 	optionHelpers.push_back(OptionHelper("--full-version", "display the full runtime version", "", OptionHelper::runtime_full_version, true));
 	optionHelpers.push_back(OptionHelper("--copyright", "display the copyright notice", "Copyright (C)", OptionHelper::runtime_copyright, true));
 	optionHelpers.push_back(OptionHelper());
@@ -243,6 +342,10 @@ int main(int argc, char **argv)
 	optionHelpers.push_back(OptionHelper("--runtime-compiler", "display the compiler used for this runtime", "Compiled with", OptionHelper::runtime_compiler_version));
 	optionHelpers.push_back(OptionHelper("--runtime-compiler-flags", "display the compiler flags used for this runtime", "Compilation flags", OptionHelper::runtime_compiler_flags));
 	optionHelpers.push_back(OptionHelper("--runtime-path", "display the path of the loaded runtime", "Runtime path", OptionHelper::runtime_path));
+	optionHelpers.push_back(OptionHelper());
+	optionHelpers.push_back(OptionHelper("--runtime-compile-flags", "display the compile flags for compiling against this runtime", "", OptionHelper::runtime_compile_flags));
+	optionHelpers.push_back(OptionHelper("--runtime-link-flags", "display the linking flags for linking against this runtime", "", OptionHelper::runtime_link_flags));
+	optionHelpers.push_back(OptionHelper("--runtime-full-flags", "display the full flags for compiling and linking against this runtime", "", OptionHelper::runtime_full_flags));
 	optionHelpers.push_back(OptionHelper());
 	optionHelpers.push_back(OptionHelper("--runtime-details", "display detailed runtime and execution environment information", "", OptionHelper::runtime_detailed_info));
 	optionHelpers.push_back(OptionHelper("--dump-patches", "display code changes over the reported version", "", OptionHelper::runtime_patches));
@@ -265,8 +368,7 @@ int main(int argc, char **argv)
 		}
 	} else {
 		// Default output
-		for (std::list<OptionHelper>::const_iterator it = optionHelpers.begin(); it != optionHelpers.end(); it++) {
-			OptionHelper const &optionHelper = *it;
+		for (const OptionHelper &optionHelper : optionHelpers) {
 			if (optionHelper._enabledByDefault) {
 				optionHelper.emit();
 			}

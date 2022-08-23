@@ -21,7 +21,7 @@ public:
 	void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
 
 	std::pair<void *, bool> accel_allocate(size_t) override {return {nullptr, false};}
-	bool accel_free(void *) override {}
+	bool accel_free(void *) override {return true;}
 
 	std::function<std::function<bool(void)>()> copy_in(void*, void*, size_t, void*) const override
 	{

@@ -210,13 +210,16 @@ std::pair<std::shared_ptr<DeviceAllocation>, bool> Accelerator::createNewDeviceA
 //void Accelerator::generateDeviceEvironment(Task *) {}
 
 void Accelerator::acceleratorServiceLoop() {
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	assert(currentThread != nullptr);
+
     while (!shouldStopService())
     {
         setActiveDevice();
         do {
             // Launch as many ready device tasks as possible
             while (_streamPool.streamAvailable()) {
-                Task *task = Scheduler::getReadyTask(_computePlace);
+				Task *task = Scheduler::getReadyTask(_computePlace, currentThread);
                 if (task == nullptr)
                     break;
 

@@ -30,6 +30,7 @@ In addition to the build requirements, the following libraries and tools enable 
 1. [DLB](https://pm.bsc.es/dlb) to enable dynamic management and sharing of computing resources
 1. [jemalloc](https://github.com/jemalloc/jemalloc) to use jemalloc as the default memory allocator, providing better performance than the default glibc implementation. Jemalloc must be compiled with `--enable-stats` and `--with-jemalloc-prefix=nanos6_je_` to link with the runtime
 1. [PAPI](http://icl.utk.edu/papi/software/) >= 5.6.0
+1. [Babeltrace2](https://babeltrace.org/) to enable the fast CTF converter (`ctf2prv --fast`) and the multi-process trace merger (`nanos6-mergeprv`)
 
 
 ## Build procedure
@@ -68,6 +69,7 @@ The configure script accepts the following options:
 1. `--enable-openacc` to enable support for OpenACC tasks; requires PGI compilers
 1. `--with-pgi=prefix` to specify the prefix of the PGI or NVIDIA HPC-SDK compilers installation, in case they are not in `$PATH`
 1. `--enable-chrono-arch` to enable an architecture-based timer for the monitoring infrastructure
+1. `--with-babeltrace2=prefix` to specify the prefix of the Babeltrace2 installation and enable the fast CTF converter (`ctf2prv --fast`) and the multi-process trace merger (`nanos6-mergeprv`)
 
 The location of elfutils and hwloc is always retrieved through pkg-config.
 If they are installed in non-standard locations, pkg-config can be told where to find them through the `PKG_CONFIG_PATH` environment variable.
@@ -188,17 +190,65 @@ The resulting trace will show the activity of the actual threads instead of the 
 In the future, this problem will be fixed.
 
 
-### Tracing a Nanos6 application with CTF (Experimental)
+### Tracing a Nanos6 application with CTF
 
-To generate a CTF trace, run the application with the `version.instrument` config set to `ctf`.
-By default, only Nanos6 internal events are recorded.
-For details on how to additionally record system-wide Linux Kernel events, please check the section "Linux Kernel Tracing" under [CTF.md](docs/ctf/CTF.md).
+Nanos6 includes another instrumentation mechanism which provides detailed
+information of the internal runtime state as the execution evolves. The
+instrumentation produces a lightweight binary trace in the CTF format which is
+later converted to the Paraver PRV format. To generate a trace, run the
+application with `version.instrument=ctf`.
 
-A directory named `trace_<binary_name>_<pid>` will be created at the current working directory at the end of the execution.
-To visualize this trace it needs to be converted to Paraver format first.
-By default, Nanos6 will convert the trace automatically at the end of the execution unless the user explicitly sets the configuration variable `instrument.ctf.converter.enabled = false`.
-The environment variable `CTF2PRV_TIMEOUT=<minutes>` can be set to stop the conversion after the specified elapsed time in minutes.
-Please note that the conversion tool requires python3 and the babeltrace2 packages.
+By default, only Nanos6 internal events are recorded, such as the information
+about the tasks or the state of the runtime. For details on how to additionally
+record system-wide Linux Kernel events, please check the section "Linux Kernel
+Tracing" under [CTF.md](docs/ctf/CTF.md).
+
+The main trace directory named `trace_<binary_name>` will be created at the current
+working directory at the end of the execution, which contains all the related
+trace files and directories.
+
+The CTF instrumentation supports multiple processes running in parallel with MPI.
+In order to coordinate the clock synchronization, it is required to run the
+application with [TAMPI](https://github.com/bsc-pm/tampi) (at least version 1.1).
+
+Every process will create the rank subdirectory inside the trace directory, with
+a name that corresponds to the rank number. In the absence of MPI, when there is
+only a single process, the folder will be named 0.
+
+Inside the rank directory, the CTF trace is stored in a subdirectory named
+"ctf". A post-processing step is required to reconstruct the timeline of events
+from the CTF trace. In order to visualize the events, the trace is converted to
+the Paraver PRV format. The resulting PRV trace is stored in the "prv"
+subdirectory.
+
+By default, Nanos6 will convert the trace automatically at the end of the
+execution unless the user explicitly sets the configuration variable
+`instrument.ctf.converter.enabled = false`.
+
+The environment variable `CTF2PRV_TIMEOUT=<minutes>` can be set to stop the
+conversion after the specified elapsed time in minutes. Please note that the
+conversion tool requires python3 and the babeltrace2 packages.
+
+An experimental conversion tool written in C is included, with a faster
+conversion speed, but not all features are yet supported. In order to
+enable it, Nanos6 must be compiled with babeltrace2 support using the configure
+option `--with-babeltrace2=prefix`, pointing to a valid babeltrace2 installation.
+Additionally, you will need to enable the fast converter in the configuration
+with `instrument.ctf.converter.fast = true`.
+
+Every Nanos6 process will only convert its own CTF trace to PRV. When you have
+multiple MPI processes, you may want to integrate all the PRV files per rank
+into a single trace. Beware that it may easily exceed the recommended PRV size
+for Paraver. You can use the included merger as:
+
+	$ nanos6-mergeprv trace_<binary_name>
+
+The merged trace will be placed in the main trace directory, at
+`trace_<binary_name>/trace.prv`.
+Please take into account that the `nanos6-mergeprv` can only merge traces generated
+by the fast CTF converter.
+
+#### Paraver configurations for CTF
 
 The Paraver configuration files can be found under:
 
@@ -216,8 +266,12 @@ $ ctf2prv $TRACE
 
 which will generate the directory `$TRACE/prv` with the Paraver trace.
 
-Although the `ctf2prv` tool requires python3 and babeltrace2 python modules, Nanos6 does not require any package to generate CTF traces.
-For more information on how the CTF instrumentation variant works see [CTF.md](docs/ctf/CTF.md).
+Although the `ctf2prv` tool requires python3 and babeltrace2 python modules,
+Nanos6 does not require any package to generate CTF traces.  For more
+information on how the CTF instrumentation variant works see
+[CTF.md](docs/ctf/CTF.md).
+
+To run the experimental fast converter, add the option `--fast`.
 
 
 ### Generating a graphical representation of the dependency graph
@@ -432,21 +486,29 @@ taskset -c 10-19 ./cholesky-fact.test &
 # ...
 ```
 
-## Polling Services
+## Polling Capabilities
 
-Polling services are executed by a dedicated thread at regular intervals, and also, opportunistically by idle worker threads.
-The approximate minimum frequency in time in which the polling services are going to be executed can be controlled by the `misc.polling_frequency` configuration variable.
-This variable can take an integer value that represents the polling frequency in microseconds.
-By default, the runtime system executes the polling services at least every 1000 microseconds.
+The polling services API is no longer supported and has been replaced by another mechanism more efficient and flexible.
+Now the polling feature is provided by a regular task scheduled periodically thanks to the `nanos6_wait_for` API function.
+The function, shown below, blocks the calling task during `time_us` microseconds (approximately), and the runtime system uses the CPU to execute other ready tasks meanwhile.
+
+```c
+uint64_t nanos6_wait_for(uint64_t time_us);
+```
+
+The function returns the actual time that has been sleeping, so the caller can take decisions based on that.
+Notice that the polling frequency is now dynamic and can be set programmatically.
+To implement a polling task, we recommend spawning a function using the `nanos6_spawn_function`, which instantiates an isolated task with an independent namespace of data dependencies and no relationship with others task (i.e. no taskwait will wait for it).
 
 ## CPU Managing Policies
 
 Currently, Nanos6 offers different policies when handling CPUs through the `cpumanager.policy` configuration variable:
 * `cpumanager.policy = "idle"`: Activates the `idle` policy, in which idle threads halt on a blocking condition, while not consuming CPU cycles.
 * `cpumanager.policy = "busy"`: Activates the `busy` policy, in which idle threads continue spinning and never halt, consuming CPU cycles.
+* `cpumanager.policy = "hybrid"`: Activates the `hybrid` policy, in which idle threads spin for a specific number of iterations before halting on a blocking condition. The number of iterations is controlled by the `cpumanager.busy_iters` configuration variable, which defaults to 240000 collective iterations across all the available CPUs (the real number per CPU is the collective one divided by the number of CPUs).
 * `cpumanager.policy = "lewi"`: If DLB is enabled, activates the LeWI policy. Similarly to the idle policy, in this one idle threads lend their CPU to other runtimes or processes.
 * `cpumanager.policy = "greedy"`: If DLB is enabled, activates the `greedy` policy, in which CPUs from the process' mask are never lent, but allows acquiring and lending external CPUs.
-* `cpumanager.policy = "default"`: Fallback to the default implementation. If DLB is disabled, this policy falls back to the `idle` policy, while if DLB is enabled it falls back to the `lewi` policy.
+* `cpumanager.policy = "default"`: Fallback to the default implementation. If DLB is disabled, this policy falls back to the `hybrid` policy, while if DLB is enabled it falls back to the `lewi` policy.
 
 ## Throttle
 
@@ -471,7 +533,7 @@ Although the throttle feature is disabled by default, it can be enabled and tunn
 ## NUMA support
 
 Nanos6 includes NUMA support based on three main components: an allocation/deallocation API, a data tracking system and a locality-aware scheduler.
-When allocating memory using the nanos6 NUMA API, we annotate in our directory the location of the data. Then, when a task becomes ready, we check where is each of the data dependences of the task, and schedule the task to be run in the NUMA node with a greater share of its data. The NUMA support can be handled through the `numa.tracking` configuration varible: 
+When allocating memory using the nanos6 NUMA API, we annotate in our directory the location of the data. Then, when a task becomes ready, we check where is each of the data dependences of the task, and schedule the task to be run in the NUMA node with a greater share of its data. The NUMA support can be handled through the `numa.tracking` configuration variable:
 * `numa.tracking = "on"`: Enables the NUMA support.
 * `numa.tracking = "off"`: Disables the NUMA support.
 * `numa.tracking = "auto"`: The NUMA support is enabled in the first allocation done using the Nanos6 NUMA API. If no allocation is done, the support is never enabled.

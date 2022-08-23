@@ -3,12 +3,12 @@
 
 #	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 #
-#	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+#	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 
 # Nanos6 version and copyright
-m4_define([nanos6_version], [2.5.1])
+m4_define([nanos6_version], [2.7.1])
 m4_define([nanos6_license], ["GPL3"])
-m4_define([nanos6_copyright], ["2015-2020 Barcelona Supercomputing Center (BSC)"])
+m4_define([nanos6_copyright], ["2015-2021 Barcelona Supercomputing Center (BSC)"])
 
 AC_PREREQ([2.69])
 AC_INIT([nanos6], [nanos6_version], [pm-tools@bsc.es])
@@ -33,7 +33,7 @@ AC_SUBST([LIBTOOL_DEPS])
 
 SSS_CHECK_SOURCE_VERSION
 
-# Checks for programs.
+# Checks for programs
 SSS_PREPARE_COMPILER_FLAGS
 AC_PROG_CXX
 AX_CXX_COMPILE_STDCXX_11([], [mandatory])
@@ -87,12 +87,15 @@ fi
 AC_CHECK_DLOPEN
 AC_CHECK_BACKTRACE
 AC_CHECK_LIBNUMA
-AC_CHECK_MEMKIND
 AC_CHECK_PAPI
 AC_CHECK_PQOS
 AC_CHECK_DLB
 AC_CHECK_JEMALLOC
 AC_CHECK_XTASKS
+AC_CHECK_BABELTRACE2
+
+# Build ctf2prv fast converter if Babeltrace2 is available
+AM_CONDITIONAL([BUILD_CTF2PRV_FAST], [test x"${ac_use_babeltrace2}" = x"yes"])
 
 AC_CHECK_FUNCS([reallocarray aligned_alloc])
 AC_CHECK_MADV_FREE
@@ -119,9 +122,6 @@ CHECK_AS_NEEDED_FLAGS
 ADD_AS_NEEDED_SUPPORT_TO_LIBTOOL
 
 SSS_FIXUP_COMPILER_FLAGS
-AC_CHECK_EXTRACT_FIRST_COMPILER_FLAG([FALIGNED_NEW_FLAG], [-faligned-new])
-
-AC_CHECK_EXTRACT_FIRST_COMPILER_FLAG([MCMODEL_FLAGS], [-mcmodel=large -mcmodel=medium])
 
 CONFIGURE_NANOS6_FEATURES
 SELECT_NANOS6_INSTRUMENTATIONS
@@ -326,7 +326,7 @@ _AS_ECHO([])
 _AS_ECHO([Configuration summary:])
 _AS_ECHO([   Compiler version... ${CXX_VERSION}])
 _AS_ECHO([   Compiler optimization flags... ${OPT_CXXFLAGS}])
-_AS_ECHO([   Compiler debug flags... ${DEBUG_CXXFLAGS}])
+_AS_ECHO([   Compiler debug flags... ${DBG_CXXFLAGS}])
 _AS_ECHO([])
 _AS_ECHO([   Include linear fragmented dependencies... ${ac_regions_deps}])
 _AS_ECHO([   Include discrete dependencies... ${ac_discrete_deps}])
@@ -399,16 +399,6 @@ else
 fi
 
 _AS_ECHO([])
-_AS_ECHO_N([   Memkind is enabled... ])
-if test x"${ac_use_memkind}" = x"yes" ; then
-	AC_MSG_RESULT([yes])
-	_AS_ECHO([	Memkind CPPFLAGS... ${memkind_CPPFLAGS}])
-	_AS_ECHO([	Memkind LIBS... ${memkind_LIBS}])
-else
-	AC_MSG_RESULT([no])
-fi
-
-_AS_ECHO([])
 _AS_ECHO_N([   PAPI is enabled... ])
 if test x"${ac_use_papi}" = x"yes" ; then
 	AC_MSG_RESULT([yes])
@@ -454,6 +444,16 @@ if test x"${ac_use_xtasks}" = x"yes" ; then
 	AC_MSG_RESULT([yes])
 	_AS_ECHO([   xtasks CPPFLAGS... ${xtasks_CPPFLAGS}])
 	_AS_ECHO([   xtasks LIBS... ${xtasks_LIBS}])
+else
+	AC_MSG_RESULT([no])
+fi
+
+_AS_ECHO([])
+_AS_ECHO_N([   Fast CTF trace converter is enabled... ])
+if test x"${ac_use_babeltrace2}" = x"yes" ; then
+	AC_MSG_RESULT([yes])
+	_AS_ECHO([   babeltrace2 CPPFLAGS... ${babeltrace2_CPPFLAGS}])
+	_AS_ECHO([   babeltrace2 LIBS... ${babeltrace2_LIBS}])
 else
 	AC_MSG_RESULT([no])
 fi

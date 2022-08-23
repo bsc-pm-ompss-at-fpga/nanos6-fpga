@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 // This is for posix_memalign
@@ -23,6 +23,7 @@
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "monitoring/Monitoring.hpp"
 #include "scheduling/Scheduler.hpp"
+#include "support/BitManipulation.hpp"
 #include "system/If0Task.hpp"
 #include "system/Throttle.hpp"
 #include "system/TrackingPoints.hpp"
@@ -39,9 +40,6 @@
 #include <MemoryAllocator.hpp>
 #include <TaskDataAccesses.hpp>
 #include <TaskDataAccessesInfo.hpp>
-
-
-#define DATA_ALIGNMENT_SIZE sizeof(void *)
 
 Task *AddTask::createTask(
 	nanos6_task_info_t *taskInfo,
@@ -96,21 +94,24 @@ Task *AddTask::createTask(
 	size_t taskCountersSize = TaskHardwareCounters::getAllocationSize();
 	size_t taskStatisticsSize = Monitoring::getAllocationSize();
 
+	taskSize += BitManipulation::fixAlignment(taskSize, DATA_ALIGNMENT_SIZE);
+	taskAccessesSize += BitManipulation::fixAlignment(taskAccessesSize, DATA_ALIGNMENT_SIZE);
+	taskCountersSize += BitManipulation::fixAlignment(taskCountersSize, DATA_ALIGNMENT_SIZE);
+	taskStatisticsSize += BitManipulation::fixAlignment(taskStatisticsSize, DATA_ALIGNMENT_SIZE);
+
 	bool hasPreallocatedArgsBlock = (flags & nanos6_preallocated_args_block);
 	if (hasPreallocatedArgsBlock) {
 		assert(argsBlock != nullptr);
-		task = (Task *) MemoryAllocator::alloc(taskSize
+		task = (Task *) MemoryAllocator::allocAligned(taskSize
 			+ taskAccessesSize
 			+ taskCountersSize
 			+ taskStatisticsSize);
 	} else {
 		// Alignment fixup
-		size_t missalignment = argsBlockSize & (DATA_ALIGNMENT_SIZE - 1);
-		size_t correction = (DATA_ALIGNMENT_SIZE - missalignment) & (DATA_ALIGNMENT_SIZE - 1);
-		argsBlockSize += correction;
+		argsBlockSize += BitManipulation::fixAlignment(argsBlockSize, DATA_ALIGNMENT_SIZE);
 
 		// Allocation and layout
-		argsBlock = MemoryAllocator::alloc(argsBlockSize + taskSize
+		argsBlock = MemoryAllocator::allocAligned(argsBlockSize + taskSize
 			+ taskAccessesSize
 			+ taskCountersSize
 			+ taskStatisticsSize);
@@ -134,6 +135,8 @@ Task *AddTask::createTask(
 	} else if (isTaskfor) {
 		// Taskfors are always final
 		flags |= nanos6_final_task;
+		// Taskfors already feature the wait property
+		flags &= ~nanos6_waiting_task;
 
 		new (task) Taskfor(argsBlock, originalArgsBlockSize,
 			taskInfo, taskInvocationInfo, nullptr, taskId,
@@ -217,6 +220,11 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 	assert(parent != nullptr || ready);
 	assert(parent != nullptr || !isIf0);
 
+	// The ready if0 host tasks should run the onready now
+	if (ready && isIf0 && !executesInDevice) {
+		ready = task->handleOnready(workerThread);
+	}
+
 	if (ready && (!isIf0 || executesInDevice)) {
 		// Queue the task if ready and not if0. Device if0 ready tasks must be
 		// queued too; they are managed by the device scheduling infrastructure
@@ -245,6 +253,7 @@ void AddTask::submitTask(Task *task, Task *parent, bool fromUserCode)
 void nanos6_create_task(
 	nanos6_task_info_t *task_info,
 	nanos6_task_invocation_info_t *task_invocation_info,
+	char const *,
 	size_t args_block_size,
 	void **args_block_pointer,
 	void **task_pointer,

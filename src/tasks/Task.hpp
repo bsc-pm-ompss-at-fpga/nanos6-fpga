@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef TASK_HPP
@@ -50,6 +50,8 @@ public:
 		wait_flag,
 		preallocated_args_block_flag,
 		lint_verified_flag,
+		taskiter_flag,
+		taskiter_update_flag,
 		//! Flags added by the Nanos6 runtime. Note that
 		//! these flags must be always declared after the
 		//! Mercurium flags
@@ -58,6 +60,7 @@ public:
 		remote_flag,
 		stream_executor_flag,
 		main_task_flag,
+		onready_completed_flag,
 		total_flags
 	};
 
@@ -249,6 +252,7 @@ public:
 		assert(hasCode());
 		assert(_taskInfo != nullptr);
 		assert(!isTaskfor());
+
 		_taskInfo->implementations[0].run(_argsBlock, (void *)&_deviceEnvironment, translationTable);
 	}
 
@@ -584,6 +588,69 @@ public:
 	int getAccelAffinity() const
 	{
 		return _accel_affinity;
+   }
+
+	//! \brief Check if the task has an onready action
+	inline bool hasOnready() const
+	{
+		assert(_taskInfo != nullptr);
+
+		return (_taskInfo->onready_action != nullptr);
+	}
+
+	//! \brief Perform the onready action if needed
+	//!
+	//! This function executes the onready if needed and returns whether
+	//! the task is ready to be executed (scheduled). If the task has no
+	//! onready action or the onready do not bind any external event, the
+	//! onready phase is automatically completed; otherwise the onready
+	//! phase will have to be manually completed once all onready events
+	//! finalize (see completeOnready function)
+	//!
+	//! \param currentThread the current thread
+	//!
+	//! \returns whether the task is ready to execute
+	bool handleOnready(WorkerThread *currentThread)
+	{
+		assert(_predecessorCount == 0);
+
+		if (isOnreadyCompleted()) {
+			return true;
+		}
+
+		// Run onready action if present
+		if (hasOnready()) {
+			runOnready(currentThread);
+
+			// Check whether has pending events
+			if (!decreaseReleaseCount()) {
+				// The execution was delayed due to onready events
+				return false;
+			}
+
+			// Reset the counter before executing the task
+			resetReleaseCount();
+		}
+
+		// Set the onready flag as completed
+		setCompletedOnready();
+
+		// The task is ready to execute
+		return true;
+	}
+
+	//! \brief Complete the onready stage
+	//!
+	//! This function should be called once all events registered
+	//! during the onready phase have finalized. After this call,
+	//! the task is ready to be executed (scheduled)
+	void completeOnready()
+	{
+		// Set the onready flag as completed
+		setCompletedOnready();
+
+		// Reset the event counter before executing the task
+		resetReleaseCount();
 	}
 
 	//! \brief Set or unset the final flag
@@ -681,6 +748,14 @@ public:
 		return _instrumentationTaskId;
 	}
 
+	//! \brief Reset the counter of events
+	inline void resetReleaseCount()
+	{
+		assert(_countdownToRelease == 0);
+
+		_countdownToRelease = 1;
+	}
+
 	//! \brief Increase the counter of events
 	inline void increaseReleaseCount(int amount = 1)
 	{
@@ -691,7 +766,12 @@ public:
 
 	//! \brief Decrease the counter of events
 	//!
-	//! \returns true iff the dependencies can be released
+	//! This function returns whether the decreased events were
+	//! the last ones. This may mean that the task can start
+	//! running if they were onready events or the task can release
+	//! its dependencies if they were normal events
+	//!
+	//! \returns true iff were the last events
 	inline bool decreaseReleaseCount(int amount = 1)
 	{
 		int count = (_countdownToRelease -= amount);
@@ -749,8 +829,8 @@ public:
 	{
 		if (_taskInfo != nullptr) {
 			if (_taskInfo->implementations != nullptr) {
-				if (_taskInfo->implementations->task_label != nullptr) {
-					return std::string(_taskInfo->implementations->task_label);
+				if (_taskInfo->implementations->task_type_label != nullptr) {
+					return std::string(_taskInfo->implementations->task_type_label);
 				} else if (_taskInfo->implementations->declaration_source != nullptr) {
 					return std::string(_taskInfo->implementations->declaration_source);
 				}
@@ -841,6 +921,11 @@ public:
 		return _flags[main_task_flag];
 	}
 
+	inline bool isOnreadyCompleted() const
+	{
+		return _flags[onready_completed_flag];
+	}
+
 	inline TasktypeData *getTasktypeData() const
 	{
 		if (_taskInfo != nullptr) {
@@ -898,6 +983,18 @@ public:
 	{
 		return _NUMAHint;
 	}
+
+private:
+	//! \brief Set the onready completed flag
+	inline void setCompletedOnready()
+	{
+		_flags[onready_completed_flag] = true;
+	}
+
+	//! \brief Run the onready action
+	//!
+	//! \param currentThread the current thread
+	void runOnready(WorkerThread *currentThread);
 };
 
 

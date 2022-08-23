@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef NANOS6_TASK_INSTANTIATION_H
@@ -82,7 +82,7 @@ typedef struct
 	void (*get_constraints)(void *args_block, nanos6_task_constraints_t *constraints);
 
 	//! \brief A string that identifies the type of task
-	char const *task_label;
+	char const *task_type_label;
 
 	//! \brief A string that identifies the source location of the definition of the task
 	char const *declaration_source;
@@ -95,7 +95,7 @@ typedef struct
 // NOTE: The full version depends also on nanos6_major_api
 //       That is:   nanos6_major_api . nanos6_task_info_contents
 //! \brief This needs to be incremented every time that there is a change in nanos6_task_info
-enum nanos6_task_info_contents_t { nanos6_task_info_contents = 2 };
+enum nanos6_task_info_contents_t { nanos6_task_info_contents = 4 };
 
 //! \brief Struct that contains the common parts that all tasks of the same type share
 typedef struct __attribute__((aligned(64)))
@@ -112,6 +112,15 @@ typedef struct __attribute__((aligned(64)))
 	//! \param[in] taskloop_bounds a pointer to the bounds of a taskloop, if the task is taskloop
 	//! \param[in] handler a handler to be passed on to the registration functions
 	void (*register_depinfo)(void *args_block, void *taskloop_bounds, void *handler);
+
+	//! \brief Function that the runtime calls to run the onready action
+	//!
+	//! This function should be called by the runtime after the dependencies of the task have been satisfied. This function
+	//! may register external events to delay the execution of the task, but cannot block the current thread in any blocking
+	//! operation (e.g., taskwait or explicit blocking)
+	//!
+	//! \param[in] args_block a pointer to a block of data for the parameters partially initialized
+	void (*onready_action)(void *args_block);
 
 	//! \brief Function that the runtime calls to obtain a user-specified priority for the task instance
 	//!
@@ -172,7 +181,7 @@ typedef struct __attribute__((aligned(64)))
 // NOTE: The full version depends also on nanos6_major_api
 //       That is:   nanos6_major_api . nanos6_instantiation_api
 //! \brief This needs to be incremented on every change to the instantiation API
-enum nanos6_instantiation_api_t { nanos6_instantiation_api = 4 };
+enum nanos6_instantiation_api_t { nanos6_instantiation_api = 6 };
 
 typedef enum {
 	//! Specifies that the task will be a final task
@@ -188,7 +197,11 @@ typedef enum {
 	//! Specifies that the args_block is preallocated from user side
 	nanos6_preallocated_args_block = (1 << 5),
 	//! Specifies that the task has been verified by the user, hence it doesn't need runtime linting
-	nanos6_verified_task = (1 << 6)
+	nanos6_verified_task = (1 << 6),
+	//! Specifies that the task is really a taskiter
+	nanos6_taskiter_task = (1 << 7),
+	//! Specifies that the task has the "update" clause
+	nanos6_update_task = (1 << 8)
 } nanos6_task_flag_t;
 
 
@@ -200,6 +213,7 @@ typedef enum {
 //!
 //! \param[in] task_info a pointer to the nanos6_task_info_t structure
 //! \param[in] task_invocation_info a pointer to the nanos6_task_invocation_info_t structure
+//! \param[in] task_label a string that identifies the task
 //! \param[in] args_block_size size needed to store the parameters passed to the task call
 //! \param[in,out] args_block_pointer a pointer to a location to store the pointer to the block of data that will contain the parameters of the task call. Input if flags contains nanos6_preallocated_args_block, out otherwise
 //! \param[out] task_pointer a pointer to a location to store the task handler
@@ -208,6 +222,7 @@ typedef enum {
 //! \param[in] affinity the device where this task will be executed or -1 if any
 void nanos6_create_task(nanos6_task_info_t *task_info,
 	nanos6_task_invocation_info_t *task_invocation_info,
+	char const *task_label,
 	size_t args_block_size,
 	/* OUT */ void **args_block_pointer,
 	/* OUT */ void **task_pointer,

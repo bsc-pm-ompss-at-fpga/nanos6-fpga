@@ -1,6 +1,6 @@
 #	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 #
-#	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+#	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 
 
 AM_CXXFLAGS = -I$(top_srcdir)/tests $(PTHREAD_CFLAGS)
@@ -27,7 +27,6 @@ cpu_management_tests =
 user_mutex_tests =
 linear_region_tests =
 reductions_tests =
-runtime_handled_reductions_tests =
 discrete_tests =
 dlb_tests =
 numa_tests =
@@ -38,6 +37,8 @@ base_tests += \
 	blocking.clang.test \
 	events.clang.test \
 	events-dep.clang.test \
+	onready.clang.test \
+	onready-events.clang.test \
 	scheduling-wait-for.clang.test \
 	fibonacci.clang.test \
 	dep-nonest.clang.test \
@@ -51,17 +52,20 @@ base_tests += \
 	task-for-dep-multiaxpy.clang.test \
 	task-for-nonpod.clang.test \
 	task-for-nqueens.clang.test \
+	task-for-wait.clang.test \
 	taskloop-multiaxpy.clang.test \
 	taskloop-dep-multiaxpy.clang.test \
 	taskloop-nested-dep-multiaxpy.clang.test \
 	taskloop-nonpod.clang.test \
 	taskloop-nqueens.clang.test \
+	taskloop-wait.clang.test \
 	taskloop-for-multiaxpy.clang.test \
 	taskloop-for-dep-multiaxpy.clang.test \
 	taskloop-for-nested-dep-multiaxpy.clang.test \
 	taskloop-for-nonpod.clang.test \
 	taskloop-for-nqueens.clang.test \
-	taskloop-for-reduction.clang.test
+	taskloop-for-reduction.clang.test \
+	taskloop-for-wait.clang.test
 
 
 # Ignore CPU Activation test if we have DLB
@@ -128,6 +132,8 @@ base_tests +=  \
 	blocking.clang.debug.test \
 	events.clang.debug.test \
 	events-dep.clang.debug.test \
+	onready.clang.debug.test \
+	onready-events.clang.debug.test \
 	scheduling-wait-for.clang.debug.test \
 	fibonacci.clang.debug.test \
 	dep-nonest.clang.debug.test \
@@ -141,17 +147,20 @@ base_tests +=  \
 	task-for-dep-multiaxpy.clang.debug.test \
 	task-for-nonpod.clang.debug.test \
 	task-for-nqueens.clang.debug.test \
+	task-for-wait.clang.debug.test \
 	taskloop-multiaxpy.clang.debug.test \
 	taskloop-dep-multiaxpy.clang.debug.test \
 	taskloop-nested-dep-multiaxpy.clang.debug.test \
 	taskloop-nonpod.clang.debug.test \
 	taskloop-nqueens.clang.debug.test \
+	taskloop-wait.clang.debug.test \
 	taskloop-for-multiaxpy.clang.debug.test \
 	taskloop-for-dep-multiaxpy.clang.debug.test \
 	taskloop-for-nested-dep-multiaxpy.clang.debug.test \
 	taskloop-for-nonpod.clang.debug.test \
 	taskloop-for-nqueens.clang.debug.test \
-	taskloop-for-reduction.clang.debug.test
+	taskloop-for-reduction.clang.debug.test \
+	taskloop-for-wait.clang.debug.test
 
 # Ignore CPU Activation test if we have DLB for now
 if HAVE_DLB
@@ -256,52 +265,70 @@ test_common_ldflags = -no-install $(AM_LDFLAGS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS
 test_cuda_flags = --cuda -fno-lto
 
 blocking_clang_debug_test_SOURCES = ../blocking/blocking.cpp
-blocking_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+blocking_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 blocking_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 blocking_clang_test_SOURCES = ../blocking/blocking.cpp
 blocking_clang_test_CPPFLAGS = -DNDEBUG
 blocking_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
-blocking_clang_test_LDFLAGS = $(test_common_debug_ldflags)
+blocking_clang_test_LDFLAGS = $(test_common_ldflags)
 
 events_clang_debug_test_SOURCES = ../events/events.cpp
-events_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+events_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 events_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 events_clang_test_SOURCES = ../events/events.cpp
 events_clang_test_CPPFLAGS = -DNDEBUG
 events_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
-events_clang_test_LDFLAGS = $(test_common_debug_ldflags)
+events_clang_test_LDFLAGS = $(test_common_ldflags)
 
 events_dep_clang_debug_test_SOURCES = ../events/events-dep.cpp
-events_dep_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+events_dep_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 events_dep_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 events_dep_clang_test_SOURCES = ../events/events-dep.cpp
 events_dep_clang_test_CPPFLAGS = -DNDEBUG
 events_dep_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
-events_dep_clang_test_LDFLAGS = $(test_common_debug_ldflags)
+events_dep_clang_test_LDFLAGS = $(test_common_ldflags)
+
+onready_clang_debug_test_SOURCES = ../onready/onready.cpp
+onready_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+onready_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+onready_clang_test_SOURCES = ../onready/onready.cpp
+onready_clang_test_CPPFLAGS = -DNDEBUG
+onready_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+onready_clang_test_LDFLAGS = $(test_common_ldflags)
+
+onready_events_clang_debug_test_SOURCES = ../onready/onready-events.cpp
+onready_events_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+onready_events_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+onready_events_clang_test_SOURCES = ../onready/onready-events.cpp
+onready_events_clang_test_CPPFLAGS = -DNDEBUG
+onready_events_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+onready_events_clang_test_LDFLAGS = $(test_common_ldflags)
 
 scheduling_wait_for_clang_debug_test_SOURCES = ../scheduling/scheduling-wait-for.cpp
-scheduling_wait_for_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+scheduling_wait_for_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 scheduling_wait_for_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 scheduling_wait_for_clang_test_SOURCES = ../scheduling/scheduling-wait-for.cpp
 scheduling_wait_for_clang_test_CPPFLAGS = -DNDEBUG
 scheduling_wait_for_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
-scheduling_wait_for_clang_test_LDFLAGS = $(test_common_debug_ldflags)
+scheduling_wait_for_clang_test_LDFLAGS = $(test_common_ldflags)
 
 fibonacci_clang_debug_test_SOURCES = ../fibonacci/fibonacci.cpp
-fibonacci_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+fibonacci_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 fibonacci_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 fibonacci_clang_test_SOURCES = ../fibonacci/fibonacci.cpp
 fibonacci_clang_test_CPPFLAGS = -DNDEBUG
 fibonacci_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
-fibonacci_clang_test_LDFLAGS = $(test_common_debug_ldflags)
+fibonacci_clang_test_LDFLAGS = $(test_common_ldflags)
 
 cpu_activation_clang_debug_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
-cpu_activation_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+cpu_activation_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 cpu_activation_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 cpu_activation_clang_test_SOURCES = ../cpu-activation/cpu-activation.cpp ../cpu-activation/ConditionVariable.hpp
@@ -317,7 +344,7 @@ endif
 if HAVE_DLB
 dep_nonest_clang_debug_test_CPPFLAGS += -DHAVE_DLB
 endif
-dep_nonest_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dep_nonest_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_nonest_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dep_nonest_clang_test_SOURCES = ../dependencies/dep-nonest.cpp
@@ -332,7 +359,7 @@ dep_nonest_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_nonest_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dep_early_release_clang_debug_test_SOURCES = ../dependencies/dep-early-release.cpp
-dep_early_release_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dep_early_release_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_early_release_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dep_early_release_clang_test_SOURCES = ../dependencies/dep-early-release.cpp
@@ -341,7 +368,7 @@ dep_early_release_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_early_release_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dep_er_and_weak_clang_debug_test_SOURCES = ../dependencies/dep-er-and-weak.cpp
-dep_er_and_weak_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dep_er_and_weak_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_er_and_weak_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dep_er_and_weak_clang_test_SOURCES = ../dependencies/dep-er-and-weak.cpp
@@ -350,7 +377,7 @@ dep_er_and_weak_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_er_and_weak_clang_test_LDFLAGS = $(test_common_ldflags)
 
 if0_clang_debug_test_SOURCES = ../dependencies/if0.cpp
-if0_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+if0_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 if0_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 if0_clang_test_SOURCES = ../dependencies/if0.cpp
@@ -359,7 +386,7 @@ if0_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 if0_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dep_wait_clang_debug_test_SOURCES = ../dependencies/dep-wait.cpp
-dep_wait_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dep_wait_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_wait_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dep_wait_clang_test_SOURCES = ../dependencies/dep-wait.cpp
@@ -368,7 +395,7 @@ dep_wait_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dep_wait_clang_test_LDFLAGS = $(test_common_ldflags)
 
 simple_commutative_clang_debug_test_SOURCES = ../commutative/simple-commutative.cpp
-simple_commutative_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+simple_commutative_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 simple_commutative_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 simple_commutative_clang_test_SOURCES = ../commutative/simple-commutative.cpp
@@ -377,7 +404,7 @@ simple_commutative_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 simple_commutative_clang_test_LDFLAGS = $(test_common_ldflags)
 
 commutative_stencil_clang_debug_test_SOURCES = ../commutative/commutative-stencil.cpp
-commutative_stencil_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+commutative_stencil_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 commutative_stencil_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 commutative_stencil_clang_test_SOURCES = ../commutative/commutative-stencil.cpp
@@ -386,7 +413,7 @@ commutative_stencil_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 commutative_stencil_clang_test_LDFLAGS = $(test_common_ldflags)
 
 task_for_multiaxpy_clang_debug_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
-task_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 task_for_multiaxpy_clang_test_SOURCES = ../task-for/task-for-multiaxpy.cpp
@@ -395,7 +422,7 @@ task_for_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 task_for_dep_multiaxpy_clang_debug_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
-task_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 task_for_dep_multiaxpy_clang_test_SOURCES = ../task-for/task-for-dep-multiaxpy.cpp
@@ -404,7 +431,7 @@ task_for_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS
 task_for_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 task_for_nonpod_clang_debug_test_SOURCES = ../task-for/task-for-nonpod.cpp
-task_for_nonpod_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_nonpod_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_nonpod_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 task_for_nonpod_clang_test_SOURCES = ../task-for/task-for-nonpod.cpp
@@ -413,7 +440,7 @@ task_for_nonpod_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_nonpod_clang_test_LDFLAGS = $(test_common_ldflags)
 
 task_for_nqueens_clang_debug_test_SOURCES = ../task-for/task-for-nqueens.cpp
-task_for_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 task_for_nqueens_clang_test_SOURCES = ../task-for/task-for-nqueens.cpp
@@ -421,8 +448,17 @@ task_for_nqueens_clang_test_CPPFLAGS = -DNDEBUG
 task_for_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 task_for_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
+task_for_wait_clang_debug_test_SOURCES = ../task-for/task-for-wait.cpp
+task_for_wait_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_wait_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+task_for_wait_clang_test_SOURCES = ../task-for/task-for-wait.cpp
+task_for_wait_clang_test_CPPFLAGS = -DNDEBUG
+task_for_wait_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+task_for_wait_clang_test_LDFLAGS = $(test_common_ldflags)
+
 taskloop_multiaxpy_clang_debug_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
-taskloop_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_multiaxpy_clang_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
@@ -431,7 +467,7 @@ taskloop_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_dep_multiaxpy_clang_debug_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
-taskloop_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_dep_multiaxpy_clang_test_SOURCES = ../taskloop/taskloop-dep-multiaxpy.cpp
@@ -440,7 +476,7 @@ taskloop_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS
 taskloop_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_nested_dep_multiaxpy_clang_debug_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
-taskloop_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_nested_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_nested_dep_multiaxpy_clang_test_SOURCES = ../taskloop/taskloop-nested-dep-multiaxpy.cpp
@@ -449,7 +485,7 @@ taskloop_nested_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_C
 taskloop_nested_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_nonpod_clang_debug_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
-taskloop_nonpod_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_nonpod_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_nonpod_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_nonpod_clang_test_SOURCES = ../taskloop/taskloop-nonpod.cpp
@@ -458,7 +494,7 @@ taskloop_nonpod_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_nonpod_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_nqueens_clang_debug_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
-taskloop_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_nqueens_clang_test_SOURCES = ../taskloop/taskloop-nqueens.cpp
@@ -466,8 +502,17 @@ taskloop_nqueens_clang_test_CPPFLAGS = -DNDEBUG
 taskloop_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
+taskloop_wait_clang_debug_test_SOURCES = ../taskloop/taskloop-wait.cpp
+taskloop_wait_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_wait_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+taskloop_wait_clang_test_SOURCES = ../taskloop/taskloop-wait.cpp
+taskloop_wait_clang_test_CPPFLAGS = -DNDEBUG
+taskloop_wait_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_wait_clang_test_LDFLAGS = $(test_common_ldflags)
+
 discrete_taskloop_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop/taskloop-multiaxpy.cpp
-discrete_taskloop_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_multiaxpy_clang_test_SOURCES = ../discrete-taskloop/taskloop-multiaxpy.cpp
@@ -476,7 +521,7 @@ discrete_taskloop_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXX
 discrete_taskloop_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_dep_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop/taskloop-dep-multiaxpy.cpp
-discrete_taskloop_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_dep_multiaxpy_clang_test_SOURCES = ../discrete-taskloop/taskloop-dep-multiaxpy.cpp
@@ -485,7 +530,7 @@ discrete_taskloop_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM
 discrete_taskloop_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_nested_dep_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop/taskloop-nested-dep-multiaxpy.cpp
-discrete_taskloop_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_nested_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_nested_dep_multiaxpy_clang_test_SOURCES = ../discrete-taskloop/taskloop-nested-dep-multiaxpy.cpp
@@ -494,7 +539,7 @@ discrete_taskloop_nested_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAG
 discrete_taskloop_nested_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_nonpod_clang_debug_test_SOURCES = ../discrete-taskloop/taskloop-nonpod.cpp
-discrete_taskloop_nonpod_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_nonpod_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_nonpod_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_nonpod_clang_test_SOURCES = ../discrete-taskloop/taskloop-nonpod.cpp
@@ -503,7 +548,7 @@ discrete_taskloop_nonpod_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLA
 discrete_taskloop_nonpod_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_nqueens_clang_debug_test_SOURCES = ../discrete-taskloop/taskloop-nqueens.cpp
-discrete_taskloop_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_nqueens_clang_test_SOURCES = ../discrete-taskloop/taskloop-nqueens.cpp
@@ -512,7 +557,7 @@ discrete_taskloop_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFL
 discrete_taskloop_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_multiaxpy_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
-taskloop_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_multiaxpy_clang_test_SOURCES = ../taskloop-for/taskloop-for-multiaxpy.cpp
@@ -521,7 +566,7 @@ taskloop_for_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS
 taskloop_for_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_dep_multiaxpy_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
-taskloop_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_dep_multiaxpy_clang_test_SOURCES = ../taskloop-for/taskloop-for-dep-multiaxpy.cpp
@@ -530,7 +575,7 @@ taskloop_for_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXF
 taskloop_for_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_nested_dep_multiaxpy_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
-taskloop_for_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_nested_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_nested_dep_multiaxpy_clang_test_SOURCES = ../taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
@@ -539,7 +584,7 @@ taskloop_for_nested_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(
 taskloop_for_nested_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_nonpod_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
-taskloop_for_nonpod_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_nonpod_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_nonpod_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_nonpod_clang_test_SOURCES = ../taskloop-for/taskloop-for-nonpod.cpp
@@ -548,7 +593,7 @@ taskloop_for_nonpod_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_nonpod_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_nqueens_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
-taskloop_for_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_nqueens_clang_test_SOURCES = ../taskloop-for/taskloop-for-nqueens.cpp
@@ -557,7 +602,7 @@ taskloop_for_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_for_reduction_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
-taskloop_for_reduction_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_reduction_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_reduction_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 taskloop_for_reduction_clang_test_SOURCES = ../taskloop-for/taskloop-for-reduction.cpp
@@ -565,8 +610,17 @@ taskloop_for_reduction_clang_test_CPPFLAGS = -DNDEBUG
 taskloop_for_reduction_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 taskloop_for_reduction_clang_test_LDFLAGS = $(test_common_ldflags)
 
+taskloop_for_wait_clang_debug_test_SOURCES = ../taskloop-for/taskloop-for-wait.cpp
+taskloop_for_wait_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_wait_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+taskloop_for_wait_clang_test_SOURCES = ../taskloop-for/taskloop-for-wait.cpp
+taskloop_for_wait_clang_test_CPPFLAGS = -DNDEBUG
+taskloop_for_wait_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+taskloop_for_wait_clang_test_LDFLAGS = $(test_common_ldflags)
+
 discrete_taskloop_for_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-multiaxpy.cpp
-discrete_taskloop_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_multiaxpy_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-multiaxpy.cpp
@@ -575,7 +629,7 @@ discrete_taskloop_for_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM
 discrete_taskloop_for_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_dep_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-dep-multiaxpy.cpp
-discrete_taskloop_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_dep_multiaxpy_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-dep-multiaxpy.cpp
@@ -584,7 +638,7 @@ discrete_taskloop_for_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) 
 discrete_taskloop_for_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_nested_dep_multiaxpy_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
-discrete_taskloop_for_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_nested_dep_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_nested_dep_multiaxpy_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_nested_dep_multiaxpy_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nested-dep-multiaxpy.cpp
@@ -593,7 +647,7 @@ discrete_taskloop_for_nested_dep_multiaxpy_clang_test_CXXFLAGS = $(OPT_CLANG_CXX
 discrete_taskloop_for_nested_dep_multiaxpy_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_nonpod_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nonpod.cpp
-discrete_taskloop_for_nonpod_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_nonpod_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_nonpod_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_nonpod_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nonpod.cpp
@@ -602,7 +656,7 @@ discrete_taskloop_for_nonpod_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CX
 discrete_taskloop_for_nonpod_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_nqueens_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nqueens.cpp
-discrete_taskloop_for_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_nqueens_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-nqueens.cpp
@@ -611,7 +665,7 @@ discrete_taskloop_for_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_C
 discrete_taskloop_for_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_taskloop_for_reduction_clang_debug_test_SOURCES = ../discrete-taskloop-for/taskloop-for-reduction.cpp
-discrete_taskloop_for_reduction_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_taskloop_for_reduction_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_taskloop_for_reduction_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_taskloop_for_reduction_clang_test_SOURCES = ../discrete-taskloop-for/taskloop-for-reduction.cpp
@@ -620,7 +674,7 @@ discrete_taskloop_for_reduction_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM
 discrete_taskloop_for_reduction_clang_test_LDFLAGS = $(test_common_ldflags)
 
 lr_nonest_clang_debug_test_SOURCES = ../linear-regions/lr-nonest.cpp
-lr_nonest_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+lr_nonest_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_nonest_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 lr_nonest_clang_test_SOURCES = ../linear-regions/lr-nonest.cpp
@@ -629,7 +683,7 @@ lr_nonest_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_nonest_clang_test_LDFLAGS = $(test_common_ldflags)
 
 lr_nonest_upgrades_clang_debug_test_SOURCES = ../linear-regions/lr-nonest-upgrades.cpp
-lr_nonest_upgrades_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+lr_nonest_upgrades_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_nonest_upgrades_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 lr_nonest_upgrades_clang_test_SOURCES = ../linear-regions/lr-nonest-upgrades.cpp
@@ -638,7 +692,7 @@ lr_nonest_upgrades_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_nonest_upgrades_clang_test_LDFLAGS = $(test_common_ldflags)
 
 lr_early_release_clang_debug_test_SOURCES = ../linear-regions/lr-early-release.cpp
-lr_early_release_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+lr_early_release_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_early_release_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 lr_early_release_clang_test_SOURCES = ../linear-regions/lr-early-release.cpp
@@ -647,7 +701,7 @@ lr_early_release_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_early_release_clang_test_LDFLAGS = $(test_common_ldflags)
 
 lr_er_and_weak_clang_debug_test_SOURCES = ../linear-regions/lr-er-and-weak.cpp
-lr_er_and_weak_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+lr_er_and_weak_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_er_and_weak_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 lr_er_and_weak_clang_test_SOURCES = ../linear-regions/lr-er-and-weak.cpp
@@ -656,7 +710,7 @@ lr_er_and_weak_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_er_and_weak_clang_test_LDFLAGS = $(test_common_ldflags)
 
 lr_release_clang_debug_test_SOURCES = ../linear-regions/lr-release.cpp
-lr_release_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+lr_release_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_release_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 lr_release_clang_test_SOURCES = ../linear-regions/lr-release.cpp
@@ -665,7 +719,7 @@ lr_release_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 lr_release_clang_test_LDFLAGS = $(test_common_ldflags)
 
 red_firstprivate_clang_debug_test_SOURCES = ../reductions/red-firstprivate.cpp
-red_firstprivate_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_firstprivate_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_firstprivate_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_firstprivate_clang_test_SOURCES = ../reductions/red-firstprivate.cpp
@@ -677,7 +731,7 @@ red_nonest_clang_debug_test_SOURCES = ../reductions/red-nonest.cpp
 if HAVE_DLB
 red_nonest_clang_debug_test_CPPFLAGS = -DHAVE_DLB
 endif
-red_nonest_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_nonest_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nonest_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_nonest_clang_test_SOURCES = ../reductions/red-nonest.cpp
@@ -689,7 +743,7 @@ red_nonest_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nonest_clang_test_LDFLAGS = $(test_common_ldflags)
 
 red_nest_clang_debug_test_SOURCES = ../reductions/red-nest.cpp
-red_nest_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_nest_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nest_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_nest_clang_test_SOURCES = ../reductions/red-nest.cpp
@@ -698,7 +752,7 @@ red_nest_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nest_clang_test_LDFLAGS = $(test_common_ldflags)
 
 red_nest_other_clang_debug_test_SOURCES = ../reductions/red-nest-other.cpp
-red_nest_other_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_nest_other_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nest_other_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_nest_other_clang_test_SOURCES = ../reductions/red-nest-other.cpp
@@ -707,7 +761,7 @@ red_nest_other_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nest_other_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_deps_clang_debug_test_SOURCES = ../discrete/discrete-deps.cpp
-discrete_deps_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_deps_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_deps_clang_test_SOURCES = ../discrete/discrete-deps.cpp
@@ -719,7 +773,7 @@ discrete_deps_nonest_clang_debug_test_SOURCES = ../discrete/discrete-deps-nonest
 if HAVE_CONCURRENT_SUPPORT
 discrete_deps_nonest_clang_debug_test_CPPFLAGS = -DHAVE_CONCURRENT_SUPPORT
 endif
-discrete_deps_nonest_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_deps_nonest_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_nonest_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_deps_nonest_clang_test_SOURCES = ../discrete/discrete-deps-nonest.cpp
@@ -731,7 +785,7 @@ discrete_deps_nonest_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_nonest_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_deps_early_release_clang_debug_test_SOURCES = ../discrete/discrete-deps-early-release.cpp
-discrete_deps_early_release_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_deps_early_release_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_early_release_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_deps_early_release_clang_test_SOURCES = ../discrete/discrete-deps-early-release.cpp
@@ -740,7 +794,7 @@ discrete_deps_early_release_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXX
 discrete_deps_early_release_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_deps_er_and_weak_clang_debug_test_SOURCES = ../discrete/discrete-deps-er-and-weak.cpp
-discrete_deps_er_and_weak_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_deps_er_and_weak_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_er_and_weak_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_deps_er_and_weak_clang_test_SOURCES = ../discrete/discrete-deps-er-and-weak.cpp
@@ -749,7 +803,7 @@ discrete_deps_er_and_weak_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFL
 discrete_deps_er_and_weak_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_deps_wait_clang_debug_test_SOURCES = ../discrete/discrete-deps-wait.cpp
-discrete_deps_wait_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_deps_wait_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_wait_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_deps_wait_clang_test_SOURCES = ../discrete/discrete-deps-wait.cpp
@@ -758,7 +812,7 @@ discrete_deps_wait_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_deps_wait_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_release_clang_debug_test_SOURCES = ../discrete/discrete-release.cpp
-discrete_release_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_release_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_release_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_release_clang_test_SOURCES = ../discrete/discrete-release.cpp
@@ -767,7 +821,7 @@ discrete_release_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_release_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_simple_commutative_clang_debug_test_SOURCES = ../discrete/discrete-simple-commutative.cpp
-discrete_simple_commutative_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_simple_commutative_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_simple_commutative_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_simple_commutative_clang_test_SOURCES = ../discrete/discrete-simple-commutative.cpp
@@ -776,7 +830,7 @@ discrete_simple_commutative_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXX
 discrete_simple_commutative_clang_test_LDFLAGS = $(test_common_ldflags)
 
 discrete_red_stress_clang_debug_test_SOURCES = ../discrete/discrete-red-stress.cpp
-discrete_red_stress_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+discrete_red_stress_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_red_stress_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 discrete_red_stress_clang_test_SOURCES = ../discrete/discrete-red-stress.cpp
@@ -785,7 +839,7 @@ discrete_red_stress_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 discrete_red_stress_clang_test_LDFLAGS = $(test_common_ldflags)
 
 red_nqueens_clang_debug_test_SOURCES = ../reductions/red-nqueens.cpp
-red_nqueens_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_nqueens_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nqueens_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_nqueens_clang_test_SOURCES = ../reductions/red-nqueens.cpp
@@ -794,7 +848,7 @@ red_nqueens_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 red_nqueens_clang_test_LDFLAGS = $(test_common_ldflags)
 
 red_stress_clang_debug_test_SOURCES = ../reductions/red-stress.cpp
-red_stress_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+red_stress_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 red_stress_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 red_stress_clang_test_SOURCES = ../reductions/red-stress.cpp
@@ -808,7 +862,7 @@ dlb_cpu_management_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_management_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dlb_cpu_management_clang_debug_test_SOURCES = ../dlb/dlb-cpu-management.cpp
-dlb_cpu_management_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dlb_cpu_management_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_management_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dlb_cpu_sharing_clang_test_SOURCES = ../dlb/dlb-cpu-sharing.cpp
@@ -817,7 +871,7 @@ dlb_cpu_sharing_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_sharing_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dlb_cpu_sharing_clang_debug_test_SOURCES = ../dlb/dlb-cpu-sharing.cpp
-dlb_cpu_sharing_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dlb_cpu_sharing_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_sharing_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dlb_cpu_sharing_active_process_clang_test_SOURCES = ../dlb/dlb-cpu-sharing-active-process.cpp
@@ -826,7 +880,7 @@ dlb_cpu_sharing_active_process_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_
 dlb_cpu_sharing_active_process_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dlb_cpu_sharing_active_process_clang_debug_test_SOURCES = ../dlb/dlb-cpu-sharing-active-process.cpp
-dlb_cpu_sharing_active_process_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dlb_cpu_sharing_active_process_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_sharing_active_process_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 dlb_cpu_sharing_passive_process_clang_test_SOURCES = ../dlb/dlb-cpu-sharing-passive-process.cpp
@@ -835,7 +889,7 @@ dlb_cpu_sharing_passive_process_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM
 dlb_cpu_sharing_passive_process_clang_test_LDFLAGS = $(test_common_ldflags)
 
 dlb_cpu_sharing_passive_process_clang_debug_test_SOURCES = ../dlb/dlb-cpu-sharing-passive-process.cpp
-dlb_cpu_sharing_passive_process_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+dlb_cpu_sharing_passive_process_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 dlb_cpu_sharing_passive_process_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_allocations_clang_test_SOURCES = ../numa/numa-allocations.cpp
@@ -844,7 +898,7 @@ numa_allocations_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_allocations_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_allocations_clang_debug_test_SOURCES = ../numa/numa-allocations.cpp
-numa_allocations_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_allocations_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_allocations_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_auto_clang_test_SOURCES = ../numa/numa-auto.cpp
@@ -853,7 +907,7 @@ numa_auto_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_auto_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_auto_clang_debug_test_SOURCES = ../numa/numa-auto.cpp
-numa_auto_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_auto_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_auto_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_bitmask_manip_clang_test_SOURCES = ../numa/numa-bitmask-manip.cpp
@@ -862,7 +916,7 @@ numa_bitmask_manip_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_bitmask_manip_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_bitmask_manip_clang_debug_test_SOURCES = ../numa/numa-bitmask-manip.cpp
-numa_bitmask_manip_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_bitmask_manip_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_bitmask_manip_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_irregular_allocations_clang_test_SOURCES = ../numa/numa-irregular-allocations.cpp
@@ -871,7 +925,7 @@ numa_irregular_allocations_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXF
 numa_irregular_allocations_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_irregular_allocations_clang_debug_test_SOURCES = ../numa/numa-irregular-allocations.cpp
-numa_irregular_allocations_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_irregular_allocations_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_irregular_allocations_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_off_clang_test_SOURCES = ../numa/numa-off.cpp
@@ -880,7 +934,7 @@ numa_off_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_off_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_off_clang_debug_test_SOURCES = ../numa/numa-off.cpp
-numa_off_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_off_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_off_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_on_clang_test_SOURCES = ../numa/numa-on.cpp
@@ -889,7 +943,7 @@ numa_on_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_on_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_on_clang_debug_test_SOURCES = ../numa/numa-on.cpp
-numa_on_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_on_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_on_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 numa_wildcards_clang_test_SOURCES = ../numa/numa-wildcards.cpp
@@ -898,7 +952,7 @@ numa_wildcards_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_wildcards_clang_test_LDFLAGS = $(test_common_ldflags)
 
 numa_wildcards_clang_debug_test_SOURCES = ../numa/numa-wildcards.cpp
-numa_wildcards_clang_debug_test_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS)
+numa_wildcards_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
 numa_wildcards_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
 
 if AWK_IS_SANE

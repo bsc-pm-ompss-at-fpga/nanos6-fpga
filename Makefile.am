@@ -1,6 +1,6 @@
 #	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 #
-#	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+#	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 
 # A workaround for http://debbugs.gnu.org/cgi/bugreport.cgi?bug=18744
 am__is_gnu_make = { \
@@ -57,6 +57,7 @@ nanos6include_HEADERS = \
 	api/nanos6/devices.h \
 	api/nanos6/events.h \
 	api/nanos6/final.h \
+	api/nanos6/instrument.h \
 	api/nanos6/library-mode.h \
 	api/nanos6/lint.h \
 	api/nanos6/major.h \
@@ -188,6 +189,7 @@ symbol_resolution += \
 	loader/symbol-resolver/dependencies.c \
 	loader/symbol-resolver/events.c \
 	loader/symbol-resolver/final.c \
+	loader/symbol-resolver/instrument.c \
 	loader/symbol-resolver/lint.c \
 	loader/symbol-resolver/monitoring.c \
 	loader/symbol-resolver/numa.c \
@@ -233,6 +235,7 @@ symbol_resolution += \
 	loader/indirect-symbols/dependencies.c \
 	loader/indirect-symbols/events.c \
 	loader/indirect-symbols/final.c \
+	loader/indirect-symbols/instrument.c \
 	loader/indirect-symbols/lint.c \
 	loader/indirect-symbols/monitoring.c \
 	loader/indirect-symbols/numa.c \
@@ -400,6 +403,7 @@ common_sources = \
 	src/executors/threads/ThreadManager.cpp \
 	src/executors/threads/WorkerThread.cpp \
 	src/executors/threads/cpu-managers/default/DefaultCPUManager.cpp \
+	src/executors/threads/cpu-managers/default/policies/HybridPolicy.cpp \
 	src/executors/threads/cpu-managers/default/policies/IdlePolicy.cpp \
 	src/hardware/device/directory/DeviceDirectory.cpp \
 	src/hardware/HardwareInfo.cpp \
@@ -433,12 +437,14 @@ common_sources = \
 	src/support/config/ConfigCentral.cpp \
 	src/support/config/ConfigChecker.cpp \
 	src/support/config/ConfigParser.cpp \
+	src/support/config/ConfigVariable.cpp \
 	src/system/APICheck.cpp \
 	src/system/BlockingAPI.cpp \
 	src/system/Bootstrap.cpp \
 	src/system/ClusterAPI.cpp \
 	src/system/ConfigAPI.cpp \
 	src/system/EventsAPI.cpp \
+	src/system/InstrumentAPI.cpp \
 	src/system/LeaderThread.cpp \
 	src/system/LintAPI.cpp \
 	src/system/MonitoringAPI.cpp \
@@ -457,6 +463,7 @@ common_sources = \
 	src/system/ompss/TaskWait.cpp \
 	src/system/ompss/UserMutex.cpp \
 	src/tasks/StreamManager.cpp \
+	src/tasks/Task.cpp \
 	src/tasks/Taskfor.cpp \
 	src/tasks/TaskInfo.cpp \
 	src/tasks/Taskloop.cpp
@@ -586,6 +593,7 @@ instrument_ctf_sources = \
 	src/instrument/ctf/ctfapi/CTFUserMetadata.cpp \
 	src/instrument/ctf/ctfapi/CTFTrace.cpp \
 	src/instrument/ctf/InstrumentCPULocalData.cpp \
+	src/instrument/ctf/InstrumentExternalThreadLocalData.cpp \
 	src/instrument/ctf/InstrumentInitAndShutdown.cpp \
 	src/instrument/ctf/InstrumentTaskId.cpp \
 	src/instrument/ctf/InstrumentTasktypeData.cpp \
@@ -781,6 +789,7 @@ noinst_HEADERS = \
 	src/executors/threads/cpu-managers/default/DefaultCPUActivation.hpp \
 	src/executors/threads/cpu-managers/default/DefaultCPUManager.hpp \
 	src/executors/threads/cpu-managers/default/policies/BusyPolicy.hpp \
+	src/executors/threads/cpu-managers/default/policies/HybridPolicy.hpp \
 	src/executors/threads/cpu-managers/default/policies/IdlePolicy.hpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUActivation.hpp \
 	src/executors/threads/cpu-managers/dlb/DLBCPUManager.hpp \
@@ -849,6 +858,7 @@ noinst_HEADERS = \
 	src/instrument/api/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/api/InstrumentDependenciesByGroup.hpp \
 	src/instrument/api/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/api/InstrumentDistributedMemory.hpp \
 	src/instrument/api/InstrumentInitAndShutdown.hpp \
 	src/instrument/api/InstrumentLeaderThread.hpp \
 	src/instrument/api/InstrumentLogMessage.hpp \
@@ -892,6 +902,7 @@ noinst_HEADERS = \
 	src/instrument/ctf/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/ctf/InstrumentDependenciesByGroup.hpp \
 	src/instrument/ctf/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/ctf/InstrumentDistributedMemory.hpp \
 	src/instrument/ctf/InstrumentExternalThreadId.hpp \
 	src/instrument/ctf/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/ctf/InstrumentInitAndShutdown.hpp \
@@ -927,6 +938,7 @@ noinst_HEADERS = \
 	src/instrument/extrae/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/extrae/InstrumentDependenciesByGroup.hpp \
 	src/instrument/extrae/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/extrae/InstrumentDistributedMemory.hpp \
 	src/instrument/extrae/InstrumentExternalThreadId.hpp \
 	src/instrument/extrae/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/extrae/InstrumentExtrae.hpp \
@@ -965,6 +977,7 @@ noinst_HEADERS = \
 	src/instrument/graph/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/graph/InstrumentDependenciesByGroup.hpp \
 	src/instrument/graph/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/graph/InstrumentDistributedMemory.hpp \
 	src/instrument/graph/InstrumentExternalThreadId.hpp \
 	src/instrument/graph/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/graph/InstrumentGraph.hpp \
@@ -999,6 +1012,7 @@ noinst_HEADERS = \
 	src/instrument/lint/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/lint/InstrumentDependenciesByGroup.hpp \
 	src/instrument/lint/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/lint/InstrumentDistributedMemory.hpp \
 	src/instrument/lint/InstrumentExternalThreadId.hpp \
 	src/instrument/lint/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/lint/InstrumentInitAndShutdown.hpp \
@@ -1031,6 +1045,7 @@ noinst_HEADERS = \
 	src/instrument/null/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/null/InstrumentDependenciesByGroup.hpp \
 	src/instrument/null/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/null/InstrumentDistributedMemory.hpp \
 	src/instrument/null/InstrumentExternalThreadId.hpp \
 	src/instrument/null/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/null/InstrumentInitAndShutdown.hpp \
@@ -1063,6 +1078,7 @@ noinst_HEADERS = \
 	src/instrument/stats/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/stats/InstrumentDependenciesByGroup.hpp \
 	src/instrument/stats/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/stats/InstrumentDistributedMemory.hpp \
 	src/instrument/stats/InstrumentExternalThreadId.hpp \
 	src/instrument/stats/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/stats/InstrumentInitAndShutdown.hpp \
@@ -1111,6 +1127,7 @@ noinst_HEADERS = \
 	src/instrument/verbose/InstrumentDependenciesByAccessLinks.hpp \
 	src/instrument/verbose/InstrumentDependenciesByGroup.hpp \
 	src/instrument/verbose/InstrumentDependencySubsystemEntryPoints.hpp \
+	src/instrument/verbose/InstrumentDistributedMemory.hpp \
 	src/instrument/verbose/InstrumentExternalThreadId.hpp \
 	src/instrument/verbose/InstrumentExternalThreadLocalData.hpp \
 	src/instrument/verbose/InstrumentInitAndShutdown.hpp \
@@ -1237,7 +1254,6 @@ noinst_HEADERS = \
 	src/system/BlockingAPI.hpp \
 	src/system/If0Task.hpp \
 	src/system/LeaderThread.hpp \
-	src/system/PollingAPI.hpp \
 	src/system/RuntimeInfo.hpp \
 	src/system/RuntimeInfoEssentials.hpp \
 	src/system/Throttle.hpp \
@@ -1270,8 +1286,8 @@ EXTRA_DIST += \
 	tests/tap-driver.pl \
 	tests/tap-driver.sh
 
-common_libnanos6_cppflags = $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(memkind_CPPFLAGS) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS) $(xtasks_CPPFLAGS)
-common_libnanos6_ldflags = $(openacc_LIBS) $(xtasks_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(memkind_LIBS) $(cpu_manager_ldflags) $(hardware_counters_ldflags) 
+common_libnanos6_cppflags = $(xtasks_CPPFLAGS) $(BOOST_CPPFLAGS) -DBOOST_ENABLE_ASSERT_DEBUG_HANDLER $(PTHREAD_CFLAGS) $(hwloc_CFLAGS) $(libnuma_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS) $(cpu_manager_cppflags) $(hardware_counters_cppflags) $(jemalloc_CPPFLAGS)
+common_libnanos6_ldflags = $(xtasks_LIBS) $(openacc_LIBS) $(AM_LDFLAGS) -version-info $(lib_current):$(lib_revision):$(lib_age) $(jemalloc_LIBS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(LDFLAGS_NOUNDEFINED) $(hwloc_LIBS) $(libnuma_LIBS) $(DLOPEN_LIBS) $(CUDA_LIBS) $(MPI_CXXLDFLAGS) $(cpu_manager_ldflags) $(hardware_counters_ldflags)
 
 # This is needed for debuggable spinlocks
 common_sources += $(introspection_sources)
@@ -1288,7 +1304,7 @@ disabled_variants =
 
 # Debug no-instrument variants
 libnanos6_debug_discrete_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/null
-libnanos6_debug_discrete_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_la_LDFLAGS = $(common_libnanos6_ldflags)
 nodist_libnanos6_debug_discrete_la_SOURCES =
 
@@ -1297,19 +1313,19 @@ nodist_libnanos6_debug_discrete_la_SOURCES += $(common_sources) $(noinstrument_s
 endif
 
 libnanos6_debug_regions_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/null
-libnanos6_debug_regions_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_la_LDFLAGS = $(common_libnanos6_ldflags)
 nodist_libnanos6_debug_regions_la_SOURCES = $(common_sources) $(noinstrument_sources) $(memory_sources) $(regions_dependency_sources) $(nodist_common_sources)
 
 
 # Debug ctf variants
 libnanos6_debug_discrete_ctf_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/ctf
-libnanos6_debug_discrete_ctf_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_ctf_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_ctf_la_LDFLAGS = $(common_libnanos6_ldflags) -lrt
 nodist_libnanos6_debug_discrete_ctf_la_SOURCES =
 
 libnanos6_debug_regions_ctf_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/ctf
-libnanos6_debug_regions_ctf_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_ctf_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_ctf_la_LDFLAGS = $(common_libnanos6_ldflags) -lrt
 nodist_libnanos6_debug_regions_ctf_la_SOURCES =
 
@@ -1330,12 +1346,12 @@ endif
 
 # Debug extrae variants
 libnanos6_debug_discrete_extrae_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/extrae -I$(srcdir)/src/instrument/support @extrae_CPPFLAGS@ -DEXTRAE_ENABLED
-libnanos6_debug_discrete_extrae_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_extrae_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_extrae_la_LDFLAGS = $(common_libnanos6_ldflags) @extrae_LDFLAGS@ $(CLOCK_LIBS) $(ANDROID_LOG_LIBS)
 nodist_libnanos6_debug_discrete_extrae_la_SOURCES =
 
 libnanos6_debug_regions_extrae_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/extrae -I$(srcdir)/src/instrument/support @extrae_CPPFLAGS@ -DEXTRAE_ENABLED
-libnanos6_debug_regions_extrae_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_extrae_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_extrae_la_LDFLAGS = $(common_libnanos6_ldflags) @extrae_LDFLAGS@ $(CLOCK_LIBS) $(ANDROID_LOG_LIBS)
 nodist_libnanos6_debug_regions_extrae_la_SOURCES =
 
@@ -1364,7 +1380,7 @@ endif
 
 # Debug graph variants
 libnanos6_debug_regions_graph_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/graph -I$(srcdir)/src/instrument/support
-libnanos6_debug_regions_graph_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_graph_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_graph_la_LDFLAGS = $(common_libnanos6_ldflags)
 nodist_libnanos6_debug_regions_graph_la_SOURCES =
 
@@ -1377,12 +1393,12 @@ endif
 
 # Debug lint variants
 libnanos6_debug_discrete_lint_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/lint
-libnanos6_debug_discrete_lint_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_lint_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_lint_la_LDFLAGS = $(common_libnanos6_ldflags)
 nodist_libnanos6_debug_discrete_lint_la_SOURCES =
 
 libnanos6_debug_regions_lint_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/lint
-libnanos6_debug_regions_lint_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_lint_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_lint_la_LDFLAGS = $(common_libnanos6_ldflags)
 nodist_libnanos6_debug_regions_lint_la_SOURCES =
 
@@ -1403,12 +1419,12 @@ endif
 
 # Debug stats variants
 libnanos6_debug_discrete_stats_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/stats -I$(srcdir)/src/instrument/support
-libnanos6_debug_discrete_stats_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_stats_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_stats_la_LDFLAGS = $(common_libnanos6_ldflags) $(CLOCK_LIBS)
 nodist_libnanos6_debug_discrete_stats_la_SOURCES =
 
 libnanos6_debug_regions_stats_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/stats -I$(srcdir)/src/instrument/support
-libnanos6_debug_regions_stats_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_stats_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_stats_la_LDFLAGS = $(common_libnanos6_ldflags) $(CLOCK_LIBS)
 nodist_libnanos6_debug_regions_stats_la_SOURCES =
 
@@ -1429,12 +1445,12 @@ endif
 
 # Debug verbose variants
 libnanos6_debug_discrete_verbose_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/verbose -I$(srcdir)/src/instrument/support
-libnanos6_debug_discrete_verbose_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
+libnanos6_debug_discrete_verbose_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(discrete_dependency_flags)
 libnanos6_debug_discrete_verbose_la_LDFLAGS = $(common_libnanos6_ldflags) $(CLOCK_LIBS) $(ANDROID_LOG_LIBS)
 nodist_libnanos6_debug_discrete_verbose_la_SOURCES =
 
 libnanos6_debug_regions_verbose_la_CPPFLAGS = $(common_libnanos6_cppflags) $(memory_cppflags) -I$(srcdir)/src/instrument/verbose -I$(srcdir)/src/instrument/support
-libnanos6_debug_regions_verbose_la_CXXFLAGS = $(DEBUG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
+libnanos6_debug_regions_verbose_la_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS) $(regions_dependency_flags)
 libnanos6_debug_regions_verbose_la_LDFLAGS = $(common_libnanos6_ldflags) $(CLOCK_LIBS) $(ANDROID_LOG_LIBS)
 nodist_libnanos6_debug_regions_verbose_la_SOURCES =
 
@@ -1691,6 +1707,11 @@ deprecated_libs = \
 	libnanos6-verbose-discrete.la \
 	libnanos6-verbose-debug-discrete.la
 
+# Extra libraries and binaries to uninstall manually
+uninstall_libs = nanos6/libprv.la
+uninstall_bins = nanos6-ctf2prv-fast nanos6-mergeprv
+uninstall_links = nanos6-ctf2prv
+
 
 all-local: $(lib_OBJECTS)
 
@@ -1732,6 +1753,24 @@ install-exec-local: $(lib_OBJECTS)
 			rm -f "$(DESTDIR)$(docdir)/$$f" ; \
 		fi ; \
 	done
+	@echo Removing other libraries
+	for l in $(uninstall_libs) ; do \
+		if test -f "$(DESTDIR)$(libdir)/$$l" ; then \
+			$(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$l" ; \
+		fi ; \
+	done
+	@echo Removing other binaries
+	for f in $(uninstall_bins) ; do \
+		if test -f "$(DESTDIR)$(bindir)/$$f" ; then \
+			rm -f "$(DESTDIR)$(bindir)/$$f" ; \
+		fi ; \
+	done
+	@echo Removing other links
+	for f in $(uninstall_links) ; do \
+		if test -L "$(DESTDIR)$(bindir)/$$f" ; then \
+			rm -f "$(DESTDIR)$(bindir)/$$f" ; \
+		fi ; \
+	done
 
 
 uninstall-hook:
@@ -1764,6 +1803,27 @@ uninstall-hook:
 			rm -f "$(DESTDIR)$(docdir)/$$f" ; \
 		fi ; \
 	done
+	@echo Removing other libraries
+	for l in $(uninstall_libs) ; do \
+		if test -f "$(DESTDIR)$(libdir)/$$l" ; then \
+			$(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$l" ; \
+		fi ; \
+	done
+	@echo Removing other binaries
+	for f in $(uninstall_bins) ; do \
+		if test -f "$(DESTDIR)$(bindir)/$$f" ; then \
+			rm -f "$(DESTDIR)$(bindir)/$$f" ; \
+		fi ; \
+	done
+	@echo Removing other links
+	for f in $(uninstall_links) ; do \
+		if test -L "$(DESTDIR)$(bindir)/$$f" ; then \
+			rm -f "$(DESTDIR)$(bindir)/$$f" ; \
+		fi ; \
+	done
+
+install-exec-hook:
+	cd $(DESTDIR)$(bindir) && $(LN_S) ctf2prv nanos6-ctf2prv
 
 install-data-hook:
 	chmod +x $(DESTDIR)$(docdir)/scripts/ctf/wrappers/ctf2prv_marenostrum4.sh \
@@ -1866,7 +1926,7 @@ src/version/CompilerVersionInfo.cpp: Makefile
 	echo '#ifdef NDEBUG' >> src/version/CompilerVersionInfo.cpp ; \
 	echo 'char const * nanos6_compiler_flags = "-DNDEBUG $(OPT_CXXFLAGS)";' >> src/version/CompilerVersionInfo.cpp ; \
 	echo '#else' >> src/version/CompilerVersionInfo.cpp ; \
-	echo 'char const * nanos6_compiler_flags = "$(DEBUG_CXXFLAGS)";' >> src/version/CompilerVersionInfo.cpp ; \
+	echo 'char const * nanos6_compiler_flags = "$(DBG_CXXFLAGS)";' >> src/version/CompilerVersionInfo.cpp ; \
 	echo '#endif' >> src/version/CompilerVersionInfo.cpp ; \
 	echo >> src/version/CompilerVersionInfo.cpp
 

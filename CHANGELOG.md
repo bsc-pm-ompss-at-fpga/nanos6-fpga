@@ -2,6 +2,51 @@
 All notable changes to this project will be documented in this file.
 
 
+## Version 2.7.1, Fri May 27, 2022
+The 2.7.1 release corresponds to the OmpSs-2 2021.11.1 release. It introduces some bug and code fixes,
+and some minor improvements
+
+### General
+- Adapt taskfor to avoid overwriting task args in compiler-generated code
+- Improve support for custom CXXFLAGS at configure time
+- Add `--disable-all-instrumentations` configure option
+- Modify API to allow setting task labels
+- Provide `nanos6-info` with new options to show compile/link runtime flags
+- Provide `nanos6-info` with new options to show current and default config files
+
+
+## Version 2.7, Wed Nov 17, 2021
+The 2.7 release corresponds to the OmpSs-2 2021.11 release. It introduces some performance and code fixes,
+and several fixes for the CTF tracing tools.
+
+### General
+- Set `hybrid` CPU manager policy as default
+- Fix the setting of a floating-point optimization bit in the CSR register (x86) when enabling `turbo` mode
+- Add several fixes to CTF tracing tools
+- Add support for `if(0)` and taskwaits with dependencies in fast CTF converter (`nanos6-ctf2prv-fast`)
+- Remove unnecessary warning at run-time in the NUMA-aware code
+
+
+## Version 2.6, Wed Jun 30, 2021
+The 2.6 release corresponds to the OmpSs-2 2021.06 release. It introduces several features and fixes that improve
+the general performance and programmability. It introduces a NUMA-aware API to allocate structures in taskified
+applications. It also adds a new and faster CTF trace converter and support for multi-process tracing.
+
+### General
+- Add NUMA-aware API to allocate structures in taskified programs
+- Add new hybrid CPU manager policy that combines both idle and busy policies
+- Make idle CPUs block inside the scheduler while there are no ready tasks when enabling the busy policy
+- Add support for the `onready` task clause
+- Consolidate the new polling mechanism using the `nanos6_wait_for` function
+- Remove polling services API
+- Remove OmpSs-2@Cluster features and code
+
+### Instrumentation
+- Add fast CTF trace converter enabled through the config option `instrument.ctf.converter.fast`
+- Add support for multi-process tracing enabled by the Task-Aware MPI and Task-Aware GASPI libraries
+- Add merger tool for multi-process traces named `nanos6-mergeprv`
+
+
 ## Version 2.5.1, Tue Dec 22, 2020
 The 2.5.1 release corresponds to the OmpSs-2 2020.11.1 release. It introduces bug fixes and code improvements.
 

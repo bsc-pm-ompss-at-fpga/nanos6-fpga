@@ -91,10 +91,11 @@ void nanos6_preinit(void)
 	Throttle::initialize();
 	ExternalThreadGroup::initialize();
 
-	// Initialize device services after initializing scheduler
+	Instrument::initialize();
+
+	// Initialize device services after initializing scheduler and instrumentation
 	HardwareInfo::initializeDeviceServices();
 
-	Instrument::initialize();
 	mainThread = new ExternalThread("main-thread");
 	mainThread->preinitializeExternalThread();
 
@@ -115,7 +116,7 @@ void nanos6_preinit(void)
 	LeaderThread::initialize(leaderThreadCPU);
 
 	CPUManager::initialize();
-	Instrument::nanos6_preinit_finished();
+	Instrument::preinitFinished();
 
 	// Assert config conditions if any
 	ConfigChecker::assertConditions();

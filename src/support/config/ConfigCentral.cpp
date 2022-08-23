@@ -24,6 +24,7 @@ ConfigCentral::ConfigCentral() :
 	registerOption<integer_t>("cluster.va_start", 0);
 
 	// CPU manager
+	registerOption<size_t>("cpumanager.busy_iters", 240000);
 	registerOption<string_t>("cpumanager.policy", "default");
 
 
@@ -73,6 +74,7 @@ ConfigCentral::ConfigCentral() :
 
 	// CTF instrumentation
 	registerOption<bool_t>("instrument.ctf.converter.enabled", true);
+	registerOption<bool_t>("instrument.ctf.converter.fast", false);
 	registerOption<string_t>("instrument.ctf.converter.location", "");
 	registerOption<string_t>("instrument.ctf.events.kernel.exclude", {});
 	registerOption<string_t>("instrument.ctf.events.kernel.file", "");
@@ -120,8 +122,6 @@ ConfigCentral::ConfigCentral() :
 	registerOption<memory_t>("memory.pool.chunk_size", 128 * 1024);
 
 	// Miscellaneous
-	registerOption<integer_t>("misc.polling_frequency", 1000);
-	registerOption<bool_t>("misc.polling", true);
 	registerOption<memory_t>("misc.stack_size", 8 * 1024 * 1024);
 
 	// Monitoring
@@ -133,6 +133,7 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("monitoring.wisdom", false);
 
 	// NUMA support
+	registerOption<bool_t>("numa.discover_pagesize", true);
 	registerOption<bool_t>("numa.report", false);
 	registerOption<bool_t>("numa.scheduling", true);
 	registerOption<string_t>("numa.tracking", "auto");
