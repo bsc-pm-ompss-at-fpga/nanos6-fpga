@@ -235,8 +235,16 @@ AM_CONDITIONAL([HAVE_LINEAR_REGION_SUPPORT], [test x"${ac_regions_deps}" = x"yes
 AM_CONDITIONAL([HAVE_CONCURRENT_SUPPORT], [test x"${ac_regions_deps}" = x"yes"])
 AM_CONDITIONAL([HAVE_REDUCTIONS_SUPPORT], [test x"${ac_regions_deps}" = x"yes"])
 
-# Always include discrete dependencies
-ac_discrete_deps=yes
+AC_ARG_ENABLE(
+	[discrete-deps],
+	[AS_HELP_STRING([--disable-discrete-deps], [Disable discrete dependencies])],
+	[
+		ac_discrete_deps=no
+	],
+	[
+		ac_discrete_deps=yes
+	]
+)
 AC_MSG_CHECKING([if discrete dependencies should be included])
 AC_MSG_RESULT([$ac_discrete_deps])
 
