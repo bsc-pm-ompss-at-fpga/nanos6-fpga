@@ -11,5 +11,8 @@
 
 RESOLVE_API_FUNCTION(nanos6_fpga_addArg, "essential", NULL);
 RESOLVE_API_FUNCTION(nanos6_fpga_addArgs, "essential", NULL);
+RESOLVE_API_FUNCTION(nanos6_fpga_malloc, "essential", NULL);
+RESOLVE_API_FUNCTION(nanos6_fpga_free, "essential", NULL);
+RESOLVE_API_FUNCTION(nanos6_fpga_memcpy, "essential", NULL);
 
 #endif

@@ -52,16 +52,12 @@ private:
 
 	void postRunTask(Task *task) override;
 
-    std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
-    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
-    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
-
 public:
 	FPGAAccelerator(int fpgaDeviceIndex);
 	
 	std::pair<void *, bool> accel_allocate(size_t size) override;
 
-	void accel_free(void* ptr) override;
+	bool accel_free(void* ptr) override;
 
 	int getVendorDeviceId() const override
 	{
@@ -72,6 +68,10 @@ public:
 	void shutdownService() override;
 
 	inline void setActiveDevice() const override {}
+
+	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
+	std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
+	std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
 
 };
 

@@ -88,9 +88,9 @@ std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size)
 	return _allocator.allocate(size);
 }
 
-void FPGAAccelerator::accel_free(void* ptr)
+bool FPGAAccelerator::accel_free(void* ptr)
 {
-	_allocator.free(ptr);
+	return _allocator.free(ptr);
 }
 
 void FPGAAccelerator::postRunTask(Task *)

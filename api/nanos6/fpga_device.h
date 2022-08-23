@@ -8,6 +8,7 @@
 #define NANOS6_FPGA_DEVICE_H
 
 #include "major.h"
+#include <stdint.h>
 
 #pragma GCC visibility push(default)
 
@@ -24,11 +25,31 @@ typedef struct {
     char   taskFinished;
 } nanos6_fpga_device_environment_t;
 
+typedef enum {
+	NANOS6_FPGA_SUCCESS,
+	NANOS6_FPGA_ERROR
+} nanos6_fpga_stat_t;
+
+typedef enum {
+	NANOS6_FPGA_DEV_TO_HOST,
+	NANOS6_FPGA_HOST_TO_DEV
+} nanos6_fpga_copy_t;
+
 void nanos6_fpga_addArg(int index, unsigned char flags, unsigned long long value, void* taskHandle);
 void nanos6_fpga_addArgs(int num, unsigned char flags, const unsigned long long* values, void* taskHandle);
 
+nanos6_fpga_stat_t nanos6_fpga_malloc(uint64_t size, uint64_t* fpga_addr);
+nanos6_fpga_stat_t nanos6_fpga_free(uint64_t fpga_addr);
+nanos6_fpga_stat_t nanos6_fpga_memcpy(void* usr_ptr, uint64_t fpga_addr, uint64_t size, nanos6_fpga_copy_t copy_type);
+
 #ifdef __cplusplus
 }
+
+template<class T>
+extern void nanos_fpga_memcpy_wideport_in( T * dst, const unsigned long long int addr, const unsigned int num_elems );
+template<class T>
+extern void nanos_fpga_memcpy_wideport_in( T * dst, const unsigned long long int addr, const unsigned int num_elems );
+
 #endif
 
 #pragma GCC visibility pop

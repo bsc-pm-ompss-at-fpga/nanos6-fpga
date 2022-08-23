@@ -48,7 +48,7 @@ public:
 		return {nullptr, true};
 	}
 
-	void accel_free([[maybe_unused]] void* ptr) override {}
+	bool accel_free([[maybe_unused]] void* ptr) override {return true;}
 
 	std::pair<std::shared_ptr<DeviceAllocation>, bool> createNewDeviceAllocation(const DataAccessRegion &region) override {
 		return {std::make_shared<DeviceAllocation>(region, region, []{}), true};

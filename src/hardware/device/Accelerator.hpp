@@ -143,7 +143,7 @@ public:
 	virtual inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) = 0;
 
 	virtual std::pair<void *, bool> accel_allocate(size_t size) = 0;
-	virtual void accel_free(void *) = 0;
+	virtual bool accel_free(void *) = 0;
 
     AcceleratorEvent *createEvent();
     virtual AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion);

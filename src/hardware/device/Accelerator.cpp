@@ -124,7 +124,7 @@ void *Accelerator::getAsyncHandle() { return nullptr; };
 
 void Accelerator::releaseAsyncHandle([[maybe_unused]] void *asyncHandle){}
 
-void Accelerator::accel_free(void *){}
+bool Accelerator::accel_free(void *){return true;}
 
 std::pair<void *, bool> Accelerator::accel_allocate(size_t size) {
     static uintptr_t fake_offset = 0x1000;

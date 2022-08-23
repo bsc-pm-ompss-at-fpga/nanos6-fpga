@@ -39,6 +39,7 @@ void nanos6_dist_memcpy_to_device(int dev_id, const void* address, size_t size, 
 void nanos6_dist_memcpy_from_device(int dev_id, void* address, size_t size, size_t srcOffset, size_t dstOffset);
 void OMPIF_Send(const void* data, int count, OMPIF_Datatype datatype, int destination, uint8_t tag, OMPIF_Comm communicator);
 void OMPIF_Recv(void* data, int count, OMPIF_Datatype datatype, int source, uint8_t tag, OMPIF_Comm communicator);
+void OMPIF_Allgather(void* data, int count, OMPIF_Datatype datatype, uint8_t tag, OMPIF_Comm comm);
 int OMPIF_Comm_rank(OMPIF_Comm communicator);
 int OMPIF_Comm_size(OMPIF_Comm communicator);
 
