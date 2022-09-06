@@ -13,7 +13,6 @@
 #include "hardware/device/Accelerator.hpp"
 #include "tasks/Task.hpp"
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
-#include "hardware/device/fpga/FPGAReverseOffload.hpp"
 
 class FPGAAccelerator : public Accelerator {
 private:
@@ -24,7 +23,6 @@ private:
 	} _mem_sync_type;
 
 	FPGAPinnedAllocator _allocator;
-	FPGAReverseOffload _reverseOffload;
 
 	struct _fpgaAccel
 	{
@@ -63,9 +61,6 @@ public:
 	{
 		return _deviceHandler;
 	}
-
-	void initializeService() override;
-	void shutdownService() override;
 
 	inline void setActiveDevice() const override {}
 

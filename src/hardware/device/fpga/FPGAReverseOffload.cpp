@@ -40,7 +40,7 @@ void FPGAReverseOffload::shutdownService() {
 void FPGAReverseOffload::serviceLoop() {
 	while (!_stopService) {
 		xtasks_stat stat;
-		xtasks_newtask* xtasks_task;
+		xtasks_newtask* xtasks_task = NULL;
 		stat = xtasksTryGetNewTask(&xtasks_task);
 		bool foundTask = false;
 		if (stat == XTASKS_SUCCESS) {
