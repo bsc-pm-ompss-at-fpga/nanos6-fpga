@@ -7,6 +7,7 @@
 #include <config.h>
 #ifdef USE_FPGA
 #include "resolve.h"
+#include "api/nanos6/fpga_device.h"
 
 #pragma GCC visibility push(default)
 
