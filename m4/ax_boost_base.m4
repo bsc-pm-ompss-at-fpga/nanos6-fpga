@@ -176,7 +176,11 @@ AC_DEFUN([_AX_BOOST_BASE_RUNDETECT],[
     then
         BOOST_CPPFLAGS="-I${BOOST_CPPFLAGS}"
     else
-        BOOST_CPPFLAGS="-isystem${BOOST_CPPFLAGS}"
+        if test X"$cross_compiling" = Xyes; then
+            BOOST_CPPFLAGS="-I${BOOST_CPPFLAGS}"
+        else
+            BOOST_CPPFLAGS="-isystem${BOOST_CPPFLAGS}"
+        fi
     fi
 
     CPPFLAGS_SAVED="$CPPFLAGS"
@@ -285,7 +289,11 @@ AC_DEFUN([_AX_BOOST_BASE_RUNDETECT],[
         then
             BOOST_CPPFLAGS="-I${BOOST_CPPFLAGS}"
         else
-            BOOST_CPPFLAGS="-isystem${BOOST_CPPFLAGS}"
+            if test X"$cross_compiling" = Xyes; then
+                BOOST_CPPFLAGS="-I${BOOST_CPPFLAGS}"
+            else
+                BOOST_CPPFLAGS="-isystem${BOOST_CPPFLAGS}"
+            fi
         fi
 
         CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
