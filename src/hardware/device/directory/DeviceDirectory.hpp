@@ -7,7 +7,8 @@
 #define DEVICE_DIRECTORY_HPP
 
 #include <dependencies/DataAccessType.hpp>
-
+#include <hardware/device/AcceleratorStreamThreadSafe.hpp>
+#include <hardware/device/directory/IntervalMap.hpp>
 #include <functional>
 #include <mutex>
 #include <vector>
@@ -16,7 +17,6 @@
 
 class Accelerator;
 class AcceleratorStream;
-class AcceleratorStreamThreadSafe;
 class Task;
 class IntervalMap;
 class DirectoryEntry;
@@ -35,11 +35,11 @@ private:
     std::vector<std::vector<int>> _directory_handles_devicetype_deviceid;
     std::vector<std::shared_ptr<DeviceAllocation>> _symbol_allocations;
 
-    IntervalMap *_dirMap;
+    IntervalMap _dirMap;
 
-	AcceleratorStreamThreadSafe *_taskwaitStream;
-	std::atomic<bool> _stopService;
-	std::atomic<bool> _finishedService;
+    AcceleratorStreamThreadSafe _taskwaitStream;
+    std::atomic<bool> _stopService;
+    std::atomic<bool> _finishedService;
     
     public:
 

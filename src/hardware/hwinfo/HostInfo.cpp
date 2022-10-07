@@ -385,4 +385,9 @@ HostInfo::~HostInfo()
 	for (size_t i = 0; i < _computePlaces.size(); ++i) {
 		delete _computePlaces[i];
 	}
+
+	for (Accelerator *accelerator : _accelerators) {
+		assert(accelerator != nullptr);
+		delete accelerator;
+	}
 }

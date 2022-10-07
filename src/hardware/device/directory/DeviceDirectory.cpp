@@ -8,8 +8,6 @@
 
 #include "tasks/Task.hpp"
 
-#include "hardware/device/AcceleratorStreamThreadSafe.hpp"
-#include "hardware/device/AcceleratorStream.hpp"
 #include "lowlevel/EnvironmentVariable.hpp"
 
 #include "DirectoryEntry.hpp"
@@ -22,8 +20,6 @@
 #include "api/nanos6/library-mode.h"
 #include "lowlevel/FatalErrorHandler.hpp"
 
-#include "IntervalMap.hpp"
-
 static constexpr int SMP_HANDLER = 0;
 static constexpr int NO_DEVICE = -1;
 namespace DeviceDirectoryInstance {
@@ -34,7 +30,7 @@ namespace DeviceDirectoryInstance {
 
 int DeviceDirectory::computeAffininty(const std::vector<SymbolRepresentation>& symbolInfo, int deviceType )
 {
-	if(_dirMap->_inner_m.size()==0)
+	if(_dirMap._inner_m.size()==0)
 		return 0;
 	static unsigned int affinityCounter = 0;
 
@@ -65,9 +61,9 @@ int DeviceDirectory::computeAffininty(const std::vector<SymbolRepresentation>& s
 	for(auto& symbol : symbolInfo)
 	{
 		for(auto& in_region : symbol.getInputRegions())
-			_dirMap->applyToRange(in_region,affinity_fun);
+			_dirMap.applyToRange(in_region,affinity_fun);
 		for(auto& inout_region : symbol.getInputOutputRegions())
-			_dirMap->applyToRange(inout_region, affinity_fun);
+			_dirMap.applyToRange(inout_region, affinity_fun);
 		//there are no copies involved in an out region
 	}
 
@@ -83,8 +79,7 @@ int DeviceDirectory::computeAffininty(const std::vector<SymbolRepresentation>& s
 DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 	_accelerators(accels),
 	_directory_handles_devicetype_deviceid(nanos6_device_type_num),
-	_dirMap(new IntervalMap(accels.size())),
-	_taskwaitStream(new AcceleratorStreamThreadSafe),
+	_dirMap(accels.size()),
 	_stopService(false), _finishedService(false)
 {
 	for (size_t i = 0; i < _accelerators.size(); ++i)
@@ -94,8 +89,6 @@ DeviceDirectory::DeviceDirectory(const std::vector<Accelerator *> &accels) :
 		std::vector<int> &deviceVec = _directory_handles_devicetype_deviceid[deviceType];
 		deviceVec.push_back(i);
 	}
-	
-
 }
 
 void DeviceDirectory::generateCopy(AcceleratorStream* acceleratorStream, const DirectoryEntry &entry, int dstHandle, void *copy_extra)
@@ -208,13 +201,13 @@ void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, A
 	};
 
 	for (const DataAccessRegion &dependencyRegion : dataAccessVector) {
-		_dirMap->addRange(dependencyRegion);
+		_dirMap.addRange(dependencyRegion);
 		if (RW_TYPE == READ_ACCESS_TYPE)
-			_dirMap->applyToRange(dependencyRegion, in_lambda);
+			_dirMap.applyToRange(dependencyRegion, in_lambda);
 		else if (RW_TYPE == WRITE_ACCESS_TYPE)
-			_dirMap->applyToRange(dependencyRegion, out_lambda);
+			_dirMap.applyToRange(dependencyRegion, out_lambda);
 		else
-			_dirMap->applyToRange(dependencyRegion, inout_lambda);
+			_dirMap.applyToRange(dependencyRegion, inout_lambda);
 	}
 }
 
@@ -225,15 +218,15 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int ha
 	std::pair<std::shared_ptr<DeviceAllocation>, bool> deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
 	if (!deviceAllocation.second) {
-		_dirMap->freeAllocationsForHandle(handle, _symbol_allocations);
+		_dirMap.freeAllocationsForHandle(handle, _symbol_allocations);
 		deviceAllocation = _accelerators[handle]->createNewDeviceAllocation(symbol.getHostRegion());
 
 		FatalErrorHandler::failIf(!deviceAllocation.second, "Device Allocation: Out of space in device memory after already trying to free unused memory");
 	}
 
-	_dirMap->addRange(deviceAllocation.first->getHostRegion());
+	_dirMap.addRange(deviceAllocation.first->getHostRegion());
 
-	_dirMap->applyToRange(deviceAllocation.first->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
+	_dirMap.applyToRange(deviceAllocation.first->getHostRegion(), [=, &deviceAllocation](DirectoryEntry *entry) {
 		if (entry->getDeviceAllocation(handle) == nullptr)
 			entry->setDeviceAllocation(handle, deviceAllocation.first);
 		return true;
@@ -244,10 +237,10 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getNewAllocation(const int ha
 
 std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int handle, const SymbolRepresentation &symbol)
 {
-	_dirMap->addRange(symbol.getHostRegion());
+	_dirMap.addRange(symbol.getHostRegion());
 
 	auto host_region = symbol.getHostRegion();
-	auto iter = _dirMap->getIterator(host_region);
+	auto iter = _dirMap.getIterator(host_region);
 	std::shared_ptr<DeviceAllocation> &deviceAllocation = iter->second->getDeviceAllocation(handle);
 
 
@@ -262,7 +255,7 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int
 				return false;
 			return true;
 		};
-		const bool allocated = _dirMap->applyToRange(symbol.getHostRegion(), checkIfRegionIsAllocated);
+		const bool allocated = _dirMap.applyToRange(symbol.getHostRegion(), checkIfRegionIsAllocated);
 		if (allocated)
 			return deviceAllocation;
 	}
@@ -281,7 +274,7 @@ void DeviceDirectory::processSymbolRegions_out(const int handle, DirectoryEntry 
 
 void DeviceDirectory::awaitToValid(AcceleratorStream* acceleratorStream, const int handler,  const std::pair<uintptr_t,uintptr_t> & entry)
 {
-	acceleratorStream->addOperation([itvMap = _dirMap, left = entry.first, right = entry.second, handler = handler]() 
+	acceleratorStream->addOperation([itvMap = &_dirMap, left = entry.first, right = entry.second, handler = handler]()
 	{
 		return itvMap->applyToRange({left, right}, 
 		[=](DirectoryEntry *dirEntry) 
@@ -311,7 +304,7 @@ void DeviceDirectory::processSymbolRegions_inout(const int handle, void* copy_ex
 	entry.setModified(handle);
 	entry.setPending(handle);
 
-	accelerator->createEvent([itvMap = _dirMap, left =entry.getLeft(), right = entry.getRight() , handle, accelerator](AcceleratorEvent *own) 
+	accelerator->createEvent([itvMap = &_dirMap, left =entry.getLeft(), right = entry.getRight() , handle, accelerator](AcceleratorEvent *own)
 	{
 		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
 		accelerator->destroyEvent(own);
@@ -338,7 +331,7 @@ void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra
     
 	entry.setModified(NO_DEVICE);
 
-	accelerator->createEvent([itvMap = _dirMap, accelerator, left = entry.getLeft(), right = entry.getRight(), handle](AcceleratorEvent *own) 
+	accelerator->createEvent([itvMap = &_dirMap, accelerator, left = entry.getLeft(), right = entry.getRight(), handle](AcceleratorEvent *own)
 	{
 		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
 		accelerator->destroyEvent(own);
@@ -365,12 +358,12 @@ void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* cop
 
 void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::function<void()> release)
 {
-	_dirMap->applyToRange(taskwaitRegion, 
+	_dirMap.applyToRange(taskwaitRegion,
 	[&](DirectoryEntry *entry) 
 	{
 		if (!entry->getNoFlush() && !entry->isValid(entry->getHome()))
 		{
-			generateCopy(_taskwaitStream,*entry, entry->getHome(), nullptr);
+			generateCopy(&_taskwaitStream,*entry, entry->getHome(), nullptr);
 		}
 		return true;
 	});
@@ -379,7 +372,7 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		[=](AcceleratorEvent* own) 
 		{
 		/*release taskwait*/
-		_dirMap->applyToRange(
+		_dirMap.applyToRange(
 					taskwaitRegion,
 					[&](DirectoryEntry *entry) 
 					{
@@ -395,20 +388,18 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 						return true;
 					});
 
-		_dirMap->remRangeOnFlush(taskwaitRegion, SMP_HANDLER);
+		_dirMap.remRangeOnFlush(taskwaitRegion, SMP_HANDLER);
 
 		release();
 		delete own;
 		}
-	))->record(_taskwaitStream);
+	))->record(&_taskwaitStream);
 }
 
 DeviceDirectory::~DeviceDirectory()
 {
 	for(size_t i = 1; i < _accelerators.size(); ++i)
-	_dirMap->freeAllocationsForHandle(i, {});
-
-	delete _dirMap;
+		_dirMap.freeAllocationsForHandle(i, {});
 }
 
 void DeviceDirectory::print()
@@ -449,7 +440,7 @@ void DeviceDirectory::print()
 
 	printf("BEGIN OF DIR\n\n");
 
-	std::for_each(std::begin(_dirMap->_inner_m),std::end(_dirMap->_inner_m),printEntry);
+	std::for_each(std::begin(_dirMap._inner_m),std::end(_dirMap._inner_m),printEntry);
 
 	printf("END OF DIR\n\n");
 }
@@ -465,8 +456,8 @@ void DeviceDirectory::initializeTaskwaitService()
 			DeviceDirectory* devDir = ((DeviceDirectory*) t);
 			while(!devDir->shouldStopService())
 			{
-				while(devDir->_taskwaitStream->streamPendingExecutors())
-					devDir->_taskwaitStream->streamServiceLoop();
+				while(devDir->_taskwaitStream.streamPendingExecutors())
+					devDir->_taskwaitStream.streamServiceLoop();
 				BlockingAPI::waitForUs(300);
 			}
 		}, this,
@@ -488,7 +479,7 @@ void DeviceDirectory::shutdownTaskwaitService()
 
 IntervalMap* DeviceDirectory::getIntervalMap()
 {
-	return _dirMap;
+	return &_dirMap;
 }
 
 
