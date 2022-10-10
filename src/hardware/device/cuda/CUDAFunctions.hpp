@@ -181,7 +181,7 @@ public:
 	static void memcpyAsyncP2P( void* dst, int  dstDevice, const void* src, int  srcDevice, size_t count, cudaStream_t stream = 0)
 	{
 		//printf("[CUDA[%d]]%p -> [CUDA[%d]]%p 0x%X\n", srcDevice, src, dstDevice, dst, count);
-		cudaError_t err =  cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,count, stream);   
+		cudaError_t err =  cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,count, stream);
 		CUDAErrorHandler::handle(err, "Copying memory");
 
 	}

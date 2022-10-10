@@ -15,7 +15,6 @@
 #include <DataAccessRegistrationImplementation.hpp>
 #include "lowlevel/FatalErrorHandler.hpp"
 
-
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	Accelerator(fpgaDeviceIndex,
 		nanos6_fpga_device,
@@ -37,22 +36,23 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	else {
 		FatalErrorHandler::fail("Config value", memSyncString, " is not valid for devices.fpga.mem_sync_type");
 	}
-    size_t accCount = 0, handlesCount=0;
+
+	size_t accCount = 0, handlesCount=0;
 
 	FatalErrorHandler::failIf(
         xtasksGetNumAccs(fpgaDeviceIndex, &accCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get number of accelerators"
 	);
 
-    std::vector<xtasks_acc_info> info(accCount);
-    std::vector<xtasks_acc_handle> handles(accCount);
+	std::vector<xtasks_acc_info> info(accCount);
+	std::vector<xtasks_acc_handle> handles(accCount);
 
 	FatalErrorHandler::failIf(
         xtasksGetAccs(fpgaDeviceIndex, accCount, &handles[0], &handlesCount) != XTASKS_SUCCESS,
 		"Xtasks: Can't get the accelerators"
 	);
 
-    for(size_t i=0; i<accCount;++i)
+	for(size_t i=0; i<accCount;++i)
 	{
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
@@ -66,13 +66,13 @@ inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, ui
 		"Device subtype ", deviceSubtypeId, " not found"
 	);
 #endif
-    xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
-    xtasks_task_id parent = 0;
+	xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
+	xtasks_task_id parent = 0;
 	xtasksCreateTask((xtasks_task_id) &env.fpga, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env.fpga.taskHandle);
 	env.fpga.taskFinished = false;
 }
 
-std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size) 
+std::pair<void *, bool> FPGAAccelerator::accel_allocate(size_t size)
 {
 	return _allocator.allocate(size);
 }
@@ -87,10 +87,10 @@ void FPGAAccelerator::postRunTask(Task *)
 }
 
 void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) const {
-    FatalErrorHandler::failIf(
-        xtasksSubmitTask(deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
-        "Xtasks: Submit Task failed"
-    );
+	FatalErrorHandler::failIf(
+		xtasksSubmitTask(deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
+		"Xtasks: Submit Task failed"
+	);
 }
 
 inline std::function<bool()> FPGAAccelerator::getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const {
@@ -114,7 +114,7 @@ void FPGAAccelerator::callBody(Task *task)
     if(DeviceDirectoryInstance::useDirectory) {
 		task->getAcceleratorStream()->addOperation(
 			[this, task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
-			{ 
+			{
 				task->bodyWithInternalTranslation();
 
 				FatalErrorHandler::failIf(
@@ -139,10 +139,9 @@ void FPGAAccelerator::preRunTask(Task *task)
 
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, void *src, size_t size, [[maybe_unused]]  void *task) const
 {
-
 	if(_mem_sync_type == REAL_ASYNC)
-		{
-			return [=]() -> std::function<bool(void)>
+	{
+		return [=]() -> std::function<bool(void)>
 			{
 				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_HOST_TO_ACC);
 				return [this, checkFinalization]() -> bool
@@ -150,7 +149,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 					return _allocator.testAsyncDestroyOnSuccess(checkFinalization);
 				};
 			};
-		}
+	}
 	else if (_mem_sync_type == FORCED_ASYNC)
 	{
 		return [=]() -> std::function<bool(void)>
@@ -159,7 +158,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 			bool* copy_finished_flag = new bool;
 			*copy_finished_flag=false;
 			auto do_copy = [](void* t)
-			{  
+			{
 				std::function<void()>* fn = (std::function<void()>*) t;
 				(*fn)();
 				delete fn;
@@ -182,7 +181,8 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 			};
 		};
 	}
-	else {
+	else
+	{
 		return [&, dst, src, size]() -> std::function<bool(void)> {
 			return [&, dst, src, size]() -> bool {
 				_allocator.memcpy(dst, src, size, XTASKS_HOST_TO_ACC);
@@ -196,8 +196,8 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, void *src, size_t size, [[maybe_unused]] void *task) const
 {
 	if(_mem_sync_type == REAL_ASYNC)
-		{
-			return [=]() -> std::function<bool(void)>
+	{
+		return [=]() -> std::function<bool(void)>
 			{
 				auto checkFinalization= _allocator.memcpyAsync(dst,src,size,XTASKS_ACC_TO_HOST);
 				return [this, checkFinalization]() -> bool
@@ -205,7 +205,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 					return _allocator.testAsyncDestroyOnSuccess(checkFinalization);
 				};
 			};
-		}
+	}
 	else if (_mem_sync_type == FORCED_ASYNC)
 	{
 		return [=]() -> std::function<bool(void)>
@@ -214,7 +214,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 			bool* copy_finished_flag = new bool;
 			*copy_finished_flag=false;
 			auto do_copy = [](void* t)
-			{  
+			{
 				std::function<void()>* fn = (std::function<void()>*) t;
 				(*fn)();
 				delete fn;
@@ -236,7 +236,9 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 				//IF FINISHED FLAG -> CONTINUE
 			};
 		};
-	} else {
+	}
+	else
+	{
 		return [&, dst, src, size]() -> std::function<bool(void)> {
 			return [&, dst, src, size]() -> bool {
 				_allocator.memcpy(dst, src, size, XTASKS_ACC_TO_HOST);

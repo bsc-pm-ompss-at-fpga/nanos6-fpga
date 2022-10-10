@@ -61,7 +61,7 @@ void HardwareInfo::initialize()
 	for(int i = 0; i < (int)nanos6_device_t::nanos6_device_type_num; ++i)
 	{
 		DeviceInfo *deviceInfo = getDeviceInfo(i);
-		if(deviceInfo != nullptr && i != nanos6_device_t::nanos6_device_type_num) 
+		if(deviceInfo != nullptr && i != nanos6_device_t::nanos6_device_type_num)
 			for(Accelerator* accel: deviceInfo->getAccelerators())
 			 _accelerators.push_back(accel);
 	}
@@ -83,7 +83,7 @@ void HardwareInfo::initializeDeviceServices()
 #endif
 
 #ifdef USE_DISTRIBUTED
-    _infos[nanos6_broadcaster_device]->initializeDeviceServices();
+        _infos[nanos6_broadcaster_device]->initializeDeviceServices();
 #endif
 
 	DeviceDirectoryInstance::instance->initializeTaskwaitService();
@@ -111,7 +111,7 @@ void HardwareInfo::shutdownDeviceServices()
 	_infos[nanos6_fpga_device]->shutdownDeviceServices();
 #endif
 #ifdef USE_DISTRIBUTED
-    _infos[nanos6_broadcaster_device]->shutdownDeviceServices();
+        _infos[nanos6_broadcaster_device]->shutdownDeviceServices();
 #endif
 	DeviceDirectoryInstance::instance->shutdownTaskwaitService();
 	delete DeviceDirectoryInstance::instance;

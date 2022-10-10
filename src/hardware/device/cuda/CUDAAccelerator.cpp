@@ -57,10 +57,10 @@ void CUDAAccelerator::preRunTask(Task *task)
 {
 
 	if(DeviceDirectoryInstance::useDirectory)
-	{	
+	{
 		DeviceDirectoryInstance::instance->register_regions(task);
 	}
-	else 
+	else
 	{
 		// Prefetch available memory locations to the GPU
 		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
@@ -83,7 +83,7 @@ void CUDAAccelerator::preRunTask(Task *task)
 
 std::function<std::function<bool(void)>()> CUDAAccelerator::copy_in(void *dst, void *src, size_t size, void* task) const
 {
-	if (task == nullptr) return [=]() -> std::function<bool(void)> 
+	if (task == nullptr) return [=]() -> std::function<bool(void)>
 	{
 			setActiveDevice();//since this can be processed by a host-task or taskwait
 			CUDAFunctions::memcpyAsync(dst, src, size, cudaMemcpyKind::cudaMemcpyHostToDevice, _cudaCopyStream);
@@ -118,15 +118,15 @@ std::function<std::function<bool(void)>()> CUDAAccelerator::copy_out(void *dst, 
 //this functions performs a copy from two accelerators that can share it's data without the host intervention
 std::function<std::function<bool(void)>()> CUDAAccelerator::copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) const
 {
-	if (task == nullptr) return [=]() -> std::function<bool(void)> 
+	if (task == nullptr) return [=]() -> std::function<bool(void)>
 	{
-			 cudaMemcpyPeer(dst,dstDevice,src,srcDevice,size); 
-			 return []()->bool {return true;}; 
+			 cudaMemcpyPeer(dst,dstDevice,src,srcDevice,size);
+			 return []()->bool {return true;};
 	};
-	else return [=]() -> std::function<bool(void)> 
+	else return [=]() -> std::function<bool(void)>
 	{
-		cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,size, ((Task*)task)->getDeviceEnvironment().cuda.stream);   
-		return []()-> bool{return true;}; 
+		cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,size, ((Task*)task)->getDeviceEnvironment().cuda.stream);
+		return []()-> bool{return true;};
 	};
 }
 

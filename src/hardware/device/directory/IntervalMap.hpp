@@ -88,9 +88,9 @@ public:
 
 		toAdd->updateRange({new_itv});
 		_inner_m.erase(it);
-		
+
 		uintptr_t key = toAdd->getLeft();
-	
+
 		return _inner_m.emplace(key, toAdd).first;
 	}
 
@@ -127,7 +127,7 @@ public:
 
 		while(it != end_it && it->second->getLeft()<apply.first) ++it;
 
-		while (it != end_it && it->second->getRight() <= apply.second) 
+		while (it != end_it && it->second->getRight() <= apply.second)
 		{
 			if (!function(it->second)) return false;
 			++it;
@@ -157,7 +157,7 @@ public:
 				it->second->setNoFlushState(false);
 				++it;
 			}
-			else 
+			else
 			{
 				if(remove_only_if_handle_equals == -1 || remove_only_if_handle_equals == it->second->getHome())
 					it = deleteIt(it);
@@ -168,7 +168,7 @@ public:
 
 	}
 
-	
+
 	//helper function to add ranges
 	void addRange(const DataAccessRegion& dar)
 	{
@@ -179,7 +179,7 @@ public:
 	void addRange(const std::pair<uintptr_t, uintptr_t>& new_range_to_add)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
-		
+
 		assert(new_range_to_add.first <= new_range_to_add.second);
 
 		auto new_range_left = new_range_to_add.first;
@@ -194,7 +194,7 @@ public:
 		}
 
 		IntervalMapIterator beg = _inner_m.lower_bound(new_range_left);
-		if (beg != std::begin(_inner_m)) beg--; //get the leftmost closer entry 
+		if (beg != std::begin(_inner_m)) beg--; //get the leftmost closer entry
 
 
 		//If the right of the current interval in the iterator is less than the new left range, iterate
@@ -209,8 +209,8 @@ public:
 		}
 
 
-		//here we will begin 
-		while (beg != std::end(_inner_m)) 
+		//here we will begin
+		while (beg != std::end(_inner_m))
 		{
 			const auto range  =  beg->second->getRange();
 			const auto current_in_map_left = range.first;
@@ -227,7 +227,7 @@ public:
 			//this lambda ensures that the result is const -- c++ idiomatic
 			const std::pair<bool, bool> not_map_end__region_at_left = [&]()-> std::pair<bool, bool>
 			{
-				IntervalMapIterator begp = beg; 
+				IntervalMapIterator begp = beg;
 				begp++;
 				if(begp == std::end(_inner_m)) return {false, false};
 				else return {true, begp->first >= new_range_right};
@@ -238,10 +238,10 @@ public:
 
 			//If there is an exact match, we can return. Else, if we have no intersection, we add the new range directly and return.
 			if (new_range_left >= new_range_right || exact_match) return;
-			//If the new region is at the left of the current regions, we add it. 
+			//If the new region is at the left of the current regions, we add it.
 			//This is the equivalent of the -rightmost- entry before the while.
-			else if (no_intersection && is_not_map_end && new_region_is_at_the_left) 
-			{				
+			else if (no_intersection && is_not_map_end && new_region_is_at_the_left)
+			{
 
 				ADD(beg, {new_range_left, new_range_right}, nullptr, __LINE__);
 				return;
@@ -249,7 +249,7 @@ public:
 			//if the  new range left and current right are equal, we need the next entry to check for partitions of matches.
 			else if (new_range_left == current_in_map_right) beg++;
 			//intersection rules
-			else if (new_range_left < intersect_left) 
+			else if (new_range_left < intersect_left)
 			{
 				if(no_intersection)//there isn't an intersection, so we can add the entry to the map
 				{
@@ -261,9 +261,9 @@ public:
 					beg = ADD(beg, {new_range_left, intersect_left}, nullptr, __LINE__);
 					new_range_left = intersect_left;
 				}
-			} 
+			}
 			//if overlaps a region
-			else if (new_range_left == current_in_map_left) 
+			else if (new_range_left == current_in_map_left)
 			{
 				//if overlaps partially, we partition the directory mantaining the region attributes
 				//current allocation:  @@@@@@@@
@@ -281,9 +281,9 @@ public:
 			//region to add:         ##
 			// --------------------
 			//result:   		   @@##%%%% three different partitions that share attributes
-			else if (new_range_left > current_in_map_left) 
+			else if (new_range_left > current_in_map_left)
 			{
-				if (intersection) 
+				if (intersection)
 				{
 					beg = MODIFY_KEY(beg, {current_in_map_left, intersect_left});
 					beg = ADD(beg, {intersect_left, intersect_right}, beg->second, __LINE__);

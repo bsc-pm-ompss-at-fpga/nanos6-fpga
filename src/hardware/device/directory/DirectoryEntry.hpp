@@ -35,7 +35,7 @@ class DirectoryEntry
     bool  _no_flush;
     std::pair<uintptr_t, uintptr_t> _range;
 
- 
+
 
     DirectoryEntry(size_t size):
         _valid_locations(std::vector<STATUS>(size, INVALID)),
@@ -47,7 +47,7 @@ class DirectoryEntry
     {
         _valid_locations[0] = STATUS::VALID;
     };
-  
+
 
     DirectoryEntry(const DirectoryEntry* itb):
         _valid_locations(itb->_valid_locations),
@@ -96,7 +96,7 @@ class DirectoryEntry
     }
 
     void clearDeviceAllocation(int handle)
-    { 
+    {
         _perDeviceAllocation[handle] = nullptr;
         _valid_locations[handle] = STATUS::INVALID;
     }
@@ -104,7 +104,7 @@ class DirectoryEntry
     {
         std::fill(_valid_locations.begin(), _valid_locations.end(), STATUS::INVALID);
     }
-   
+
     void clearAllocations(size_t skip_handle = 0)
     {
         for(size_t i =  0; i < _perDeviceAllocation.size(); ++i)
@@ -113,8 +113,8 @@ class DirectoryEntry
         clearValid();
     }
 
-    uintptr_t getTranslation(int handler, uintptr_t addr) const 
-    { 
+    uintptr_t getTranslation(int handler, uintptr_t addr) const
+    {
         if(handler == 0) return addr;
         assert(_perDeviceAllocation[handler] != nullptr);
         return _perDeviceAllocation[handler]->getTranslation(addr);
@@ -127,8 +127,8 @@ class DirectoryEntry
 
     int getModifiedLocation() const{ return _modified_location; }
     int getFirstValidLocation(int handle_ignore = -2) const
-    { 
-        for(size_t i = 0; i < _valid_locations.size(); ++i) 
+    {
+        for(size_t i = 0; i < _valid_locations.size(); ++i)
         {
             if(handle_ignore ==  (int) i) continue;
             else if(isValid(i)) return i;

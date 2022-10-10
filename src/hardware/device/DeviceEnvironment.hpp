@@ -27,13 +27,13 @@
 //! Contains the device environment based on configured device types to determine max size
 union DeviceEnvironment {
 #if USE_CUDA
-		nanos6_cuda_device_environment_t cuda;
+	nanos6_cuda_device_environment_t cuda;
 #endif
 #if USE_OPENACC
-		nanos6_openacc_device_environment_t openacc;
+	nanos6_openacc_device_environment_t openacc;
 #endif
 #if USE_FPGA
-		nanos6_fpga_device_environment_t fpga;
+	nanos6_fpga_device_environment_t fpga;
 #endif
 };
 

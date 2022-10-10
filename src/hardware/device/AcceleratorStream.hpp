@@ -113,5 +113,4 @@ public:
 	}
 };
 
-
 #endif //ACCELERATOR_STREAM_HPP

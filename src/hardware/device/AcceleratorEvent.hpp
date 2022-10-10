@@ -21,7 +21,6 @@ private:
 	bool _completed;
 	std::function<void(AcceleratorEvent *)> _onCompletion;
 	std::chrono::steady_clock::time_point _creation_time, _fini_time;
-	
 
 	//checks for event-finalization. In case of vendor-implementation, checks with the vendor driver first.
 	//In the base implementation or when the event is marked as finished by the vendor, we call the
@@ -40,11 +39,9 @@ public:
 	{
 	}
 
-
 	virtual ~AcceleratorEvent()
 	{
 	}
-
 
 	//This virtual method is meant to be overriden by a device-specific implementation
 	//If the vendor-driver for that device supports events. If not, returns true to
@@ -60,7 +57,6 @@ public:
 	{
 	}
 
-
 	virtual float getMillisBetweenEvents(AcceleratorEvent &end)
 	{
 		assert(_completed != false);
@@ -68,12 +64,10 @@ public:
 		return std::chrono::duration_cast<std::chrono::milliseconds>(end._fini_time - _fini_time).count();
 	}
 
-
 	virtual float getMillisBetweenEvents(AcceleratorEvent *end)
 	{
 		return getMillisBetweenEvents(*end);
 	}
-
 
 	virtual float eventCreationUntilExecution_ms()
 	{
@@ -85,7 +79,6 @@ public:
 	{
 		return _completed;
 	}
-
 
 	void record(AcceleratorStream *stream)
 	{
@@ -113,7 +106,7 @@ public:
 				{
 					stream->streamAddEventListener(
 						[&]
-						{	
+						{
 							if (query())
 							{
 								_completed = true;
@@ -126,7 +119,6 @@ public:
 				};
 			});
 	}
-
 
 	//Record weak means that the execution won't be halted until the event has finished.
 	//This is useful for intermediate-events for devices like CUDA, where we can ensure that

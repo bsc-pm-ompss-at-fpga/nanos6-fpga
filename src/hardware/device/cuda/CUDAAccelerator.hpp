@@ -82,7 +82,7 @@ public:
 	}
 
 	AcceleratorEvent *createEvent(std::function<void((AcceleratorEvent *))> onCompletion) override;
-	
+
 	std::pair<void *, bool> accel_allocate(size_t size) override
 	{
 		void * devalloc =  CUDAFunctions::malloc(size);
@@ -97,7 +97,7 @@ public:
 	}
 
 	void destroyEvent(AcceleratorEvent *event) override;
-	
+
 	// Set current device as the active in the runtime
     inline void setActiveDevice() const override
 	{

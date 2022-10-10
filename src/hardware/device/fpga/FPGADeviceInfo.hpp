@@ -15,7 +15,6 @@
 #include <libxtasks.h>
 
 class FPGADeviceInfo : public DeviceInfo {
-
 public:
 	FPGADeviceInfo()
 	{
@@ -24,15 +23,15 @@ public:
 		if (xtasksInit() != XTASKS_SUCCESS)
 			return;
 
-        FatalErrorHandler::failIf(
-            xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
-            "Xtasks: Can't get number of devices"
-        );
-        _accelerators.resize(_deviceCount);
-        for (size_t i = 0; i < _deviceCount; ++i) {
-            _accelerators[i] = new FPGAAccelerator(i);
-        }
-        _deviceInitialized = true;
+		FatalErrorHandler::failIf(
+			xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
+			"Xtasks: Can't get number of devices"
+		);
+		_accelerators.resize(_deviceCount);
+		for (size_t i = 0; i < _deviceCount; ++i) {
+			_accelerators[i] = new FPGAAccelerator(i);
+		}
+		_deviceInitialized = true;
 	}
 
 	~FPGADeviceInfo()

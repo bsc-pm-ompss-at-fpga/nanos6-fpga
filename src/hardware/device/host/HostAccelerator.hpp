@@ -41,7 +41,7 @@ public:
 			return []() -> bool {return true;};
 		};
 	}
-	
+
 	int getVendorDeviceId() const override{return 0;}
 	inline void setActiveDevice() const override {}
 };

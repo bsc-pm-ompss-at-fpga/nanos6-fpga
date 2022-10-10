@@ -18,27 +18,27 @@ class ComputePlace;
 class MemoryPlace {
 protected:
 	AddressSpace *_addressSpace;
-	int _index;	
-	nanos6_device_t _type;	
-	
+	int _index;
+	nanos6_device_t _type;
+
 public:
 	MemoryPlace(int index, nanos6_device_t type, AddressSpace *addressSpace = nullptr)
 		: _addressSpace(addressSpace), _index(index), _type(type)
 	{}
-	
+
 	virtual ~MemoryPlace()
 	{}
-	
+
 	inline int getIndex() const
 	{
 		return _index;
 	}
-	
+
 	inline nanos6_device_t getType() const
 	{
 		return _type;
 	}
-	
+
 	inline AddressSpace *getAddressSpace() const
 	{
 		return _addressSpace;

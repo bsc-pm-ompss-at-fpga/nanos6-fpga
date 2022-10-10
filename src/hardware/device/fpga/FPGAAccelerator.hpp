@@ -33,12 +33,12 @@ private:
 		}
 		xtasks_acc_handle getHandle()
 		{
-			return _accelHandle[(idx++)%_accelHandle.size()]; 
+			return _accelHandle[(idx++)%_accelHandle.size()];
 		}
 	};
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
-    void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
+	void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
 	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const override;
 	inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) override;
 
@@ -52,7 +52,7 @@ private:
 
 public:
 	FPGAAccelerator(int fpgaDeviceIndex);
-	
+
 	std::pair<void *, bool> accel_allocate(size_t size) override;
 
 	bool accel_free(void* ptr) override;
@@ -67,7 +67,6 @@ public:
 	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
 	std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
 	std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* copy_extra) const override;
-
 };
 
 #endif // FPGA_ACCELERATOR_HPP
