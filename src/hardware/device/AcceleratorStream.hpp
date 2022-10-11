@@ -54,7 +54,7 @@ public:
 		{
 			return f;
 		};
-		addOperation(operation);
+		AcceleratorStream::addOperation(operation);
 	}
 
 	//an operation that requieres an activator (does the functionality)

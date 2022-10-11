@@ -28,8 +28,8 @@ void Accelerator::runTask(Task *task)
 
 	generateDeviceEvironment(task->getDeviceEnvironment(), task->getDeviceSubType());
 
-	AcceleratorEvent *event_copies = createEvent();
-	event_copies->record(acceleratorStream);
+	//AcceleratorEvent *event_copies = createEvent();
+	//event_copies->record(acceleratorStream);
 
 	//if preRunTask passes through the directory,
 	//it will add new operations into the stream,
@@ -38,20 +38,20 @@ void Accelerator::runTask(Task *task)
 	//the next event will have again a correct result.
 	preRunTask(task);
 
-	AcceleratorEvent *event_pre_run = createEvent();
-	event_pre_run->record(acceleratorStream);
+	//AcceleratorEvent *event_pre_run = createEvent();
+	//event_pre_run->record(acceleratorStream);
 
 	callBody(task);
 
 	//There are no copies after the execution of a normal task
 #ifdef USE_DISTRIBUTED
-	AcceleratorEvent *event_copies_post = createEvent();
-	event_copies_post->record(acceleratorStream);
+	//AcceleratorEvent *event_copies_post = createEvent();
+	//event_copies_post->record(acceleratorStream);
 
 	postRunTask(task);
 #endif
 
-	AcceleratorEvent *event_post_run = createEvent([=](AcceleratorEvent *own)
+	/*AcceleratorEvent *event_post_run = createEvent([=](AcceleratorEvent *own)
 	{
 		[[maybe_unused]] float time_spend_in_copies = event_copies->getMillisBetweenEvents(event_pre_run);
 #ifdef USE_DISTRIBUTED
@@ -71,7 +71,12 @@ void Accelerator::runTask(Task *task)
 		return true;
 	});
 
-	event_post_run->record(acceleratorStream);
+	event_post_run->record(acceleratorStream);*/
+	acceleratorStream->addOperation([=]() {
+		finishTask(task);
+		_streamPool.releaseStream(acceleratorStream);
+		return true;
+	});
 }
 
 void Accelerator::finishTask(Task *task)

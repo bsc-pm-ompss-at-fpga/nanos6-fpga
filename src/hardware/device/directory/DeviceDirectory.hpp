@@ -90,18 +90,18 @@ private:
 	void generateCopy(AcceleratorStream* acceleratorStream, const DirectoryEntry &entry, int dstHandle, void* copy_extra);
 
 	//This function forwards to processSymbolRegions the task dependences of each type
-	void processSymbol(const int handle, void *copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation>& deviceAllocation);
+	void processSymbol(const int handle, void *copy_extra, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation>& deviceAllocation);
 	//This function checks for old allocations or the necessity of a reallocation, after forwards each region of the symbol
 	//to check for validity
-	void processSymbolRegions(const int handle, void *copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation>& region, DataAccessType RW_TYPE);
+	void processSymbolRegions(const int handle, void *copy_extra, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation>& region, DataAccessType RW_TYPE);
 
 	//generates the needed copies in need of reallocation/old allocations
 	void processRegionWithOldAllocation(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> &region, DataAccessType type);
 
 	//Updates the directory and generates the copies and steps needed for perform the copies and ensure the coherence of the directory
-	void processSymbolRegions_in(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
+	void processSymbolRegions_in(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
 	void processSymbolRegions_out(const int handle, DirectoryEntry &entry);
-	void processSymbolRegions_inout(const int handle, void* copy_extra,  Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
+	void processSymbolRegions_inout(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry);
 
 	//This function gets the current allocation for a symbol range. In case it doesn't exists or it's not enough to
 	//contain the new symbol, it tries to allocate a new device address.

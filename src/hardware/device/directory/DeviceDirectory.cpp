@@ -149,7 +149,7 @@ bool DeviceDirectory::register_regions(std::vector<SymbolRepresentation>& symbol
 	}
 
 	for (size_t i = 0; i < symbolInfo.size(); ++i)
-		processSymbol(handle, copy_extra, accelerator, acceleratorStream, symbolInfo[i], _symbol_allocations[i]);
+		processSymbol(handle, copy_extra, acceleratorStream, symbolInfo[i], _symbol_allocations[i]);
 
 	_symbol_allocations.clear();
 
@@ -167,19 +167,19 @@ bool DeviceDirectory::register_regions(Task *task)
 
 //SYMBOL PROCESSING
 
-void DeviceDirectory::processSymbol(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> &deviceAllocation)
+void DeviceDirectory::processSymbol(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> &deviceAllocation)
 {
 	symbol.setSymbolTranslation(deviceAllocation);
-	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getInputRegions(), deviceAllocation, READ_ACCESS_TYPE);
-	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getOutputRegions(), deviceAllocation, WRITE_ACCESS_TYPE);
-	processSymbolRegions(handle, copy_extra,  accelerator, acceleratorStream, symbol.getInputOutputRegions(), deviceAllocation, READWRITE_ACCESS_TYPE);
+	processSymbolRegions(handle, copy_extra, acceleratorStream, symbol.getInputRegions(), deviceAllocation, READ_ACCESS_TYPE);
+	processSymbolRegions(handle, copy_extra, acceleratorStream, symbol.getOutputRegions(), deviceAllocation, WRITE_ACCESS_TYPE);
+	processSymbolRegions(handle, copy_extra, acceleratorStream, symbol.getInputOutputRegions(), deviceAllocation, READWRITE_ACCESS_TYPE);
 }
 
-void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> &region, DataAccessType RW_TYPE)
+void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> &region, DataAccessType RW_TYPE)
 {
 	const auto in_lambda = [=, &region](DirectoryEntry *entry) {
 		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
-		processSymbolRegions_in(handle, copy_extra, accelerator, acceleratorStream, *entry);
+		processSymbolRegions_in(handle, copy_extra, acceleratorStream, *entry);
 		return true;
 	};
 
@@ -190,7 +190,7 @@ void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, A
 	};
 	const auto inout_lambda = [=, &region](DirectoryEntry *entry) {
 		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
-		processSymbolRegions_inout(handle, copy_extra, accelerator, acceleratorStream, *entry);
+		processSymbolRegions_inout(handle, copy_extra, acceleratorStream, *entry);
 		return true;
 	};
 
@@ -277,7 +277,7 @@ void DeviceDirectory::awaitToValid(AcceleratorStream* acceleratorStream, const i
 	});
 }
 
-void DeviceDirectory::processSymbolRegions_inout(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream, DirectoryEntry &entry)
+void DeviceDirectory::processSymbolRegions_inout(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry)
 {
 	if (entry.isPending(handle))
 		return awaitToValid(acceleratorStream, handle, {entry.getLeft(), entry.getRight()});
@@ -295,15 +295,20 @@ void DeviceDirectory::processSymbolRegions_inout(const int handle, void* copy_ex
 	entry.setModified(handle);
 	entry.setPending(handle);
 
-	accelerator->createEvent([itvMap = &_dirMap, left =entry.getLeft(), right = entry.getRight() , handle, accelerator](AcceleratorEvent *own)
+	acceleratorStream->addOperation([itvMap = &_dirMap, left = entry.getLeft(), right = entry.getRight() , handle] ()
 	{
 		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
-		accelerator->destroyEvent(own);
 		return true;
-	})->record(acceleratorStream);
+	});
+	/*accelerator->createEvent([itvMap = &_dirMap, left =entry.getLeft(), right = entry.getRight() , handle, accelerator](AcceleratorEvent *own)
+	{
+		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
+		//accelerator->destroyEvent(own);
+		return true;
+	})->record(acceleratorStream);*/
 }
 
-void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra, Accelerator* accelerator, AcceleratorStream* acceleratorStream,  DirectoryEntry &entry)
+void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream,  DirectoryEntry &entry)
 {
 	if (entry.isValid(handle))
 		return;
@@ -315,17 +320,22 @@ void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra
 
 	entry.setPending(handle);
 
-    if (entry.getModifiedLocation() >= 0)
+	if (entry.getModifiedLocation() >= 0)
 	   entry.setValid(entry.getModifiedLocation());
 
 	entry.setModified(NO_DEVICE);
 
-	accelerator->createEvent([itvMap = &_dirMap, accelerator, left = entry.getLeft(), right = entry.getRight(), handle](AcceleratorEvent *own)
+	acceleratorStream->addOperation([itvMap = &_dirMap, left = entry.getLeft(), right = entry.getRight(), handle]
 	{
 		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
-		accelerator->destroyEvent(own);
 		return true;
-	})->record(acceleratorStream);
+	});
+	/*accelerator->createEvent([itvMap = &_dirMap, accelerator, left = entry.getLeft(), right = entry.getRight(), handle](AcceleratorEvent *own)
+	{
+		itvMap->applyToRange({left, right}, [=](DirectoryEntry *dirEntry) {dirEntry->setValid(handle); return true; });
+		//accelerator->destroyEvent(own);
+		return true;
+	})->record(acceleratorStream);*/
 }
 
 //the control logic that comes afterwards will enqueue a copy operation from SMP to the device again
@@ -357,10 +367,39 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		return true;
 	});
 
-	(new AcceleratorEvent(
+	AcceleratorStream* twStream = &_taskwaitStream;
+	_taskwaitStream.addOperation([=]()
+	{
+		twStream->streamAddEventListener([=]()
+		{
+			//release taskwait
+			_dirMap.applyToRange(
+				taskwaitRegion,
+				[&](DirectoryEntry *entry)
+				{
+					if(entry->getNoFlush())
+						return true;
+
+					//clearing allocations is not easy, we can make it so it stays allocated
+					//and if we fail to allocate afterwards, try to cleanup
+					entry->clearAllocations(entry->getHome());//ignore home node
+					entry->clearValid();
+					entry->setModified(-1); //now is not modified
+					entry->setValid(entry->getHome());//it's valid on the home node
+					return true;
+				});
+			_dirMap.remRangeOnFlush(taskwaitRegion, SMP_HANDLER);
+
+			release();
+			return true;
+		});
+		return true;
+	});
+
+	/*(new AcceleratorEvent(
 		[=](AcceleratorEvent* own)
 		{
-		/*release taskwait*/
+		//release taskwait
 		_dirMap.applyToRange(
 		        taskwaitRegion,
 		        [&](DirectoryEntry *entry)
@@ -380,9 +419,9 @@ void DeviceDirectory::taskwait(const DataAccessRegion &taskwaitRegion, std::func
 		_dirMap.remRangeOnFlush(taskwaitRegion, SMP_HANDLER);
 
 		release();
-		delete own;
+		//delete own;
 		}
-	))->record(&_taskwaitStream);
+	))->record(&_taskwaitStream);*/
 }
 
 DeviceDirectory::~DeviceDirectory()
@@ -441,8 +480,9 @@ void DeviceDirectory::initializeTaskwaitService()
 			DeviceDirectory* devDir = ((DeviceDirectory*) t);
 			while(!devDir->shouldStopService())
 			{
-				while(devDir->_taskwaitStream.streamPendingExecutors())
+				while(devDir->_taskwaitStream.streamPendingExecutors()) {
 					devDir->_taskwaitStream.streamServiceLoop();
+				}
 				BlockingAPI::waitForUs(300);
 			}
 		}, this,
@@ -451,7 +491,7 @@ void DeviceDirectory::initializeTaskwaitService()
 			((DeviceDirectory*) t)->_finishedService = true;
 		}, this,
 		"Taskwait service", false
-		);
+	);
 }
 
 void DeviceDirectory::shutdownTaskwaitService()
@@ -466,7 +506,6 @@ IntervalMap* DeviceDirectory::getIntervalMap()
 {
 	return &_dirMap;
 }
-
 
 bool DeviceDirectory::shouldStopService() const
 {
