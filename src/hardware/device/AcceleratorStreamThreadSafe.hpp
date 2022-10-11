@@ -11,14 +11,8 @@
 #include <mutex>
 
 class AcceleratorStreamThreadSafe : public AcceleratorStream {
-	std::mutex _op_mtx, _event_mtx;
+	std::mutex _op_mtx;
 public:
-
-	void streamAddEventListener(std::function<bool(void)> eventListener)
-	{
-		std::lock_guard<std::mutex> guard(_event_mtx);
-		AcceleratorStream::streamAddEventListener(eventListener);
-	}
 
 	void addOperation(std::function<std::function<bool(void)>(void)> operation)
 	{
@@ -35,7 +29,6 @@ public:
 	void streamServiceLoop()
 	{
 		{
-			std::lock_guard<std::mutex> guard(_event_mtx);
 			processEvents();
 		}
 		{
