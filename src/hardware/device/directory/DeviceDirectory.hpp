@@ -66,7 +66,7 @@ public:
 	//directory performance. Each accelerator adds into the size of the internal structures
 	int registerAddressSpace(Accelerator *accel);
 
-	//This function setups a taskwait. It decides wether or not a copy must be perform and only
+	//This function setups a taskwait. It decides whether or not a copy must be perform and only
 	//frees the dependences of the task once the data is valid on the home.
 	//Right now only SMP Home is functional
 	// void taskwait(DataAccessRegion taskwaitRegion, void *stream, Task* task);
@@ -85,7 +85,7 @@ private:
 
 	inline bool shouldStopService() const;
 
-	//This function makes a copy betwen two devices, if you are implementing a new device, you must add here the
+	//This function makes a copy between two devices, if you are implementing a new device, you must add here the
 	//interaction between the devices.
 	void generateCopy(AcceleratorStream* acceleratorStream, const DirectoryEntry &entry, int dstHandle, void* copy_extra);
 

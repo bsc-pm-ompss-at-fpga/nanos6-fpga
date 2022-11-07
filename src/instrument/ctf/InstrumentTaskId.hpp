@@ -25,7 +25,7 @@ namespace Instrument {
 		// task_id_t are created in other parts of the runtime apart
 		// from when adding tasks. We want the numeric task ID to be
 		// assigned only to tasks, and to do so we use the dummy bool
-		// arguemnt to distinguish when a numeric task id must be
+		// argument to distinguish when a numeric task id must be
 		// generated.
 		task_id_t(bool)
 		{

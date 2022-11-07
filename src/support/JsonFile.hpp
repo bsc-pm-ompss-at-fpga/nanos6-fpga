@@ -29,7 +29,7 @@ private:
 	//! The path (name) of the system file this JsonFile mirrors
 	std::string _path;
 
-	//! Wether the mirrored system file exists
+	//! Whether the mirrored system file exists
 	bool _fileExists;
 
 	//! The root node of the Json data

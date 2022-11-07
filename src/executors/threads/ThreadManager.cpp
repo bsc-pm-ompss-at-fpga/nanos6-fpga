@@ -52,7 +52,7 @@ void ThreadManager::shutdownPhase1()
 			if (cpu != nullptr) {
 				idleThread->resume(cpu, true);
 			} else {
-				// No CPUs available, readd the thread as idle and break
+				// No CPUs available, re-add the thread as idle and break
 				addIdler(idleThread);
 				break;
 			}

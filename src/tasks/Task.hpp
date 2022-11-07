@@ -463,7 +463,7 @@ public:
 	//!
 	//! \param computePlace in the compute place of the calling thread
 	//!
-	//! \returns true if its depedencies can be released
+	//! \returns true if its dependencies can be released
 	inline bool markAllChildrenAsFinished(ComputePlace *computePlace);
 
 	//! \brief Mark it as blocked

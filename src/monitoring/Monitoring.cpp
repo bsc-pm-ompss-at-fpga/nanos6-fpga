@@ -231,7 +231,7 @@ double Monitoring::getPredictedElapsedTime()
 		// Check how active CPUs currently are
 		double currentCPUActiveness = _cpuMonitor->getTotalActiveness();
 
-		// Check if the elapsed time substracted from the predictions underflows
+		// Check if the elapsed time subtracted from the predictions underflows
 		return (currentWorkload < 0.0 ? 0.0 : (currentWorkload / currentCPUActiveness));
 	}
 
@@ -329,14 +329,14 @@ void Monitoring::storeMonitoringWisdom()
 	// Process all the tasktypes and gather Monitoring and Hardware Counters metrics
 	TaskInfo::processAllTasktypes(
 		[&](const std::string &taskLabel, const std::string &, TasktypeData &tasktypeData) {
-			// If the file already contains this tasktype as a node, retreive
+			// If the file already contains this tasktype as a node, retrieve
 			// its inner node instead of creating a new one
 			JsonNode<double> tasktypeNode;
 			if (rootNode->childNodeExists(taskLabel)) {
 				tasktypeNode = rootNode->getChildNode(taskLabel);
 			}
 
-			// Retreive monitoring statistics
+			// Retrieve monitoring statistics
 			TasktypeStatistics &tasktypeStatistics = tasktypeData.getTasktypeStatistics();
 			double value = tasktypeStatistics.getTimingRollingAverage();
 			if (tasktypeNode.dataExists("NORMALIZED_COST")) {
@@ -345,7 +345,7 @@ void Monitoring::storeMonitoringWisdom()
 				tasktypeNode.addData("NORMALIZED_COST", value);
 			}
 
-			// Retreive hardware counter metrics
+			// Retrieve hardware counter metrics
 			const std::vector<HWCounters::counters_t> &enabledCounters =
 				HardwareCounters::getEnabledCounters();
 			for (size_t i = 0; i < enabledCounters.size(); ++i) {

@@ -100,7 +100,7 @@ AC_DEFUN([ADD_AS_NEEDED_SUPPORT_TO_LIBTOOL],
 						N
 						# Exchange pattern and hold buffers to keep the 3 lines
 						x
-						# Delele the current pattern buffer which should be blank
+						# Delete the current pattern buffer which should be blank
 						d
 					}
 					

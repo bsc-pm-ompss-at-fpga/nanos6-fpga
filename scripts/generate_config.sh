@@ -6,7 +6,7 @@
 #
 # Generate config depending on enabled flags
 
-# Retreive the template file
+# Retrieve the template file
 if [ -z "$1" ]; then
 	>&2 echo "Error: When reading Nanos6 Template Config File"
 	>&2 echo "Usage: generate_config.sh file [sections_to_remove]"

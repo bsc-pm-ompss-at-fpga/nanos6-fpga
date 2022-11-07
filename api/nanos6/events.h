@@ -40,7 +40,7 @@ void nanos6_increase_current_task_event_counter(void *event_counter, unsigned in
 //! \brief Decrease the counter of events of a task and release the dependencies if required
 //!
 //! This function atomically decreases the counter of events of a task and
-//! it releases the depencencies once the number of events becomes zero
+//! it releases the dependencies once the number of events becomes zero
 //! and the task has completed its execution
 //!
 //! \param[in] event_counter The event counter of the task

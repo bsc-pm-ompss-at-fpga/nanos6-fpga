@@ -72,7 +72,7 @@ public:
 	{
 	}
 
-	//! \brief Retreive the mapping from a counters_t identifier to the inner
+	//! \brief Retrieve the mapping from a counters_t identifier to the inner
 	//! identifier of arrays with only enabled events
 	//!
 	//! \param[in] counterType The identifier to translate

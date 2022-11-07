@@ -181,7 +181,7 @@ def formatArgumentLine(raw, globalOffset, position, isSyscall):
 		assert(not isPointer)
 
 		# __data_loc fields may have duplicate names, so we prepend "data_loc_"
-		# to avoid collistions just as it is done in bpftrace
+		# to avoid collisions just as it is done in bpftrace
 		name = "data_loc_" + name
 		argType = "integer { size = 32; align = 8; signed = " + signed + "; encoding = none; base = 10; }"
 	elif isArray:

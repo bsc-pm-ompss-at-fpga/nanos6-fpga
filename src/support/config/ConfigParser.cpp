@@ -24,7 +24,7 @@ void ConfigParser::checkFileOptions(
 		return;
 	}
 
-	// The first key should not be preceeded by a dot
+	// The first key should not be preceded by a dot
 	if (!key.empty()) {
 		key += ".";
 	}

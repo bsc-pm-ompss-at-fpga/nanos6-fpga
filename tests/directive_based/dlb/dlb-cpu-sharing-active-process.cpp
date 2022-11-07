@@ -30,7 +30,7 @@ void wrongExecution(const char *error)
 	tap.end();
 }
 
-//! \brief Increases the global counter and waits untill all the CPUs in the
+//! \brief Increases the global counter and waits until all the CPUs in the
 //! system are busy
 //!
 //! \param[in] numCPUs The number of CPUs used by this process (and to acquire)
@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-	// Retreive the current amount of CPUs
+	// Retrieve the current amount of CPUs
 	size_t numCPUs = nanos6_get_total_num_cpus();
 	tap.emitDiagnostic("Detected ", numCPUs, " CPUs");
 	if (numCPUs < 4) {

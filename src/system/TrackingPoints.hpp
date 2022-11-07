@@ -270,7 +270,7 @@ namespace TrackingPoints {
 	//! - Instrument: Notify that the current task is going to be blocked
 	//!
 	//! \param[in] task The (soon to be resumed) task
-	//! \param[in] fromUserCode Whether the blocking occured from user code or
+	//! \param[in] fromUserCode Whether the blocking occurred from user code or
 	//! was forced from within the runtime
 	void enterBlockCurrentTask(Task *task, bool fromUserCode);
 
@@ -283,7 +283,7 @@ namespace TrackingPoints {
 	//! - Monitoring: Notify that the current task resumes its execution
 	//!
 	//! \param[in] task The (soon to be resumed) task
-	//! \param[in] fromUserCode Whether the blocking occured from user code or
+	//! \param[in] fromUserCode Whether the blocking occurred from user code or
 	//! was forced from within the runtime
 	void exitBlockCurrentTask(Task *task, bool fromUserCode);
 

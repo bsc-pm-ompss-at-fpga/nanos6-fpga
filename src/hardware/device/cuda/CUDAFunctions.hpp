@@ -20,7 +20,7 @@ public:
 	{
 		// Dummy setDevice operation to initialize CUDA runtime;
 		// if even 1 GPU is present setting to 0 should always
-		// be succesful.
+		// be successful.
 		cudaError_t err = cudaSetDevice(0);
 		if (err != cudaErrorNoDevice) {
 			CUDAErrorHandler::warn(err, " received during CUDA initialization. ",

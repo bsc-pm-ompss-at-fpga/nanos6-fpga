@@ -135,7 +135,7 @@ class KernelModel():
 				# process database
 				perProcessExtraeId = cls._processNames[name]
 			except:
-				# The thread command is new, let's assing a new id to it
+				# The thread command is new, let's assign a new id to it
 				perProcessExtraeId     = cls._processNameId
 				cls._processNames[name] = cls._processNameId
 				cls._processNameId += 1

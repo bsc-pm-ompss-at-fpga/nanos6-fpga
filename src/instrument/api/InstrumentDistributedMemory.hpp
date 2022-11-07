@@ -18,13 +18,13 @@
 
 namespace Instrument {
 	//! This function is called (indirectly) from user space to check
-	//! wheather the instrumentation backend is concerned about distributed
+	//! whether the instrumentation backend is concerned about distributed
 	//! memory tracing
 	inline int isDistributedInstrumentEnabled();
 
 	//! This function is called (indirectly) from user application code to
 	//! enable distributted memory support in Nanos6 (probably from the main
-	//! task). Instrumentation backends are suposed to perform the required
+	//! task). Instrumentation backends are supposed to perform the required
 	//! initialization for distributed memory at this point. Backends can
 	//! assume that a distributed memory barrier is called just after the
 	//! Nanos6 API call.

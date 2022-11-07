@@ -137,7 +137,7 @@ __!require_PQOS
 	verbose = true
 	# The verbose file's name. Default is "output-monitoring.txt"
 	verbose_file = "output-monitoring.txt"
-	# The prediction rate at which CPU usage predictions are infered. Default is once every 100µs
+	# The prediction rate at which CPU usage predictions are inferred. Default is once every 100µs
 	cpuusage_prediction_rate = 100 # µs
 	# The number of samples (window) of the normalized exponential moving average for predictions
 	# Default is 20
@@ -148,7 +148,7 @@ __!require_PQOS
 __require_FPGA
 	# OmpSs-2 @ FPGA
 	[devices.fpga]
-		# Byte aligment of the fpga memory allocations
+		# Byte alignment of the fpga memory allocations
 		alignment = 16
 		# If xtasks supports async copies, it can be "async", if not, the runtime can use the default xtasks memcpy and
 		# simulate an asynchronous copy spawning a new thread with "forced async". Copies can also be synchronous with "sync".

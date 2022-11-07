@@ -457,7 +457,7 @@ struct result
     error_type&&      as_err() &&     noexcept {return std::move(this->fail.value);}
 
 
-    // prerequisities
+    // prerequisites
     // F: T -> U
     // retval: result<U, E>
     template<typename F>
@@ -482,7 +482,7 @@ struct result
         return err(std::move(this->as_err()));
     }
 
-    // prerequisities
+    // prerequisites
     // F: E -> F
     // retval: result<T, F>
     template<typename F>
@@ -507,7 +507,7 @@ struct result
         return ok(std::move(this->as_ok()));
     }
 
-    // prerequisities
+    // prerequisites
     // F: T -> U
     // retval: U
     template<typename F, typename U>
@@ -532,7 +532,7 @@ struct result
         return f(std::move(this->as_ok()));
     }
 
-    // prerequisities
+    // prerequisites
     // F: E -> U
     // retval: U
     template<typename F, typename U>
@@ -557,7 +557,7 @@ struct result
         return f(std::move(this->as_err()));
     }
 
-    // prerequisities:
+    // prerequisites:
     // F: func T -> U
     // toml::err(error_type) should be convertible to U.
     // normally, type U is another result<S, F> and E is convertible to F
@@ -583,7 +583,7 @@ struct result
         return err(std::move(this->as_err()));
     }
 
-    // prerequisities:
+    // prerequisites:
     // F: func E -> U
     // toml::ok(value_type) should be convertible to U.
     // normally, type U is another result<S, F> and T is convertible to S

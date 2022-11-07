@@ -130,7 +130,7 @@ In a nutshell:
 
 1. Before calling `malloc` (and friends) or `new`, for data **that will be used in an OpenACC task**
 --> insert a `#pragma acc set device_num(0)`. This applies to **all** functions/smp-task regions, and only
-needs to be done once per context/region (even if there are multiple allocations in succesion).
+needs to be done once per context/region (even if there are multiple allocations in succession).
 1. The code files that contain these allocations **must** be compiled with the PGI-enabled Mercurium (`pgimcc`
 or `pgimcxx`, see below in compilation).
 
@@ -195,7 +195,7 @@ the file containing this task **will not** compile with `pgimcc/xx`.
 
 Therefore, if there is a task using `oss atomic` in an OmpSs-2 + OpenACC program:
 
-1. Seperate this task (and, even better, all that are not relevant to OpenACC) in a different source file(s).
+1. Separate this task (and, even better, all that are not relevant to OpenACC) in a different source file(s).
 1. Compile said file(s) with `mcc`/`mcxx -c file.cpp --ompss-2 --openacc <rest flags>`.
 1. Compile *all* OpenACC-related source files (see subsection *Using allocated data* above) with `pgimcc`/`pgimcxx` respectively.
 (also see general compiling notes above).

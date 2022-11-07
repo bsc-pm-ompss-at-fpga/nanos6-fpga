@@ -38,7 +38,7 @@ public:
 	__attribute__((noinline)) static void walk(int maxFrames, int skipFrames, CONSUMER_T consumer)
 	{
 		// This method is not inline because some implementations of unw_getcontext are expanded to a call
-		// to getcontext, which cause GCC to fail to inline the contaning function.
+		// to getcontext, which cause GCC to fail to inline the containing function.
 		skipFrames++;
 		
 		unw_context_t _context;

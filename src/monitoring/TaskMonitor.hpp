@@ -35,7 +35,7 @@ public:
 
 	//! \brief Re-initialize a task's monitoring statistics
 	//!
-	//! \param[out] taks The task
+	//! \param[out] task The task
 	void taskReinitialized(Task *task) const;
 
 	//! \brief Start time monitoring for a task

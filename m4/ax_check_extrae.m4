@@ -21,7 +21,7 @@ AC_ARG_WITH(extrae,
 		xno)
 			;;
 		xyes)
-			AC_MSG_NOTICE([will requiere Extrae to continue])
+			AC_MSG_NOTICE([will require Extrae to continue])
 			AC_SEARCH_LIBS([Extrae_init], [nanostrace], [have_extrae=yes], [have_extrae=no])
 			if test "x${have_extrae}" = "xno"; then
 				AC_MSG_ERROR([Extrae library not found])

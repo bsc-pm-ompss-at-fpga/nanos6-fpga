@@ -282,7 +282,7 @@ public:
 		_counterAccumulatorsLock.unlock();
 	}
 
-	//! \brief Retreive, for a certain type of counter, the sum of accumulated
+	//! \brief Retrieve, for a certain type of counter, the sum of accumulated
 	//! values of all tasks from this type
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events
@@ -296,7 +296,7 @@ public:
 		return sum;
 	}
 
-	//! \brief Retreive, for a certain type of counter, the average of all
+	//! \brief Retrieve, for a certain type of counter, the average of all
 	//! accumulated values of this task type
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events
@@ -310,7 +310,7 @@ public:
 		return avg;
 	}
 
-	//! \brief Retreive, for a certain type of counter, the standard deviation
+	//! \brief Retrieve, for a certain type of counter, the standard deviation
 	//! taking into account all the values in the accumulator of this task type
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events
@@ -324,7 +324,7 @@ public:
 		return sqrt(variance);
 	}
 
-	//! \brief Retreive, for a certain type of counter, the amount of values
+	//! \brief Retrieve, for a certain type of counter, the amount of values
 	//! in the accumulator (i.e., the number of tasks)
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events
@@ -338,7 +338,7 @@ public:
 		return count;
 	}
 
-	//! \brief Retreive, for a certain type of counter, the average of all
+	//! \brief Retrieve, for a certain type of counter, the average of all
 	//! accumulated normalized values of this task type
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events
@@ -352,7 +352,7 @@ public:
 		return avg;
 	}
 
-	//! \brief Retreive, for a certain type of counter, the average accuracy
+	//! \brief Retrieve, for a certain type of counter, the average accuracy
 	//! of counter predictions of this tasktype
 	//!
 	//! \param[in] counterId An identifier relative to the number of enabled events

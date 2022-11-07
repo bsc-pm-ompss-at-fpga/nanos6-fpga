@@ -183,7 +183,7 @@ public:
 	template <typename IntersectionProcessorType, typename MissingProcessorType>
 	bool processIntersectingAndMissingWithRecentAdditions(DataAccessRegion const &region, IntersectionProcessorType intersectingProcessor, MissingProcessorType missingProcessor);
 
-	//! \brief Pass all elements that intersect a given region through a lambda with the posibility of restarting
+	//! \brief Pass all elements that intersect a given region through a lambda with the possibility of restarting
 	//! the traversal from the last location if instructed
 	//!
 	//! \param[in] region the region to explore

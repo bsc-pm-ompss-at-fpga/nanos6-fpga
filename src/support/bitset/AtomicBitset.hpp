@@ -55,7 +55,7 @@ class AtomicBitset {
 
 	//! \brief Get the index where a bit is located inside a backing storage element
 	//!
-	//! \param[in] pos the positon (index) of the searched bit inside the whole bitset
+	//! \param[in] pos the position (index) of the searched bit inside the whole bitset
 	//!
 	//! \return the position (index) of the bit inside a single element
 	static inline size_t getBitIndex(size_t pos)

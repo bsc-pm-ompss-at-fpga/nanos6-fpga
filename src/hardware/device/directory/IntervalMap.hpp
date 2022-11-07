@@ -265,7 +265,7 @@ public:
 			//if overlaps a region
 			else if (new_range_left == current_in_map_left)
 			{
-				//if overlaps partially, we partition the directory mantaining the region attributes
+				//if overlaps partially, we partition the directory maintaining the region attributes
 				//current allocation:  @@@@@@@@
 				//region to add:       ##
 				// --------------------

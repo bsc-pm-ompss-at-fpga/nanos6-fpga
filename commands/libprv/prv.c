@@ -148,7 +148,7 @@ struct task_stack {
 struct thread {
 	uint64_t tid; /* Thread ID */
 	int cpu; /* On which CPU is the thread running on */
-	int external; /* Wether the thread is external */
+	int external; /* Whether the thread is external */
 	int state; /* Thread state */
 	struct task_stack tasks; /* Stack containing all tasks running in the thread */
 	int busy_wait; /* 1 if is busy waiting */
@@ -943,7 +943,7 @@ conv_graph_is_configured(bt_self_component_sink *self_component_sink)
 	bt_self_component_sink_borrow_input_port_by_index(
 			self_component_sink, 0);
 
-	/* Create the uptream message iterator */
+	/* Create the upstream message iterator */
 	bt_message_iterator_create_from_sink_component(
 			self_component_sink, in_port,
 			&conv->message_iterator);

@@ -109,7 +109,7 @@ Please note that a single cuBLAS context cannot be reused for multiple devices.
 This means that the above example will not be enough when running in a system with multiple GPUs,
 because Nanos6 can schedule tasks in any CUDA device.
 A possible way to tackle this problem is to create one cuBLAS context for each GPU and then
-select inside the task the appropiate handle using the `cudaGetDevice` call to get the GPU the task
+select inside the task the appropriate handle using the `cudaGetDevice` call to get the GPU the task
 will be running on.
 
 ## Compiling OmpSs-2 + CUDA applications

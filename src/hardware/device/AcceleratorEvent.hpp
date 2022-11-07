@@ -43,7 +43,7 @@ public:
 	{
 	}
 
-	//This virtual method is meant to be overriden by a device-specific implementation
+	//This virtual method is meant to be overridden by a device-specific implementation
 	//If the vendor-driver for that device supports events. If not, returns true to
 	//continue with the behaviour of the base-event implementation
 	virtual bool vendorEventQuery()
@@ -51,7 +51,7 @@ public:
 		return true;
 	}
 
-	//This virtual method is meant to be overriden by a device-specific implementation
+	//This virtual method is meant to be overridden by a device-specific implementation
 	//If the vendor-driver for that device supports events.
 	virtual void vendorEventRecord()
 	{

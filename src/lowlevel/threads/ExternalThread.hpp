@@ -27,7 +27,7 @@ private:
 	Instrument::external_thread_id_t _instrumentationId;
 	Instrument::ExternalThreadLocalData _instrumentationData;
 
-	//! Dependency data to interact with the dependecy system
+	//! Dependency data to interact with the dependency system
 	CPUDependencyData _dependencyData;
 
 public:

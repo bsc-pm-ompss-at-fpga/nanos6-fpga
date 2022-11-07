@@ -40,7 +40,7 @@ This would be confusing for the user and would further increase the CTF trace si
 
 Even another option is to decouple HWC information form events.
 This means that events would no longer have a HWC context, but we would have an exclusive tracepoint used to emit HWC information only.
-This is the most flexible option to dyanmically decide whether to emit HWC information at one point or not, but this would increase even more the CTF trace size, given that each of this tracepoints would have its own timestamp and event id.
+This is the most flexible option to dynamically decide whether to emit HWC information at one point or not, but this would increase even more the CTF trace size, given that each of this tracepoints would have its own timestamp and event id.
 Instead, service HWC information into other event's context allows us to "reuse" an already existing event.
 
 The easiest solution (and the one implemented) is to duplicate the event's definition for the worker thread stream but without HWC information.
@@ -61,7 +61,7 @@ In ctf2prv there are two modes to see tasks:
 
 The "Continuous View" mode ignores the Nanos6 entry/exit tracepoints.
 Instead, the "Fragmented View" depends on them.
-The "Runtime Subystems" view is interested in drawing all entry/exit points, because it displays what the runtime is doing at all times i.e. it draws entry/exit tracepoints regardless of them being called by an external thread, a worker thread coming from task context or a worker thread coming from runtime context (this is "tc" and "oc" tracepoints).
+The "Runtime Subsystems" view is interested in drawing all entry/exit points, because it displays what the runtime is doing at all times i.e. it draws entry/exit tracepoints regardless of them being called by an external thread, a worker thread coming from task context or a worker thread coming from runtime context (this is "tc" and "oc" tracepoints).
 The "Runtime Status Simple" is only interested in task and runtime transitions i.e. entry/exit points called by worker threads when transitioning between task and runtime context.
 This is accomplished by only using the "tc" tracepoints.
 
@@ -74,6 +74,6 @@ Summary
  * Some of this entry and exit tracepoints have two variations "tc" (Task Context) and "oc" (Other Context). For example: `nanos6:tc:create_task_entry` and `nanos6:oc:spawn_function_exit`. The "tc" variant marks a transition between task and runtime context. The "oc" variant marks an API called either from runtime context (the runtime calls its own API) or external thread context (an external thread calls this API).
  * Only the "tc" variants might carry HWC information (if HWC are enabled). The entry tracepoint carries task HWC information and the exit tracepoint carries runtime HWC information.
  * Whether a Nanos6 entry point has this two variations or not, depends on two requirements:
-   1. Will the runtime call the API from within the runtime context? If so, wee need the "oc" variant to avoid emitting HWC information, or we could simply not emit this tracepoint.
+   1. Will the runtime call the API from within the runtime context? If so, we need the "oc" variant to avoid emitting HWC information, or we could simply not emit this tracepoint.
    2. Do we want to see this tracepoint in Paraver? Some internal API calls are of no interest and we do not need to see them. Also, having less tracepoints, means having a smaller CTF trace. If we want to see the event in all cases, then we need the "oc" variant.
    For instance, `nanos6_block_current_task()` will always be called from a task context (because it blocks the current task) and hence it will not be called from runtime context. Therefore, its entry/exit tracepoints do not need a "oc" version. However, the `nanos6_unblock_task()` function might be called from runtime context, and we want to see them in Paraver to identify External threads unblocking tasks. Hence, we need the "oc" variant.

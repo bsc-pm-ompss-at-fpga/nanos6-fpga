@@ -128,9 +128,9 @@ public:
 
 	//! \brief Get a specific number of idle CPUs
 	//!
-	//! \param[in] numCPUs The amount of CPUs to retreive
+	//! \param[in] numCPUs The amount of CPUs to retrieve
 	//! \param[out] idleCPUs An array of at least size 'numCPUs' where the
-	//! retreived idle CPUs will be placed
+	//! retrieved idle CPUs will be placed
 	//!
 	//! \return The number of idle CPUs obtained/valid references in the vector
 	static size_t getIdleCPUs(size_t numCPUs, CPU *idleCPUs[]);

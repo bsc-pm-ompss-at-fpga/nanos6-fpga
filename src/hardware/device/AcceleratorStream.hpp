@@ -57,7 +57,7 @@ public:
 		AcceleratorStream::addOperation(operation);
 	}
 
-	//an operation that requieres an activator (does the functionality)
+	//an operation that requires an activator (does the functionality)
 	//and then, the activator function returns a checker which is used
 	//to know if the activated function has finished, asynchronously.
 	virtual void addOperation(std::function<std::function<bool(void)>(void)> operation)

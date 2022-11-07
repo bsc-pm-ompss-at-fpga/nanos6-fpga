@@ -29,7 +29,7 @@ namespace Instrument {
 	inline void enterGetReadyTask()
 	{
 		// while busy waiting, the worker is continuously requesting
-		// tasks. This will quicly fill the ctf buffer, so we disable
+		// tasks. This will quickly fill the ctf buffer, so we disable
 		// both the enter and exit while busywaing.
 
 		ThreadLocalData &tld = getThreadLocalData();

@@ -324,7 +324,7 @@ namespace Instrument {
 	}
 
 
-	// Returns the id of an emited access in the group
+	// Returns the id of an emitted access in the group
 	static data_access_id_t emitAccessGroup(
 		std::ofstream &ofs, access_t &firstAccess
 	) {

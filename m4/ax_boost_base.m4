@@ -10,7 +10,7 @@
 #
 #   Test for the Boost C++ libraries of a particular version (or newer)
 #
-#   If no path to the installed boost library is given the macro searchs
+#   If no path to the installed boost library is given the macro searches
 #   under /usr, /usr/local, /opt and /opt/local and evaluates the
 #   $BOOST_ROOT environment variable. Further documentation is available at
 #   <http://randspringer.de/boost/index.html>.
@@ -127,7 +127,7 @@ AC_DEFUN([_AX_BOOST_BASE_RUNDETECT],[
     )
 
     dnl first we check the system location for boost libraries
-    dnl this location ist chosen if boost libraries are installed with the --layout=system option
+    dnl this location is chosen if boost libraries are installed with the --layout=system option
     dnl or if you install boost with RPM
     AS_IF([test "x$_AX_BOOST_BASE_boost_path" != "x"],[
         AC_MSG_CHECKING([for boostlib >= $1 ($WANT_BOOST_VERSION) includes in "$_AX_BOOST_BASE_boost_path/include"])

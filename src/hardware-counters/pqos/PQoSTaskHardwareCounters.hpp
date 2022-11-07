@@ -171,7 +171,7 @@ public:
 		}
 	}
 
-	//! \brief Retreive the size needed for hardware counters
+	//! \brief Retrieve the size needed for hardware counters
 	static inline size_t getTaskHardwareCountersSize()
 	{
 		// We need 2 times the number of events for the delta and accumulated values

@@ -24,7 +24,7 @@ void DefaultCPUManager::preinitialize()
 {
 	_finishedCPUInitialization = false;
 
-	// Retreive the CPU mask of this process
+	// Retrieve the CPU mask of this process
 	int rc = sched_getaffinity(0, sizeof(cpu_set_t), &_cpuMask);
 	FatalErrorHandler::handle(
 		rc, " when retrieving the affinity of the process"

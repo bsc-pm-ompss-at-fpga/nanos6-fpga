@@ -153,7 +153,7 @@ void CTFAPI::CTFUserMetadata::writeMetadataFile()
 	std::string path = userPath + "/metadata";
 
 	f = fopen(path.c_str(), "w");
-	FatalErrorHandler::failIf(f == NULL, std::string("Instrumentation: ctf: writting metadata file: ") + strerror(errno));
+	FatalErrorHandler::failIf(f == NULL, std::string("Instrumentation: ctf: writing metadata file: ") + strerror(errno));
 
 	fputs(meta_header, f);
 	fputs(meta_typedefs, f);

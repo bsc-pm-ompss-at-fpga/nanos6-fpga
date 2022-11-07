@@ -67,7 +67,7 @@ PQoSHardwareCounters::PQoSHardwareCounters(
 	assert(pqosCapabilities->u.mon != nullptr);
 
 	// Choose events to monitor: only those enabled by the user
-	// In here we translate our enum-defined event types (preceeded by the
+	// In here we translate our enum-defined event types (preceded by the
 	// HWCounters namespace) to the real to the real events
 	int eventsToMonitor = 0;
 	for (size_t i = 0; i < enabledEvents.size(); ++i) {

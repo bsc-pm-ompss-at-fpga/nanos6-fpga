@@ -47,7 +47,7 @@ public:
 	{
 	}
 
-	//! \brief Explicitely declare a default copy assignment to avoid
+	//! \brief Explicitly declare a default copy assignment to avoid
 	//! warnings (gcc9+)
 	JsonNode &operator=(const JsonNode &node) = default;
 
@@ -68,7 +68,7 @@ public:
 
 		// First check if the node exists
 		if (childNodeExists(label)) {
-			// Retreive the node and check if it is a terminal value
+			// Retrieve the node and check if it is a terminal value
 			Json::ptree childNode = getChildNode(label).getInnerNode();
 			exists = (childNode.empty() && !childNode.data().empty());
 		}
@@ -158,7 +158,7 @@ public:
 	{
 		// Iterate all children nodes
 		for (auto const &childNode : _node) {
-			// Retreive the child node and its label
+			// Retrieve the child node and its label
 			const std::string &label = childNode.first;
 			JsonNode<> node(childNode.second);
 

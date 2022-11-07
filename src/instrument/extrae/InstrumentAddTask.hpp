@@ -183,12 +183,12 @@ namespace Instrument {
 			_extraeTaskInfo = new Extrae::TaskInfo(taskInfo, threadLocal._nestingLevels.back()+1, context._taskId._taskInfo);
 		}
 
-		// When creating a regular task, we emmit two events: runtime state and code location.
-		// We emmit runtime state as NANOS_CREATION and code location as the method run by the task.
-		// In this case, when adding a collaborator to taskfor, we are only emmitting one event: code location.
-		// We do not emmit runtime state because adding a collaborator does not actually mean creating a task,
+		// When creating a regular task, we emit two events: runtime state and code location.
+		// We emit runtime state as NANOS_CREATION and code location as the method run by the task.
+		// In this case, when adding a collaborator to taskfor, we are only emitting one event: code location.
+		// We do not emit runtime state because adding a collaborator does not actually mean creating a task,
 		// since collaborators are already created at scheduler initialization. We are just setting up some
-		// data structures, and so, it is not fine to emmit NANOS_CREATION.
+		// data structures, and so, it is not fine to emit NANOS_CREATION.
 
 		if (_traceAsThreads) {
 			_extraeThreadCountLock.readLock();
@@ -209,7 +209,7 @@ namespace Instrument {
 		__attribute__((unused)) InstrumentationContext const &context
 	) {
 		// As we did not changed the runtime state in "enterInitTaskforCollaborator", we do not have to restore it here.
-		// Thus, emmit only code location.
+		// Thus, emit only code location.
 
 		if (_traceAsThreads) {
 			_extraeThreadCountLock.readLock();

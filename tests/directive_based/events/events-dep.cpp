@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 		processed[c] = false;
 	}
 
-	// Vector for storing the exepected values at a given step
+	// Vector for storing the expected values at a given step
 	std::vector<int> expecteds(ntasks, 0);
 
 	// Task responsible for fulfilling all events

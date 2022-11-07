@@ -791,7 +791,7 @@ parse_local_datetime(location& loc)
         {
             throw internal_error(format_underline(
                 "toml::parse_local_datetime: invalid datetime format",
-                {{source_location(inner_loc), "invalid time fomrat"}}),
+                {{source_location(inner_loc), "invalid time format"}}),
                 source_location(inner_loc));
         }
         return ok(std::make_pair(
@@ -1285,7 +1285,7 @@ insert_nested_key(typename Value::table_type& root, const Value& v,
                     // b = 54
                     // ```
                     // Here, from the type information, these cannot be detected
-                    // bacause inline table is also a table.
+                    // because inline table is also a table.
                     // But toml v0.5.0 explicitly says it is invalid. The above
                     // array-of-tables has a static size and appending to the
                     // array is invalid.
@@ -1750,7 +1750,7 @@ parse_table_key(location& loc)
                 source_location(inner_loc));
         }
 
-        // after [table.key], newline or EOF(empty table) requried.
+        // after [table.key], newline or EOF(empty table) required.
         if(loc.iter() != loc.end())
         {
             using lex_newline_after_table_key =
@@ -1807,7 +1807,7 @@ parse_array_table_key(location& loc)
                 source_location(inner_loc));
         }
 
-        // after [[table.key]], newline or EOF(empty table) requried.
+        // after [[table.key]], newline or EOF(empty table) required.
         if(loc.iter() != loc.end())
         {
             using lex_newline_after_table_key =
@@ -2098,7 +2098,7 @@ basic_value<Comment, Table, Array> parse(const std::string& fname)
 // Without this, both parse(std::string) and parse(std::filesystem::path)
 // matches to parse("filename.toml"). This breaks the existing code.
 //
-// This function exactly matches to the invokation with c-string.
+// This function exactly matches to the invocation with c-string.
 // So this function is preferred than others and the ambiguity disappears.
 template<typename                     Comment = ::toml::discard_comments,
          template<typename ...> class Table   = std::unordered_map,

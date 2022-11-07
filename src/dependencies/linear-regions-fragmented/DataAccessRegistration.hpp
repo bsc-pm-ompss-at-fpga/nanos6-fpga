@@ -136,9 +136,9 @@ namespace DataAccessRegistration {
 	//! This is meant to be used for unregistering a DataAccess with
 	//! NO_ACCESS_TYPE that was previously registered calling
 	//! 'registerLocalAccess', when we are done with this region, i.e. the
-	//! corresponging memory has been deallocated.
+	//! corresponding memory has been deallocated.
 	//!
-	//! \param[in] task is the Task that region is registerd to
+	//! \param[in] task is the Task that region is registered to
 	//! \param[in] region is the DataAccessRegion being unregistered
 	void unregisterLocalAccess(Task *task, DataAccessRegion const &region);
 

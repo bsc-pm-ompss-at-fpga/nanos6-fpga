@@ -87,7 +87,7 @@ public:
 		_waitQueue[0]._cpuId = 0;
 	}
 
-	//! \breif Destroy a delegation lock
+	//! \brief Destroy a delegation lock
 	~DelegationLock()
 	{
 #ifndef NDEBUG

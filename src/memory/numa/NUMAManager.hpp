@@ -75,7 +75,7 @@ private:
 	//! Whether should report NUMA information
 	static ConfigVariable<bool> _reportEnabled;
 
-	//! Wether the automatic page discovery is enabled or disabled
+	//! Whether the automatic page discovery is enabled or disabled
 	static ConfigVariable<bool> _discoverPageSize;
 
 	//! Whether the real pagesize must be discovered

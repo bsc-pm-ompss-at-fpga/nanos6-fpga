@@ -80,7 +80,7 @@ uint64_t BlockingAPI::waitForUs(uint64_t timeUs)
 
 	Task::deadline_t timeout = (Task::deadline_t) timeUs;
 
-	// Substract a fixed delta to the timeout
+	// Subtract a fixed delta to the timeout
 	const Task::deadline_t minimumCost = 30;
 	if (timeout > minimumCost) {
 		timeout -= minimumCost;

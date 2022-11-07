@@ -171,7 +171,7 @@ namespace Instrument {
 			// Same thread counter as regular worker threads
 			threadId = GenericIds::getCommonPoolNewExternalThreadId();
 		} else {
-			// Conter separated from worker threads
+			// Counter separated from worker threads
 			threadId = GenericIds::getNewExternalThreadId();
 		}
 

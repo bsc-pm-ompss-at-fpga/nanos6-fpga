@@ -17,7 +17,7 @@ class BitManipulation {
 public:
 	static inline int indexFirstEnabledBit(uint64_t x)
 	{
-		// The ffs function returns the least signficant enabled bit starting
+		// The ffs function returns the least significant enabled bit starting
 		// from one, while returning zero means that has no enabled bits
 		return __builtin_ffsll(x) - 1;
 	}

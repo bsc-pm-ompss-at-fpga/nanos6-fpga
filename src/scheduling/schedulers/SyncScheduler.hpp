@@ -39,7 +39,7 @@ private:
 	size_t _totalAddQueues;
 
 	//! Delegation lock protecting the access
-	//! to the unsychronized scheduler
+	//! to the unsynchronized scheduler
 	DelegationLock<Task *> _lock;
 
 	//! Locks for adding tasks to the add queues

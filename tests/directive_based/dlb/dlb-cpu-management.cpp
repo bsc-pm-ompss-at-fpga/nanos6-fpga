@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 
 	timer.start();
 
-	// Loop untill all CPUs are currently running tasks. Note
+	// Loop until all CPUs are currently running tasks. Note
 	// that the tasks are forced to busy wait until the test
 	// has finished
 	int numRunningCPUs;

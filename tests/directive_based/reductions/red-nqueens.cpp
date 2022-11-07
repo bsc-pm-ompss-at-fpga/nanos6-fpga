@@ -41,7 +41,7 @@ typedef struct sol_node
 	struct sol_node *prev;
 } sol_node_t, *sol_t;
 
-// Check if possition can be attacked (1) by currently positioned queens.
+// Check if position can be attacked (1) by currently positioned queens.
 // The check is performed column-wise from right to left, checking the latest
 // positioned queen, then the previous, etc.
 static inline int check_attack(const int col, const int row, sol_t sol)

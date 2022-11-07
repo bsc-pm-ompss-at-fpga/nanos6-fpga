@@ -118,7 +118,7 @@ public:
 		}
 	}
 
-	//! \brief Retreive the size needed for hardware counters
+	//! \brief Retrieve the size needed for hardware counters
 	static inline size_t getTaskHardwareCountersSize()
 	{
 		const size_t numCounters = PAPIHardwareCounters::getNumEnabledCounters();

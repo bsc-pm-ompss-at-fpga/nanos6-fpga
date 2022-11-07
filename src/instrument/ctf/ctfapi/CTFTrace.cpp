@@ -132,7 +132,7 @@ static std::string mkTraceDirectoryName(
 // and index to the path name and try again. When a valid unused path is found,
 // rename the conflicting directory to the unused path. Then return the now
 // unused initial path. This mechanism is used to ensure that all processes in a
-// distributed memory execution can compute a valif trace path without
+// distributed memory execution can compute a valid trace path without
 // explicitly negotiating it.
 static std::string prepareTraceDirectoryPath(
 	std::string finalTracePath,
@@ -170,7 +170,7 @@ static std::string prepareTraceDirectoryPath(
 //
 // During shutdown, all ranks (including zero) call this again. The non-zero
 // ranks will wait for a certain time for the directory to be created. Rank
-// zero, will just return immediatelly.
+// zero, will just return immediately.
 //
 // If distributed memory is not enabled, this function is not called in advance,
 // so it will be called at shutdown for the first time and rank 0 (the only

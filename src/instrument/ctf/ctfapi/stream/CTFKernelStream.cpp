@@ -34,7 +34,7 @@ CTFAPI::CTFKernelEventsProvider::EventHeader *CTFAPI::CTFKernelStream::mapStream
 
 	rc = fstat(fd, &stat);
 	if (rc == -1) {
-		FatalErrorHandler::fail("CTF: Kerenl: When obtaining stream file size: ", strerror(errno));
+		FatalErrorHandler::fail("CTF: Kernel: When obtaining stream file size: ", strerror(errno));
 	}
 	_streamSize = stat.st_size;
 
@@ -104,7 +104,7 @@ void CTFAPI::CTFKernelStream::moveUnsortedEvent(
 	eventList[hole] = eventList[hole - 1];
 	hole--;
 
-	// Position the intitial iterators. Previous points to the event we are
+	// Position the initial iterators. Previous points to the event we are
 	// comparing "current". Shadow points to the event that was "previous"
 	// in the previous iteration
 	shadow = previous;

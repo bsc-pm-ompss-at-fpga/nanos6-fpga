@@ -119,7 +119,7 @@ The Nanos6 runtime will only interpret the first configuration file found accord
 1. The file `nanos6.toml` found in the current working directory.
 1. The file `nanos6.toml` found in the installation path (default file).
 
-Alternatively, if configuration has to be changed programatically and creating new files is not practical, configuration variables can be overriden using the `NANOS6_CONFIG_OVERRIDE` environment variable.
+Alternatively, if configuration has to be changed programmatically and creating new files is not practical, configuration variables can be overridden using the `NANOS6_CONFIG_OVERRIDE` environment variable.
 The contents of this variable have to be in the format `key1=value1,key2=value2,key3=value3,...`.
 For example, to change the dependency implementation and CTF instrumentation: `NANOS6_CONFIG_OVERRIDE="version.dependencies=discrete,version.instrument=ctf" ./ompss-program`.
 
@@ -159,7 +159,7 @@ Finally, taskfors that do not define any chunksize leverage a chunksize value co
 
 There are several Nanos6 variants, each one focusing on different aspects of parallel executions: performance, debugging, instrumentation, etc.
 Nanos6 applications, unlike Nanos++ applications do not require recompiling their code to generate Extrae traces or to generate additional information.
-This is instead controlled through configration options, at run time.
+This is instead controlled through configuration options, at run time.
 Users can select a Nanos6 variant when running an application through the `version.dependencies`, `version.instrument` and `version.debug` configuration variables.
 The next subsections explain the different variants of Nanos6 and how to enable them.
 
@@ -447,7 +447,7 @@ For information about using device tasks (e.g., CUDA tasks), refer to the [devic
 
 ## Choosing a dependency implementation
 
-The Nanos6 runtime has support for different dependency implementations. The `discrete` dependencies are the default dependency implementation. This is the most optimized implementation but it does not fully support the OmpSs-2 dependency model since it does not support region dependencies. In the case the user program requires region dependencies (e.g., to detect dependencies among partial overlapping dependency regions), Nanos6 privides the `regions` implementation, which is completely spec-compliant.
+The Nanos6 runtime has support for different dependency implementations. The `discrete` dependencies are the default dependency implementation. This is the most optimized implementation but it does not fully support the OmpSs-2 dependency model since it does not support region dependencies. In the case the user program requires region dependencies (e.g., to detect dependencies among partial overlapping dependency regions), Nanos6 provides the `regions` implementation, which is completely spec-compliant.
 
 The dependency implementation can be selected at run-time through the `version.dependencies` configuration variable. The available implementations are:
 
@@ -523,7 +523,7 @@ Furthermore, the execution time when enabling this feature should be similar to 
 
 The throttle mechanism requires a valid installation of Jemalloc, which is a scalable multi-threading memory allocator.
 Hence, the runtime system must be configured with the ``--with-jemalloc`` option.
-Although the throttle feature is disabled by default, it can be enabled and tunned at runtime through the following configuration variables:
+Although the throttle feature is disabled by default, it can be enabled and tuned at runtime through the following configuration variables:
 
 * `throttle.enabled`: Boolean variable that enables the throttle mechanism. **Disabled** by default.
 * `throttle.tasks`: Maximum absolute number of alive childs that any task can have. It is divided by 10 at each nesting level. By default is 5.000.000.

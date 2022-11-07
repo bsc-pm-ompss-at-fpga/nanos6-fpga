@@ -55,7 +55,7 @@ To generate a CTF trace, run the application with the `version.instrument` confi
 
 This will create a `trace_<app_name>` folder in the current directory.
 If MPI support is enabled, the rank id will be appended to the trace directory name (see [MPI Tracing](#mpi-tracing) below).
-Hereinafter, the trace directory will be refered as `$TRACE` for convenience.
+Hereinafter, the trace directory will be referred as `$TRACE` for convenience.
 The subdirectory `$TRACE/ctf` contains the ctf trace as recorded by Nanos6.
 
 By default, Nanos6 will convert the trace automatically at the end of the execution unless the user explicitly sets the configuration variable `instrument.ctf.converter.enabled = false`.
@@ -86,10 +86,10 @@ Requirements:
 
 The Linux Kernel provides a set of events (also named tracepoints).
 To enable kernel events tracing in Nanos6, the user needs to specify which events wants to collect through the nanos6 configuration file.
-The option `instrument.ctf.events.kernel.presets` allows to speciy a list of presets that ease selecting events for supported Paraver views.
+The option `instrument.ctf.events.kernel.presets` allows to specify a list of presets that ease selecting events for supported Paraver views.
 For instance, try to set `instrument.ctf.events.kernel.presets=[preemption]` to enable preemption-related events.
 
-Please check the Paraver views description below for the list of presets that each view requries.
+Please check the Paraver views description below for the list of presets that each view requires.
 
 If the user does not want to enable some of the events defined in a preset, it can blacklist them in the `instrument.ctf.events.kernel.exclude` list.
 
@@ -101,7 +101,7 @@ $ cat kernel_events.conf
 sched_switch
 sys_enter_open
 sys_exit_open
-# mm_page_alloc # comented lines are not enabled
+# mm_page_alloc # commented lines are not enabled
 ```
 
 A list of events that your system supports can be obtained with:

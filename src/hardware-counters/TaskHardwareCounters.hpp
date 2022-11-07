@@ -201,7 +201,7 @@ public:
 		_spinlock.unlock();
 	}
 
-	//! \brief Retreive the allocation address for all the backend objects
+	//! \brief Retrieve the allocation address for all the backend objects
 	inline void *getAllocationAddress() const
 	{
 		return _allocationAddress;

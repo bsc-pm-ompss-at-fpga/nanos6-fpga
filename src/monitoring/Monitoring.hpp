@@ -59,7 +59,7 @@ private:
 	//! \brief Try to load previous monitoring data into accumulators
 	static void loadMonitoringWisdom();
 
-	//! \brief Store monitoring data for future executions as warmup data
+	//! \brief Store monitoring data for future executions as warm-up data
 	static void storeMonitoringWisdom();
 
 public:

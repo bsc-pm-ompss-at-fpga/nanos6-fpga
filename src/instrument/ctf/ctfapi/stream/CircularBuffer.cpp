@@ -176,7 +176,7 @@ bool CircularBuffer::checkIfNeedsFlush()
 	if (wraps())
 		return true;
 
-	// Otherwise let's check if the wirtten size exceeds the subbuffer size
+	// Otherwise let's check if the written size exceeds the subbuffer size
 	size = ((_head - _tail) & ~_subBufferMask);
 	return (size > 0);
 }

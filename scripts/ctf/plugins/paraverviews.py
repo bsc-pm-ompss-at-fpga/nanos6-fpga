@@ -570,7 +570,7 @@ class ParaverViewRuntimeSubsystems(ParaverView):
 		ParaverTrace.emitEvent(timeAcq, cpuId, pastPayload)
 
 		# Emit communication line (if present) before any current event as
-		# requried by paraver. This line shows a relation between a worker
+		# required by paraver. This line shows a relation between a worker
 		# serving task and another worker being assigned work by it.
 		if taskId != 0:
 			timeRel = ExecutionModel.getCurrentTimestamp()
@@ -651,10 +651,10 @@ class ParaverViewCTFFlush(ParaverView):
 		start = event["start"]
 		end   = event["end"]
 
-		# In this view we are not emiting events trough the "payload" variable,
+		# In this view we are not emitting events through the "payload" variable,
 		# but we are emitting events directly. That's because we don't want to
 		# use the current event timestamp as the extare timestamp but we want
-		# to use the event's fields as timestamps. It is safe to do so becaue
+		# to use the event's fields as timestamps. It is safe to do so because
 		# on flushing, we know that no events could be emitted between the last
 		# processed event and now, basically because nanos6 was flushing the
 		# buffer :-)
@@ -836,7 +836,7 @@ class ParaverViewKernelThreadID(ParaverView):
 	def hook_schedSwitch(self, event, payload):
 		tid = event["next_pid"]
 		# Idle threads have Id 0, which correspond to the "End" state in
-		# Paraver. Therfore, no special treament need to be done for the idle
+		# Paraver. Therefore, no special treament need to be done for the idle
 		# threads.
 		payload.append((ExtraeEventTypes.KERNEL_THREAD_ID, tid))
 
@@ -874,7 +874,7 @@ class ParaverViewKernelPreemptions(ParaverView):
 
 	def callback_newProcessName(self, name, perProcessExtraeId):
 		""" This is called every time a thread with an unseen command name
-		"comm_next" is scheduled for the first time. The kernel model assings an id (perProcessExtraeId) to each of the new command names. The id 0 always corresponds to Idle, the Id 1 to the traced process, and the next process will start at 100. The ids in between are reserved for specific uses such as IRQ. """
+		"comm_next" is scheduled for the first time. The kernel model assigns an id (perProcessExtraeId) to each of the new command names. The id 0 always corresponds to Idle, the Id 1 to the traced process, and the next process will start at 100. The ids in between are reserved for specific uses such as IRQ. """
 		ParaverTrace.addEventTypeAndValue(ExtraeEventTypes.KERNEL_PREEMPTIONS, {perProcessExtraeId : name})
 
 	def callback_newThread(self, thread, tid, perProcessExtraeId):

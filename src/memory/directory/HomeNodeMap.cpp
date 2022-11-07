@@ -58,7 +58,7 @@ HomeNodeMap::find(DataAccessRegion const &region)
 		{
 			FatalErrorHandler::failIf(
 				true,
-				"Asking the home node of an unkown ",
+				"Asking the home node of an unknown ",
 				"region: ",
 				missingRegion
 			);

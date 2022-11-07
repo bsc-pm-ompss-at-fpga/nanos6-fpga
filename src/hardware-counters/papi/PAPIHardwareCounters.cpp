@@ -91,7 +91,7 @@ void PAPIHardwareCounters::testMaximumNumberOfEvents()
 	ret = PAPI_destroy_eventset(&eventSet);
 	if (ret != PAPI_OK) {
 		FatalErrorHandler::fail(
-			ret, " when destorying the main thread's PAPI eventSet - ",
+			ret, " when destroying the main thread's PAPI eventSet - ",
 			PAPI_strerror(ret)
 		);
 	}

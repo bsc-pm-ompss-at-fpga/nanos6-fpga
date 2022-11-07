@@ -173,7 +173,7 @@ CTFAPI::CTFKernelEventsProvider::CTFKernelEventsProvider(int cpu, size_t userSiz
 	// Change file descriptor properties
 	if (fcntl(_groupFd, F_SETFL, O_RDONLY | O_NONBLOCK)) {
 		FatalErrorHandler::fail(
-			"CTF: Kernel: When changing file desciptor properties: ",
+			"CTF: Kernel: When changing file descriptor properties: ",
 			strerror(errno)
 		);
 	}
@@ -212,7 +212,7 @@ CTFAPI::CTFKernelEventsProvider::CTFKernelEventsProvider(int cpu, size_t userSiz
 		// Set event as non-blocking and read-only
 		if (fcntl(fd, F_SETFL, O_RDONLY | O_NONBLOCK)) {
 			FatalErrorHandler::fail(
-				"CTF: Kernel: changing file desciptor properties: ",
+				"CTF: Kernel: changing file descriptor properties: ",
 				strerror(errno)
 			);
 		}
@@ -221,7 +221,7 @@ CTFAPI::CTFKernelEventsProvider::CTFKernelEventsProvider(int cpu, size_t userSiz
 	}
 
 	// Allocate a temporal buffer used to copy events that have been split
-	// betwen the end and beginning of the shared ring buffer
+	// between the end and beginning of the shared ring buffer
 	_temporalBuffer = MemoryAllocator::alloc(_tempSize);
 
 	// Setup initial pointers
@@ -251,7 +251,7 @@ void *CTFAPI::CTFKernelEventsProvider::getNextEvent(uint64_t current)
 	//
 	// It's not possible to create a "magic ring buffer" as mmaping
 	// the perf buffer with an offset is not allowed. Therefore the
-	// only way is to copy the struture in an intermediate buffer
+	// only way is to copy the structure in an intermediate buffer
 	//
 	// The header cannot be split because it's 64 bit aligned and 64
 	// bit long. Hence, it's safe to access it
@@ -378,7 +378,7 @@ bool CTFAPI::CTFKernelEventsProvider::read(void *buf, uint64_t size, uint64_t *r
 			warnUnknownPerfRecord(header);
 		}
 
-		// If the event was copied sucessfully to the user buffer, move
+		// If the event was copied successfully to the user buffer, move
 		// on to the next event
 		_current += header->size;
 	}

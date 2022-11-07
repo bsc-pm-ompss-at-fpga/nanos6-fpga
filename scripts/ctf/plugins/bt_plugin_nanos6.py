@@ -126,7 +126,7 @@ class ctf2prv(bt2._UserSinkComponent):
 			ParaverTrace.initalizeTraceFiles()
 
 			# Initialize both Kernel and Runtime Models. The Kernel Model must
-			# be initalized before Paravare views are created
+			# be initialized before Paravare views are created
 			KernelModel.initialize()
 			RuntimeModel.initialize()
 

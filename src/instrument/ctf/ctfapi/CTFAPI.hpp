@@ -148,7 +148,7 @@ namespace CTFAPI {
 		__tp_lock_write(stream, event, timestamp, size, args...);
 
 		// if we flused, write the start and end flushing tracepoints as
-		// they originally ocurred. Writing the flushing tracepoints
+		// they originally occurred. Writing the flushing tracepoints
 		// will call this function recursively. As long as the buffer
 		// can hold two flush tracepoints, this function will be called
 		// at most two extra times
@@ -161,7 +161,7 @@ namespace CTFAPI {
 	static void tracepoint_async(CTFEvent *event, uint64_t timestamp, ARGS... args)
 	{
 		// When issuing async tracepoints, we cannot rely on locks
-		// because the timestamp should be aquired within a locked
+		// because the timestamp should be acquired within a locked
 		// region. Otherwise we could be writing unordered events and
 		// corrupting the trace. However, here the user is providing us
 		// with a timestamp obtained in the past.  Hence, the
@@ -181,7 +181,7 @@ namespace CTFAPI {
 		// Obtaining the per-cpu local object might trigger a
 		// tracepoint. This will happen if the current thread is an
 		// external thread that has not been initialized yet. In that
-		// case a nanos6:external_thread_create event will be emited
+		// case a nanos6:external_thread_create event will be emitted
 		// before the current one
 		CTFStream *stream = Instrument::getCTFCPULocalData()->userStream;
 		assert(stream != nullptr);

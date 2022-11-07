@@ -51,7 +51,7 @@ public:
 		}
 	}
 	
-	//! \brief indicates if the enviornment variable has actually been defined
+	//! \brief indicates if the environment variable has actually been defined
 	inline bool isPresent() const
 	{
 		return _isPresent;

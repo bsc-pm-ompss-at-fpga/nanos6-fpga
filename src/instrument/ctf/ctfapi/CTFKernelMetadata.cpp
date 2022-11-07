@@ -280,7 +280,7 @@ void CTFAPI::CTFKernelMetadata::addPatternDependentEvents()
 	// generic "sys_enter" and "sys_exit". We prefer enabling syscall
 	// specific events e.g. sys_enter_open/sys_exit_open rather than the
 	// generic ones sys_enter/sys_exit because generic events always have
-	// six arguemnts, even if the specific syscall tracepoint has less.
+	// six arguments, even if the specific syscall tracepoint has less.
 	if (_enableSyscalls) {
 		kernel_event_map_t::iterator it;
 		for (it = _kernelEventMap.begin(); it != _kernelEventMap.end(); it++) {
@@ -330,7 +330,7 @@ void CTFAPI::CTFKernelMetadata::writeMetadataFile()
 	f = fopen(path.c_str(), "w");
 	if (f == NULL) {
 		FatalErrorHandler::fail(
-			"Instrumentation: ctf: writting kernel metadata file: ",
+			"Instrumentation: ctf: writing kernel metadata file: ",
 			strerror(errno)
 		);
 	}

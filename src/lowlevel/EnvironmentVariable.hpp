@@ -46,7 +46,7 @@ public:
 		}
 	}
 
-	//! \brief Indicate if the enviornment variable has actually been defined
+	//! \brief Indicate if the environment variable has actually been defined
 	inline bool isPresent() const
 	{
 		return _isPresent;
@@ -66,7 +66,7 @@ public:
 
 	//! \brief Overwrite the value
 	//!
-	//! Note that this method does not alter the actual enviornment variable. It
+	//! Note that this method does not alter the actual environment variable. It
 	//! only modifies the value stored in the object.
 	//!
 	//! \param[in] value the new value

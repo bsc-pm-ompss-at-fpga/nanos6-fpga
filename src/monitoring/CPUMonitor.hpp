@@ -67,7 +67,7 @@ public:
 		_cpuStatistics[virtualCPUId].cpuBecomesIdle();
 	}
 
-	//! \brief Retreive the activeness of a CPU
+	//! \brief Retrieve the activeness of a CPU
 	//!
 	//! \param[in] virtualCPUId The identifier of the CPU
 	inline float getActiveness(int virtualCPUId)

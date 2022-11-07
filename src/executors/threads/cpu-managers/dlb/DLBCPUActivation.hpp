@@ -263,7 +263,7 @@ public:
 
 						// Runtime Tracking Point - A cpu becomes idle
 						// The status change is only notified once we know that the CPU
-						// has been lent sucessfully. Additionally, the instrumentation
+						// has been lent successfully. Additionally, the instrumentation
 						// must be called prior the status change to prevent overlapping
 						// instrumentation calls with threads resuming on the lending CPU
 						TrackingPoints::cpuBecomesIdle(cpu, currentThread);
@@ -424,7 +424,7 @@ public:
 				case CPU::lent_status:
 					assert(cpu->isOwned());
 
-					// If we are expecting a callback, try to reenable the CPU
+					// If we are expecting a callback, try to re-enable the CPU
 					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::enabling_status);
 					if (successful) {
 						// Resume a thread so it sees the status changes
@@ -444,7 +444,7 @@ public:
 					assert(cpu->isOwned());
 
 					// If the CPU was lent and the runtime is shutting down
-					// reenable the CPU without changing the status
+					// re-enable the CPU without changing the status
 					successful = cpu->getActivationStatus().compare_exchange_strong(currentStatus, CPU::shutdown_status);
 					if (successful) {
 						// Runtime Tracking Point - A cpu becomes active

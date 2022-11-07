@@ -256,7 +256,7 @@ namespace DataAccessRegistration {
 		bool fromBusyThread)
 	{
 		DataAccessType originalAccessType = access->getType();
-		// No race, the parent is finished so all childs must be registered by now.
+		// No race, the parent is finished so all children must be registered by now.
 		DataAccess *childAccess = access->getChild();
 		ReductionInfo *reductionInfo = nullptr;
 
