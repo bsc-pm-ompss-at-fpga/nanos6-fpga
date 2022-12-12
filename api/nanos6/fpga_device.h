@@ -42,14 +42,11 @@ nanos6_fpga_stat_t nanos6_fpga_malloc(uint64_t size, uint64_t* fpga_addr);
 nanos6_fpga_stat_t nanos6_fpga_free(uint64_t fpga_addr);
 nanos6_fpga_stat_t nanos6_fpga_memcpy(void* usr_ptr, uint64_t fpga_addr, uint64_t size, nanos6_fpga_copy_t copy_type);
 
+extern void nanos6_fpga_memcpy_wideport_in(void * dst, const unsigned long long int addr, const unsigned int num_elems);
+extern void nanos6_fpga_memcpy_wideport_out(void * dst, const unsigned long long int addr, const unsigned int num_elems);
+
 #ifdef __cplusplus
 }
-
-template<class T>
-extern void nanos_fpga_memcpy_wideport_in( T * dst, const unsigned long long int addr, const unsigned int num_elems );
-template<class T>
-extern void nanos_fpga_memcpy_wideport_in( T * dst, const unsigned long long int addr, const unsigned int num_elems );
-
 #endif
 
 #pragma GCC visibility pop
