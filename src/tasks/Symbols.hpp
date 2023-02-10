@@ -34,7 +34,6 @@ struct SymbolRepresentation
 	//to this symbol use the same pointer in the user code.
 	DataAccessRegion host_region;
 
-	nanos6_address_translation_entry_t* translationEntry;
 	std::shared_ptr<DeviceAllocation>   allocation;
 
 	std::vector<DataAccessRegion> input_regions;
@@ -42,9 +41,8 @@ struct SymbolRepresentation
 	std::vector<DataAccessRegion> inout_regions;
 
 
-	SymbolRepresentation(nanos6_address_translation_entry_t* tEntry): 
+	SymbolRepresentation():
 		host_region(),
-		translationEntry(tEntry),
 		allocation(nullptr)
 		{
 
@@ -78,7 +76,6 @@ struct SymbolRepresentation
 	inline void setSymbolTranslation(std::shared_ptr<DeviceAllocation>& alloc){
 		allocation = alloc;
 		//std::cout<<"SET SYMBOL TRANSLATION: HOST["<<std::hex<<allocation->getHostBase()<<"]  DEVICE["<<allocation->getDeviceBase()<<"]"<<std::endl;
-		*translationEntry = {allocation->getHostBase(), allocation->getDeviceBase()};
 	}
 };
 

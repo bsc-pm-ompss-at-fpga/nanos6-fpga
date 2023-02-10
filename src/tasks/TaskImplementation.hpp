@@ -45,6 +45,8 @@ inline Task::Task(
 	_deadline(0),
 	_schedulingHint(NO_HINT),
 	_NUMAHint((uint64_t)-1),
+	_symbolInfo(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1)),
+	_distSymbolInfo(_symbolInfo.size()),
 	_ignoreDirectory(false),
 	_accel_affinity(-1),
 	_thread(nullptr),
@@ -58,14 +60,8 @@ inline Task::Task(
 	_taskStatistics((TaskStatistics *) taskStatistics),
 	_hwCounters(taskCountersAddress),
 	_parentSpawnCallback(nullptr),
-	_nestingLevel(0),
-	_symbolTranslations(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1))
+	_nestingLevel(0)
 {
-	_symbolInfo.reserve(_symbolTranslations.size());
-	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
-		_symbolInfo.emplace_back(&_symbolTranslations[i]);
-	_distSymbolInfo.resize(_symbolTranslations.size());
-
 	if (parent != nullptr) {
 		parent->addChild(this);
 		_nestingLevel = parent->getNestingLevel() + 1;

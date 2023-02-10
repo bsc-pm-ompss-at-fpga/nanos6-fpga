@@ -151,9 +151,7 @@ Task* createTaskWithInDep(nanos6_device_t device, int device_id, void* host_ptr,
 
             AcceleratorStream accelStream;
             Accelerator* accelerator = HardwareInfo::getDeviceInfo(_argsBlock->device)->getAccelerators()[_argsBlock->device_id];
-            std::vector<SymbolRepresentation> _symRep;
-            nanos6_address_translation_entry_t t;
-            _symRep.emplace_back(&t);
+            std::vector<SymbolRepresentation> _symRep(1);
             _symRep[0].addDataAccess(dar, READ_ACCESS_TYPE);
             DeviceDirectoryInstance::instance->register_regions(_symRep, accelerator, &accelStream, nullptr);
             while(accelStream.streamPendingExecutors()) accelStream.streamServiceLoop();

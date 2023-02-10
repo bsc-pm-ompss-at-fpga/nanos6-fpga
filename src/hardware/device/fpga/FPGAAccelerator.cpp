@@ -115,10 +115,32 @@ void FPGAAccelerator::callBody(Task *task)
 		task->getAcceleratorStream()->addOperation(
 			[this, task, env = &task->getDeviceEnvironment(), handler = getDeviceHandler()]() -> std::function<bool(void)>
 			{
-				task->bodyWithInternalTranslation();
+				void *args = task->getArgsBlock();
+				nanos6_task_info_t *taskInfo = task->getTaskInfo();
+				const std::vector<SymbolRepresentation>& symbolInfo = task->getSymbolInfo();
+				int numArgs = taskInfo->num_args;
+				int numSymbols = taskInfo->num_symbols;
+				const xtasks_task_handle handle = task->getDeviceEnvironment().fpga.taskHandle;
+				xtasks_arg_val fpga_args[16]; //Current max supported number of arguments
+				assert (numArgs <= 16);
+
+				for (int i = 0; i < numArgs; ++i) {
+					assert (taskInfo->sizeof_table[i] <= (int)sizeof(xtasks_arg_val));
+					char* p = (char*)args + taskInfo->offset_table[i];
+					memcpy(fpga_args + i, p, taskInfo->sizeof_table[i]);
+				}
+
+				for (int i = 0; i < numSymbols; ++i) {
+					int arg = taskInfo->arg_idx_table[i];
+					uint64_t host_addr = symbolInfo[i].allocation->getHostBase();
+					uint64_t fpga_addr = symbolInfo[i].allocation->getDeviceBase();
+					fpga_args[arg] = fpga_args[arg] - host_addr + fpga_addr;
+				}
+
+				xtasksAddArgs(numArgs, 0xFF, fpga_args, handle);
 
 				FatalErrorHandler::failIf(
-					xtasksSubmitTask(task->getDeviceEnvironment().fpga.taskHandle)!= XTASKS_SUCCESS,
+					xtasksSubmitTask(handle) != XTASKS_SUCCESS,
 					"Xtasks: Submit Task failed"
 				);
 

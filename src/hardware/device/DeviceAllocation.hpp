@@ -31,14 +31,14 @@ struct DeviceAllocation
 	{
 	}
 
-	DataAccessRegion getHostRegion(){return _hostRegion;}
-	DataAccessRegion getDeviceRegion(){return _deviceRegion;}
+	DataAccessRegion getHostRegion() {return _hostRegion;}
+	DataAccessRegion getDeviceRegion() {return _deviceRegion;}
 
-	uintptr_t getHostBase(){return (uintptr_t) _hostRegion.getStartAddress(); }
-	uintptr_t getHostEnd(){return (uintptr_t) _hostRegion.getEndAddress();}
+	uintptr_t getHostBase() const {return (uintptr_t) _hostRegion.getStartAddress(); }
+	uintptr_t getHostEnd() const {return (uintptr_t) _hostRegion.getEndAddress();}
 
-	uintptr_t getDeviceBase() { return (uintptr_t) _deviceRegion.getStartAddress();}
-	uintptr_t getDeviceEnd(){return (uintptr_t) _deviceRegion.getEndAddress(); }
+	uintptr_t getDeviceBase() const { return (uintptr_t) _deviceRegion.getStartAddress();}
+	uintptr_t getDeviceEnd() const {return (uintptr_t) _deviceRegion.getEndAddress(); }
 
 	uintptr_t getTranslation(uintptr_t to_translate) const{
 		return (uintptr_t) _deviceRegion.getStartAddress() + to_translate - (uintptr_t) _hostRegion.getStartAddress();

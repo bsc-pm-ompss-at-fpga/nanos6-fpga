@@ -159,8 +159,6 @@ private:
 	//! Device Accelerator Stream
 	AcceleratorStream* _deviceAcceleratorStream;
 
-	std::vector<nanos6_address_translation_entry_t> _symbolTranslations;
-
 public:
 
 	inline Task(
@@ -246,11 +244,6 @@ public:
 		assert(_taskInfo != nullptr);
 
 		_taskInfo->implementations[0].run(_argsBlock, (void *)&_deviceEnvironment, translationTable);
-	}
-
-	virtual inline void bodyWithInternalTranslation()
-	{
-		body(&_symbolTranslations[0]);
 	}
 
 	//! Check if the task has an actual body
