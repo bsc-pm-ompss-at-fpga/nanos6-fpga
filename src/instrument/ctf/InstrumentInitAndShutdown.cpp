@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #include <cassert>
@@ -29,8 +29,7 @@
 #include "executors/threads/CPUManager.hpp"
 #include "hardware-counters/HardwareCounters.hpp"
 #include "memory/numa/NUMAManager.hpp"
-#include "tasks/TaskInfo.hpp"
-#include "tasks/TasktypeData.hpp"
+#include "tasks/TaskInfoManager.hpp"
 
 
 //static void refineCTFEvents(__attribute__((unused)) CTFAPI::CTFUserMetadata *metadata)
@@ -75,7 +74,7 @@ static void initializeUserStreams(
 	int nodeId;
 	ctf_cpu_id_t cpuId;
 	ctf_cpu_id_t maxCpuId = 0;
-	std::vector<CPU *> cpus = CPUManager::getCPUListReference();
+	std::vector<CPU *> const &cpus = CPUManager::getCPUListReference();
 	ctf_cpu_id_t totalCPUs = (ctf_cpu_id_t) cpus.size();
 
 	const size_t defaultStreamBufferSize = 2*1024*1024;
@@ -302,12 +301,13 @@ void Instrument::shutdown()
 
 void Instrument::preinitFinished()
 {
-	// emit an event per each registered task type with its label and source
-	TaskInfo::processAllTasktypes(
-		[&](const std::string &tasktypeLabel, const std::string &tasktypeSource, TasktypeData &tasktypeData) {
-			TasktypeInstrument &instrumentId = tasktypeData.getInstrumentationId();
-			ctf_tasktype_id_t tasktypeId = instrumentId.autoAssingId();
-			tp_task_label(tasktypeLabel.c_str(), tasktypeSource.c_str(), tasktypeId);
+	// Emit an event per each registered task info with its label and declaration source
+	TaskInfoManager::processAllTaskInfos(
+		[&](const nanos6_task_info_t *, TaskInfoData &taskInfoData) {
+			TasktypeInstrument &instrumentId = taskInfoData.getInstrumentationId();
+			ctf_tasktype_id_t tasktypeId = instrumentId.autoAssignId();
+			tp_task_label(taskInfoData.getTaskTypeLabel().c_str(),
+				taskInfoData.getTaskDeclarationSource().c_str(), tasktypeId);
 		}
 	);
 }
@@ -316,4 +316,8 @@ int64_t Instrument::getInstrumentStartTime()
 {
 	CTFAPI::CTFTrace &trace = CTFAPI::CTFTrace::getInstance();
 	return trace.getAbsoluteStartTimestamp();
+}
+
+void Instrument::addCPUs()
+{
 }

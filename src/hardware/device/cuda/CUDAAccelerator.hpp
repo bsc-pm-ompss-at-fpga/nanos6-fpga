@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CUDA_ACCELERATOR_HPP
@@ -19,6 +19,9 @@
 
 class CUDAAccelerator : public Accelerator {
 private:
+	// Maximum number of kernel args before we allocate extra memory for them
+	const static int MAX_STACK_ARGS = 16;
+
 	// Name to not confuse with other more general events hadled in other portions of the runtime
 	struct CUDAEvent {
 		cudaEvent_t event;
@@ -32,18 +35,21 @@ private:
 	int _cudaDeviceId;
 
 	// To be used in order to obtain the current task in nanos6_get_current_cuda_stream() call
+	thread_local static Task *_currentTask;
 
 	inline void generateDeviceEvironment(DeviceEnvironment& env, [[maybe_unused]] uint64_t deviceSubtType) override
 	{
 		// The Accelerator::runTask() function has already set the device so it's safe to proceed
-		nanos6_cuda_device_environment_t &cudaEnv = env.cuda;
-		cudaEnv.stream = _cudaStreamPool.getCUDAStream();
+		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
+		env.stream = _streamPool.getCUDAStream();
+		env.event = _streamPool.getCUDAEvent();
 	}
 
 	inline void finishTaskCleanup(Task *task) override
 	{
 		nanos6_cuda_device_environment_t &env = task->getDeviceEnvironment().cuda;
-		_cudaStreamPool.releaseCUDAStream(env.stream);
+		_streamPool.releaseCUDAEvent(env.event);
+		_streamPool.releaseCUDAStream(env.stream);
 	}
 
 	void processCUDAEvents();
@@ -54,13 +60,7 @@ private:
 
 	void postRunTask(Task *task) override;
 
-	cudaStream_t   _cudaCopyStream;
-
-
-    std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* task) const override;
-    std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* task) const override;
-    std::function<std::function<bool(void)>()> copy_between(void *dst, int dstDevice, void *src, int srcDevice, size_t size, void* task) const override;
-
+	void callTaskBody(Task *task, nanos6_address_translation_entry_t *translation);
 
 public:
 	CUDAAccelerator(int cudaDeviceIndex) :
@@ -99,7 +99,7 @@ public:
 	void destroyEvent(AcceleratorEvent *event) override;
 
 	// Set current device as the active in the runtime
-    inline void setActiveDevice() const override
+	inline void setActiveDevice() const override
 	{
 		CUDAFunctions::setActiveDevice(_deviceHandler);
 	}
@@ -115,6 +115,11 @@ public:
 	inline void releaseAsyncHandle(void *stream) override
 	{
 		_cudaStreamPool.releaseCUDAStream((cudaStream_t)stream);
+	}
+
+	static inline Task *getCurrentTask()
+	{
+		return _currentTask;
 	}
 };
 

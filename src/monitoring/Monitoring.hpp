@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2019-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2019-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef MONITORING_HPP
@@ -11,6 +11,7 @@
 
 #include "MonitoringSupport.hpp"
 #include "TaskStatistics.hpp"
+#include "Tasktype.hpp"
 #include "support/config/ConfigVariable.hpp"
 
 
@@ -82,6 +83,12 @@ public:
 	{
 		return _enabled;
 	}
+	
+	//! \brief Check and register a Tasktype after registering a taskinfo
+	static inline void registerTasktype(nanos6_task_info_t *task_info)
+	{
+		Tasktype::registerTasktype(task_info);
+	}
 
 
 	//    TASKS    //
@@ -90,13 +97,6 @@ public:
 	//!
 	//! \param[in,out] task The task
 	static void taskCreated(Task *task);
-
-	//! \brief Reset monitoring statistics for a task that will be re-used
-	//! NOTE: This function should only be called by Taskfor collaborators,
-	//! never normal tasks nor source Taskfors
-	//!
-	//! \param[in,out] task The task to reset statistics for
-	static void taskReinitialized(Task *task);
 
 	//! \brief Change a task statistics after it changes its execution status
 	//!

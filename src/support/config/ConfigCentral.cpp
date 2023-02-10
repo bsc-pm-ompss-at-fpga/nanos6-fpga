@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 */
 
 
@@ -32,6 +32,8 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("devices.directory", true);
 
 	// CUDA devices
+	registerOption<string_t>("devices.cuda.kernels_folder", "nanos6-cuda-kernels");
+	registerOption<bool_t>("devices.cuda.warning_on_incompatible_binary", true);
 	registerOption<integer_t>("devices.cuda.page_size", 0x8000);
 	registerOption<integer_t>("devices.cuda.streams", 16);
 	registerOption<bool_t>("devices.cuda.polling.pinned", true);
@@ -81,6 +83,9 @@ ConfigCentral::ConfigCentral() :
 	registerOption<string_t>("instrument.ctf.events.kernel.presets", {});
 	registerOption<string_t>("instrument.ctf.tmpdir", "");
 
+	// Ovni instrumentation
+	registerOption<integer_t>("instrument.ovni.level", 2);
+
 	// Extrae instrumentation
 	registerOption<bool_t>("instrument.extrae.as_threads", false);
 	registerOption<integer_t>("instrument.extrae.detail_level", 1);
@@ -103,10 +108,10 @@ ConfigCentral::ConfigCentral() :
 
 	// Verbose instrumentation
 	registerOption<string_t>("instrument.verbose.areas", {
-		"all", "!ComputePlaceManagement", "!DependenciesByAccess",
-		"!DependenciesByAccessLinks", "!DependenciesByGroup",
-		"!LeaderThread", "!TaskStatus", "!ThreadManagement"
-	});
+			"all", "!ComputePlaceManagement", "!DependenciesByAccess",
+			"!DependenciesByAccessLinks", "!DependenciesByGroup",
+			"!LeaderThread", "!TaskStatus", "!ThreadManagement"
+		});
 	registerOption<bool_t>("instrument.verbose.dump_only_on_exit", false);
 	registerOption<string_t>("instrument.verbose.output_file", "/dev/stderr");
 	registerOption<bool_t>("instrument.verbose.timestamps", true);
@@ -139,11 +144,12 @@ ConfigCentral::ConfigCentral() :
 	registerOption<string_t>("numa.tracking", "auto");
 
 	// Scheduler
-	registerOption<bool_t>("scheduler.immediate_successor", true);
+	registerOption<float_t>("scheduler.immediate_successor", true);
 	registerOption<string_t>("scheduler.policy", "fifo");
 	registerOption<bool_t>("scheduler.priority", true);
 
-	// Taskfor
+	// Taskfor. Not supported but do not fail if these options
+	// are present.
 	registerOption<integer_t>("taskfor.groups", 1);
 	registerOption<bool_t>("taskfor.report", false);
 

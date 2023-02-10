@@ -1142,6 +1142,10 @@ namespace DataAccessRegistration {
 	{
 		processSatisfiedCommutativeOriginators(hpDependencyData);
 
+		Task *immediateSuccessor = nullptr;
+		bool searchForIS = !fromBusyThread && (computePlace->getFirstSuccessor() == nullptr);
+		// bool searchForIS = false;
+
 		// NOTE: This is done without the lock held and may be slow since it can enter the scheduler
 		for (Task *satisfiedOriginator : hpDependencyData._satisfiedOriginators) {
 			assert(satisfiedOriginator != 0);
@@ -1158,7 +1162,20 @@ namespace DataAccessRegistration {
 				schedulingHint = BUSY_COMPUTE_PLACE_TASK_HINT;
 			}
 
-			Scheduler::addReadyTask(satisfiedOriginator, computePlaceHint, schedulingHint);
+			if (searchForIS &&
+				satisfiedOriginator->getDeviceType() == nanos6_host_device &&
+				(!immediateSuccessor || satisfiedOriginator->getPriority() > immediateSuccessor->getPriority())) {
+				if (immediateSuccessor)
+					Scheduler::addReadyTask(immediateSuccessor, computePlaceHint, schedulingHint);
+
+				immediateSuccessor = satisfiedOriginator;
+			} else {
+				Scheduler::addReadyTask(satisfiedOriginator, computePlaceHint, schedulingHint);
+			}
+		}
+
+		if (immediateSuccessor) {
+			computePlace->setFirstSuccessor(immediateSuccessor);
 		}
 
 		hpDependencyData._satisfiedOriginators.clear();
@@ -2827,28 +2844,6 @@ namespace DataAccessRegistration {
 		assert(task != nullptr);
 		assert(computePlace != nullptr);
 		assert(task->isRunnable());
-
-		if (task->isTaskfor()) {
-			// Loop callaborators only
-			TaskDataAccesses &parentAccessStructures = task->getParent()->getDataAccesses();
-
-			assert(!parentAccessStructures.hasBeenDeleted());
-			TaskDataAccesses::accesses_t &parentAccesses = parentAccessStructures._accesses;
-
-			std::lock_guard<TaskDataAccesses::spinlock_t> guard(parentAccessStructures._lock);
-
-			// Process parent reduction access and release their storage
-			parentAccesses.processAll(
-				[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-					DataAccess *dataAccess = &(*position);
-					assert(dataAccess != nullptr);
-
-					if (dataAccess->getType() == REDUCTION_ACCESS_TYPE) {
-						releaseReductionStorage(task->getParent(), dataAccess, dataAccess->getAccessRegion(), computePlace);
-					}
-					return true;
-				});
-		}
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
 

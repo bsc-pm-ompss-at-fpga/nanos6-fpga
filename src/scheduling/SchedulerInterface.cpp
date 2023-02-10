@@ -16,7 +16,7 @@
 #include "system/RuntimeInfo.hpp"
 
 ConfigVariable<std::string> SchedulerInterface::_schedulingPolicy("scheduler.policy");
-ConfigVariable<bool> SchedulerInterface::_enableImmediateSuccessor("scheduler.immediate_successor");
+ConfigVariable<float> SchedulerInterface::_enableImmediateSuccessor("scheduler.immediate_successor");
 ConfigVariable<bool> SchedulerInterface::_enablePriority("scheduler.priority");
 
 
@@ -37,8 +37,7 @@ SchedulerInterface::SchedulerInterface()
 	size_t computePlaceCount;
 	computePlaceCount = CPUManager::getTotalCPUs();
 	_hostScheduler = SchedulerGenerator::createHostScheduler(
-		computePlaceCount, policy, _enablePriority,
-		_enableImmediateSuccessor);
+		computePlaceCount, policy, _enablePriority);
 
 	size_t totalDevices = (nanos6_device_t::nanos6_device_type_num);
 
@@ -50,32 +49,28 @@ SchedulerInterface::SchedulerInterface()
 	computePlaceCount = HardwareInfo::getComputePlaceCount(nanos6_cuda_device);
 	_deviceSchedulers[nanos6_cuda_device] =
 		SchedulerGenerator::createDeviceScheduler(
-			computePlaceCount, policy, _enablePriority,
-			_enableImmediateSuccessor, nanos6_cuda_device);
+			computePlaceCount, policy, _enablePriority, nanos6_cuda_device);
 #endif
 #if USE_OPENACC
 	computePlaceCount = HardwareInfo::getComputePlaceCount(nanos6_openacc_device);
 	_deviceSchedulers[nanos6_openacc_device] =
 		SchedulerGenerator::createDeviceScheduler(
-			computePlaceCount, policy, _enablePriority,
-			_enableImmediateSuccessor, nanos6_openacc_device);
+			computePlaceCount, policy, _enablePriority, nanos6_openacc_device);
 #endif
 #if NANOS6_OPENCL
 	FatalErrorHandler::failIf(true, "OpenCL is not supported yet.");
 #endif
 #if USE_FPGA
-	if (HardwareInfo::canDeviceRunTasks(nanos6_fpga_device))
-		_deviceSchedulers[nanos6_fpga_device] =
-			SchedulerGenerator::createDeviceScheduler(
-				HardwareInfo::getComputePlaceCount(nanos6_fpga_device), policy, _enablePriority,
-				_enableImmediateSuccessor, nanos6_fpga_device);
+	computePlaceCount = HardwareInfo::getComputePlaceCount(nanos6_fpga_device);
+	_deviceSchedulers[nanos6_fpga_device] =
+		SchedulerGenerator::createDeviceScheduler(
+			computePlaceCount, policy, _enablePriority, nanos6_fpga_device);
 #endif
 #if USE_DISTRIBUTED
-	if (HardwareInfo::canDeviceRunTasks(nanos6_broadcaster_device))
-		_deviceSchedulers[nanos6_broadcaster_device] =
-			SchedulerGenerator::createDeviceScheduler(
-				HardwareInfo::getComputePlaceCount(nanos6_broadcaster_device), policy, _enablePriority,
-				_enableImmediateSuccessor, nanos6_broadcaster_device);
+	computePlaceCount = HardwareInfo::getComputePlaceCount(nanos6_broadcaster_device);
+	_deviceSchedulers[nanos6_broadcaster_device] =
+		SchedulerGenerator::createDeviceScheduler(
+			computePlaceCount, policy, _enablePriority, nanos6_broadcaster_device);
 #endif
 }
 

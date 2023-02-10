@@ -16,10 +16,11 @@
 #include "AddTask.hpp"
 #include "SpawnFunction.hpp"
 #include "lowlevel/SpinLock.hpp"
+#include "monitoring/Monitoring.hpp"
 #include "system/TrackingPoints.hpp"
 #include "tasks/StreamManager.hpp"
 #include "tasks/Task.hpp"
-#include "tasks/TaskInfo.hpp"
+#include "tasks/TaskInfoManager.hpp"
 
 #include <InstrumentAddTask.hpp>
 
@@ -83,31 +84,39 @@ void SpawnFunction::spawnFunction(
 		auto it = itAndBool.first;
 		taskInfo = &(it->second);
 
+		// Check whether it is a new task info
 		if (itAndBool.second) {
-			// New task info
+			// Make sure all task info's fields are initialized to zero
+			std::memset(taskInfo, 0, sizeof(nanos6_task_info_t));
+
+			// Allocate memory for the task impl info
 			taskInfo->implementations = (nanos6_task_implementation_info_t *)
-				malloc(sizeof(nanos6_task_implementation_info_t));
+				calloc(1, sizeof(nanos6_task_implementation_info_t));
 			assert(taskInfo->implementations != nullptr);
 
 			taskInfo->implementation_count = 1;
 			taskInfo->implementations[0].run = SpawnFunction::spawnedFunctionWrapper;
 			taskInfo->implementations[0].device_type_id = nanos6_device_t::nanos6_host_device;
-			taskInfo->register_depinfo = nullptr;
-
-			// The completion callback will be called when the task is destroyed
-			taskInfo->destroy_args_block = SpawnFunction::spawnedFunctionDestructor;
 
 			// Use a copy since we do not know the actual lifetime of label
 			taskInfo->implementations[0].task_type_label = it->first.second.c_str();
 			taskInfo->implementations[0].declaration_source = "Spawned Task";
-			taskInfo->implementations[0].get_constraints = nullptr;
+
+			// The completion callback will be called when the task is destroyed
+			taskInfo->destroy_args_block = SpawnFunction::spawnedFunctionDestructor;
+
+			// Register the task info into the task info manager
+			TaskInfoManager::registerTaskInfo(taskInfo);
+
+			// Since it is a new taskinfo, register it in the Instrumentation
+			Instrument::registeredNewSpawnedTaskType(taskInfo);
+
+			// If a taskinfo is created and it is new, we notify Monitoring so
+			// a new type is created. If the taskinfo is not new, it will exist
+			// and it is being used, so we don't need to call registerTasktype
+			Monitoring::registerTasktype(taskInfo);
 		}
 	}
-
-	// Register the new task info
-	bool newTaskType = TaskInfo::registerTaskInfo(taskInfo);
-	if (newTaskType)
-		Instrument::registeredNewSpawnedTaskType(taskInfo);
 
 	// Create the task representing the spawned function
 	Task *task = AddTask::createTask(

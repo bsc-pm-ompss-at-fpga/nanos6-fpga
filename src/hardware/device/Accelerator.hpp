@@ -2,7 +2,7 @@
         This file is part of Nanos6 and is licensed under the terms contained in
    the COPYING file.
 
-        Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef ACCELERATOR_HPP
@@ -73,7 +73,9 @@ protected:
 
 	virtual void callBody(Task *) {}
 
-	virtual void finishTask(Task *);
+	virtual void callTaskBody(Task *task, nanos6_address_translation_entry_t *);
+
+	virtual void finishTask(Task *task);
 
 public:
 	virtual ~Accelerator() {
@@ -168,4 +170,3 @@ private:
 };
 
 #endif // ACCELERATOR_HPP
-

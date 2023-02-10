@@ -17,7 +17,6 @@
 #include "support/BitManipulation.hpp"
 #include "system/TrackingPoints.hpp"
 #include "tasks/StreamManager.hpp"
-#include "tasks/Taskfor.hpp"
 #include "tasks/Taskloop.hpp"
 
 #include <InstrumentComputePlaceId.hpp>
@@ -25,15 +24,16 @@
 #include <InstrumentTaskStatus.hpp>
 #include <InstrumentThreadId.hpp>
 
-void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool fromBusyThread)
+void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool)
 {
 	assert(task != nullptr);
-	//! Decrease the _countdownToBeWokenUp of the task, which was initialized to 1.
-	//! If it then becomes 0, we can propagate the counter through its parents.
+
+	// Decrease the _countdownToBeWokenUp of the task, which was initialized to 1.
+	// If it then becomes 0, we can propagate the counter through its parents.
 	bool ready = task->finishChild();
 
-	//! We always use a local CPUDependencyData struct here to avoid issues
-	//! with re-using an already used CPUDependencyData
+	// We always use a local CPUDependencyData struct here to avoid issues
+	// with re-using an already used CPUDependencyData
 	CPUDependencyData *localHpDependencyData = nullptr;
 
 	while ((task != nullptr) && ready) {
@@ -56,7 +56,7 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 						task, computePlace,
 						*localHpDependencyData,
 						/* memory place */ nullptr,
-						fromBusyThread
+						true
 					);
 
 					// This is just to emulate a recursive call to TaskFinalization::taskFinished() again.
@@ -69,29 +69,6 @@ void TaskFinalization::taskFinished(Task *task, ComputePlace *computePlace, bool
 				}
 
 				assert(!task->mustDelayRelease());
-			} else if (task->isTaskforCollaborator()) {
-				Taskfor *collaborator = (Taskfor *)task;
-				Taskfor *source = (Taskfor *)parent;
-
-				size_t completedIts = collaborator->getCompletedIterations();
-				if (completedIts > 0) {
-					bool finishedSource = source->decrementRemainingIterations(completedIts);
-					if (finishedSource) {
-						source->markAsFinished(computePlace);
-						assert(computePlace != nullptr);
-
-						DataAccessRegistration::unregisterTaskDataAccesses(
-							source, computePlace,
-							computePlace->getDependencyData());
-
-						// There is one count for the finished source, but we need ready = true to decrement it later again.
-						ready = source->finishChild();
-						assert(!ready);
-						ready = true;
-						if (source->markAsReleased())
-							TaskFinalization::disposeTask(source);
-					}
-				}
 			}
 		} else {
 			// An ancestor in a taskwait that finishes at this point
@@ -120,11 +97,9 @@ void TaskFinalization::disposeTask(Task *task)
 	// Follow up the chain of ancestors and dispose them as needed and wake up any in a taskwait that finishes in this moment
 	while ((task != nullptr) && disposable) {
 		Task *parent = task->getParent();
-
 		assert(task->hasFinished());
 
 		disposable = task->unlinkFromParent();
-		bool isTaskfor = task->isTaskfor();
 		bool isTaskloop = task->isTaskloop();
 		bool isSpawned = task->isSpawned();
 		bool isStreamExecutor = task->isStreamExecutor();
@@ -145,16 +120,9 @@ void TaskFinalization::disposeTask(Task *task)
 				disposableBlockSize = (char *)task - (char *)disposableBlock;
 			}
 
-			// taskloop and taskfor flags can both be enabled for the same task.
-			// If this is the case, it means we are dealing with taskloop for,
-			// which is a taskloop that generates taskfors. Thus, we must treat
-			// the task as a taskloop. It is important to check taskloop condition
-			// before taskfor one, to dispose a taskloop in the case of taskloop for.
 			size_t taskSize;
 			if (isTaskloop) {
 				taskSize = sizeof(Taskloop);
-			} else if (isTaskfor) {
-				taskSize = sizeof(Taskfor);
 			} else if (isStreamExecutor) {
 				taskSize = sizeof(StreamExecutor);
 			} else {
@@ -186,30 +154,14 @@ void TaskFinalization::disposeTask(Task *task)
 				executor->decreaseCallbackParticipants(spawnCallback);
 			}
 
-			// taskloop and taskfor flags can both be enabled for the same task.
-			// If this is the case, it means we are dealing with taskloop for,
-			// which is a taskloop that generates taskfors. Thus, we must treat
-			// the task as a taskloop. It is important to check taskloop condition
-			// before taskfor one, to dispose a taskloop in the case of taskloop for.
 			if (isTaskloop) {
 				((Taskloop *)task)->~Taskloop();
-			} else if (isTaskfor) {
-				((Taskfor *)task)->~Taskfor();
 			} else if (isStreamExecutor) {
 				((StreamExecutor *)task)->~StreamExecutor();
 			} else {
 				task->~Task();
 			}
 			MemoryAllocator::freeAligned(disposableBlock, disposableBlockSize);
-		} else {
-			// Although collaborators cannot be disposed, they must destroy their
-			// args blocks. The destroy function free the memory of the args block
-			// in case the collaborator has preallocated args block; otherwise the
-			// args block is just destroyed calling the destructors
-			nanos6_task_info_t *taskInfo = task->getTaskInfo();
-			if (taskInfo->destroy_args_block != nullptr) {
-				taskInfo->destroy_args_block(task->getArgsBlock());
-			}
 		}
 
 		task = parent;

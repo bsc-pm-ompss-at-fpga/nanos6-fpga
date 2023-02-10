@@ -6,7 +6,7 @@
 #	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 
 # Nanos6 version and copyright
-m4_define([nanos6_version], [2.7.1])
+m4_define([nanos6_version], [2.8])
 m4_define([nanos6_license], ["GPL3"])
 m4_define([nanos6_copyright], ["2015-2021 Barcelona Supercomputing Center (BSC)"])
 
@@ -36,7 +36,7 @@ SSS_CHECK_SOURCE_VERSION
 # Checks for programs
 SSS_PREPARE_COMPILER_FLAGS
 AC_PROG_CXX
-AX_CXX_COMPILE_STDCXX_11([], [mandatory])
+AX_CXX_COMPILE_STDCXX_17([noext], [mandatory])
 
 SSS_CHECK_CC_VERSION
 SSS_CHECK_CXX_VERSION
@@ -93,6 +93,7 @@ AC_CHECK_DLB
 AC_CHECK_JEMALLOC
 AC_CHECK_XTASKS
 AC_CHECK_BABELTRACE2
+AC_CHECK_OVNI
 
 # Build ctf2prv fast converter if Babeltrace2 is available
 AM_CONDITIONAL([BUILD_CTF2PRV_FAST], [test x"${ac_use_babeltrace2}" = x"yes"])
@@ -367,6 +368,16 @@ else
 fi
 
 _AS_ECHO([])
+_AS_ECHO_N([   Ovni is enabled... ])
+if test x"${ac_use_ovni}" = x"yes" ; then
+    AC_MSG_RESULT([yes])
+    _AS_ECHO([   Ovni CPPFLAGS... ${ovni_CPPFLAGS}])
+    _AS_ECHO([   Ovni LIBS... ${ovni_LIBS}])
+else
+    AC_MSG_RESULT([no])
+fi
+
+_AS_ECHO([])
 _AS_ECHO([   elfutils CPPFLAGS... ${elfutils_CFLAGS}])
 _AS_ECHO([   elfutils LIBS... ${elfutils_LIBS}])
 
@@ -379,6 +390,11 @@ if test x"${ac_use_cuda}" = x"yes" ; then
 else
 	AC_MSG_RESULT([no])
 fi
+
+if test x"${ac_use_cuda_cl}" = x"yes" ; then
+	AC_MSG_RESULT([yes])
+	_AS_ECHO([   CUDA OpenCL Support detected.])
+fi 
 
 _AS_ECHO([])
 _AS_ECHO_N([   OpenACC is enabled... ])

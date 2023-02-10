@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -76,57 +76,6 @@ inline Task::~Task()
 {
 	// Destroy hardware counters
 	_hwCounters.shutdown();
-}
-
-inline void Task::reinitialize(
-	void *argsBlock,
-	size_t argsBlockSize,
-	nanos6_task_info_t *taskInfo,
-	nanos6_task_invocation_info_t *taskInvokationInfo,
-	Task *parent,
-	Instrument::task_id_t instrumentationTaskId,
-	size_t flags
-) {
-	_accel_affinity = -1;
-	_ignoreDirectory = false;
-
-	_symbolTranslations.clear();
-	_symbolTranslations.resize(std::max(taskInfo->num_symbols,1));
-
-	_symbolInfo.clear();
-	_symbolInfo.reserve(_symbolTranslations.size());
-	for(size_t i = 0; i < _symbolTranslations.size(); ++i)
-		_symbolInfo.emplace_back(&_symbolTranslations[i]);
-	_distSymbolInfo.clear();
-	_distSymbolInfo.resize(_symbolTranslations.size());
-
-	_argsBlock = argsBlock;
-	_argsBlockSize = argsBlockSize;
-	_taskInfo = taskInfo;
-	_taskInvokationInfo = taskInvokationInfo;
-	_countdownToBeWokenUp = 1;
-	_removalCount = 1;
-	_parent = parent;
-	_priority = 0;
-	_deadline = 0;
-	_schedulingHint = NO_HINT;
-	_thread = nullptr;
-	_flags = flags;
-	_predecessorCount = 0;
-	_instrumentationTaskId = instrumentationTaskId;
-	_computePlace = nullptr;
-	_memoryPlace = nullptr;
-	_countdownToRelease = 1;
-	_parentSpawnCallback = nullptr;
-	_nestingLevel = 0;
-
-	if (parent != nullptr) {
-		parent->addChild(this);
-		_nestingLevel = parent->getNestingLevel() + 1;
-	}
-
-	// Re-use hardware counters and monitoring statistics
-	TrackingPoints::taskReinitialized(this);
 }
 
 inline bool Task::markAsFinished(ComputePlace *computePlace)

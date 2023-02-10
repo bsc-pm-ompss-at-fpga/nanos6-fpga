@@ -645,6 +645,27 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+	/***********/
+	/* WARM-UP */
+	/***********/
+
+	int warmupCounter = 0;
+
+	for (int t = 0; t < ncpus; ++t) {
+		#pragma oss task shared(warmupCounter, ncpus)
+		{
+			#pragma oss atomic
+			warmupCounter++;
+
+			while (warmupCounter < ncpus) {
+				usleep(100);
+				__sync_synchronize();
+			}
+		}
+	}
+	#pragma oss taskwait
+
+
 	int var1;
 
 	// 1 writer

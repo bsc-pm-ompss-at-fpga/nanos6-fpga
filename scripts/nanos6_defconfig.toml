@@ -1,6 +1,6 @@
 # This file is part of Nanos6 and is licensed under the terms contained in the COPYING file
 #
-# Copyright (C) 2020-2021 Barcelona Supercomputing Center (BSC)
+# Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
 
 # The Nanos6 default configuration file. More details about the configuration options and the possible
 # values are available on the OmpSs-2 User Guide (https://pm.bsc.es/ftp/ompss-2/doc/user-guide/) or on
@@ -15,7 +15,7 @@
 	# Possible values: "discrete", "regions"
 	dependencies = "regions"
 	# Choose the instrumentation variant to run. Default is "none"
-	# Possible values: "none", "ctf", "extrae", "graph", "lint", "stats", "verbose"
+	# Possible values: "none", "ctf", "ovni", "extrae", "graph", "lint", "stats", "verbose"
 	instrument = "none"
 
 [turbo]
@@ -29,10 +29,10 @@
 	# Choose the task scheduling policy. Default is "fifo"
 	# Possible values: "fifo", "lifo"
 	policy = "fifo"
-	# Enable the immediate successor feature to improve cache data reutilization between successor
-	# tasks. If enabled, when a CPU finishes a task it starts executing the successor task (computed
-	# through their data dependencies). Default is true
-	immediate_successor = true
+	# Probability of enabling the immediate successor feature to improve cache data reutilization between
+	# successor tasks. If enabled, when a CPU finishes a task it starts executing the successor task
+	# (computed through their data dependencies). Default is 1.0
+	immediate_successor = 1.0
 	# Indicate whether the scheduler should consider task priorities defined by the user in the
 	# task's priority clause. Default is true
 	priority = true
@@ -46,13 +46,6 @@
 	# works for the 'hybrid' policy. This number will be divided by the number of active CPUs to
 	# obtain a "busy_iters per CPU" metric for each individual CPU to busy-wait for
 	busy_iters = 240000
-
-[taskfor]
-	# Choose the total number of CPU groups that will execute the worksharing tasks (taskfors). Default
-	# is none (not set), which means that the runtime will create one taskfor group per NUMA node
-	# groups = 1
-	# Indicate whether should print the taskfor groups information
-	report = false
 
 [throttle]
 	# Enable throttle to stop creating tasks when certain conditions are met. Default is false
@@ -170,6 +163,10 @@ __!require_FPGA
 __require_CUDA
 	# OmpSs-2 @ CUDA
 	[devices.cuda]
+		# Enables the warning when trying to load incompatible cuda code embedded into the binary
+		warning_on_incompatible_binary = true
+		# CUDA default kernels folder
+		kernels_folder = "nanos6-cuda-kernels"
 		# CUDA device page size. Default is 0x8000
 		page_size = 0x8000
 		# Maximum CUDA streams per GPU. Default is 16
@@ -250,6 +247,14 @@ __require_CTF
 				# 	"sys_exit_gettimeofday"
 				# ]
 __!require_CTF
+__require_OVNI
+	[instrument.ovni]
+		# Level of detail. Selects what should be instrumented:
+		# 1 = Tasks
+		# 2 = Tasks + simple subsystem (the default)
+		# 3 = Tasks + full subsystem + memory (huge performance penalty)
+		level = 2
+__!require_OVNI
 __require_EXTRAE
 	[instrument.extrae]
 		# Indicate whether the trace should show the activity of the threads instead of the CPUs'

@@ -9,8 +9,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "major.h"
+#include <unistd.h>
 
+#include "major.h"
 
 #pragma GCC visibility push(default)
 
@@ -40,9 +41,8 @@ typedef struct
 } nanos6_task_constraints_t;
 
 
-typedef enum
-{
-	nanos6_host_device=0,
+typedef enum {
+	nanos6_host_device = 0,
 	nanos6_cuda_device,
 	nanos6_openacc_device,
 	nanos6_cluster_device,
@@ -51,6 +51,11 @@ typedef enum
 	nanos6_broadcaster_device,
 	nanos6_device_type_num=7
 } nanos6_device_t;
+
+typedef struct {
+	size_t sizes[6];
+	size_t shm_size;
+} nanos6_device_info_t;
 
 
 typedef struct
@@ -62,7 +67,6 @@ typedef struct
 
 typedef struct
 {
-
 	//! \brief Runtime device identifier (original type nanos6_device_t)
 	int device_type_id;
 
@@ -87,21 +91,20 @@ typedef struct
 	//! \brief A string that identifies the source location of the definition of the task
 	char const *declaration_source;
 
-	//! \brief Similar to run but initially set to null and initialized by the runtime if needed
-	void (*run_wrapper)(void *args_block, void *device_env, nanos6_address_translation_entry_t *address_translation_table);
+	//! \brief In device tasks, name of the kernel to be loaded and executed
+	const char *device_function_name;
 } nanos6_task_implementation_info_t;
 
 
 // NOTE: The full version depends also on nanos6_major_api
 //       That is:   nanos6_major_api . nanos6_task_info_contents
 //! \brief This needs to be incremented every time that there is a change in nanos6_task_info
-enum nanos6_task_info_contents_t { nanos6_task_info_contents = 4 };
+enum nanos6_task_info_contents_t { nanos6_task_info_contents = 5 };
 
 //! \brief Struct that contains the common parts that all tasks of the same type share
-typedef struct __attribute__((aligned(64)))
-{
+typedef struct __attribute__((aligned(64))) {
 	//! \brief Number of symbols accessible by the task
-	int /*const*/ num_symbols; //TODO: removed const for obstructing construction, until further decision
+	int /*const*/ num_symbols; // TODO: removed const for obstructing construction, until further decision
 
 	//! \brief Function that the runtime calls to retrieve the information needed to calculate the dependencies
 	//!
@@ -128,13 +131,13 @@ typedef struct __attribute__((aligned(64)))
 	//!
 	//! \param[in] args_block a pointer to a block of data for the parameters partially initialized
 	//! \param[out] priority a pointer to a block of data where the desired priority is stored
-	void (*get_priority)(void *args_block, nanos6_priority_t* priority);
+	void (*get_priority)(void *args_block, nanos6_priority_t *priority);
 
 	//! \brief Number of implementations of the task
-	int /*const*/ implementation_count; //TODO: removed const for obstructing construction, until further decision
+	int /*const*/ implementation_count; // TODO: removed const for obstructing construction, until further decision
 
 	//! \brief Array of implementations
-	nanos6_task_implementation_info_t /*const*/ *implementations; //TODO: removed const for obstructing construction, until further decision
+	nanos6_task_implementation_info_t /*const*/ *implementations; // TODO: removed const for obstructing construction, until further decision
 
 	//! \brief Function that the runtime calls to perform any cleanup needed in the block of data of the parameters
 	//!
@@ -167,12 +170,30 @@ typedef struct __attribute__((aligned(64)))
 
 	//! \brief A pointer to data structures related to this type of task
 	void *task_type_data;
+
+	//! \brief Function that the runtime calls to evaluate taskiter while condition
+	//!
+	//! \param[in] args_block A pointer to the source block of parameters to be copied
+	//! \param[out] result the result of the evaluation
+	void (*iter_condition)(void *args_block, uint8_t *result);
+
+	//! \brief Number of task arguments
+	int num_args;
+
+	//! \brief Table of sizeofs for all num_args arguments of the task
+	int *sizeof_table;
+
+	//! \brief Table of offsets for all num_args arguments of the task
+	int *offset_table;
+
+	//! \brief list of indexes to map a symbol into arg
+	int *arg_idx_table;
+
 } nanos6_task_info_t;
 
 
 //! \brief Struct that contains data shared by all tasks invoked at fixed location in the source code
-typedef struct __attribute__((aligned(64)))
-{
+typedef struct __attribute__((aligned(64))) {
 	//! \brief A string that identifies the source code location of the task invocation
 	char const *invocation_source;
 } nanos6_task_invocation_info_t;
@@ -227,8 +248,7 @@ void nanos6_create_task(nanos6_task_info_t *task_info,
 	/* OUT */ void **args_block_pointer,
 	/* OUT */ void **task_pointer,
 	size_t flags,
-	size_t num_deps,
-	int affinity);
+	size_t num_deps);
 
 
 //! \brief Submit a task

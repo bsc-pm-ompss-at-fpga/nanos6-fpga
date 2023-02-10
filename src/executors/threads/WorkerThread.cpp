@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cassert>
 #include <cstring>
+#include <iostream>
 #include <pthread.h>
 
 #include "CPUManager.hpp"
@@ -33,8 +34,6 @@
 #include <InstrumentInstrumentationContext.hpp>
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <InstrumentWorkerThread.hpp>
-
-
 
 #include "hardware/device/directory/DeviceDirectory.hpp"
 
@@ -70,6 +69,8 @@ void WorkerThread::body()
 		Instrument::task_id_t(), cpu->getInstrumentationId(), _instrumentationId
 	);
 
+	Instrument::workerThreadBegin();
+
 	// The WorkerThread will iterate until its CPU status signals that there is
 	// an ongoing shutdown and thus the thread must stop executing
 	while (CPUManager::checkCPUStatusTransitions(this) != CPU::shutdown_status) {
@@ -78,11 +79,35 @@ void WorkerThread::body()
 
 		// Update the CPU since the thread may have migrated
 		instrumentationContext.updateComputePlace(cpu->getInstrumentationId());
-
-		// There should not be any pre-assigned task
 		assert(_task == nullptr);
 
-		_task = Scheduler::getReadyTask(cpu, this);
+		Task *immediateSuccessor = cpu->getFirstSuccessor();
+		if (immediateSuccessor) {
+			// Draw a random number between 0.0 and 1.0
+			float randomISValue = _ISDistribution(_ISGenerator);
+
+			// Can only execute Immediate Successor if we accept replacement and probability allows us
+			bool probabilityOfIS = (randomISValue < Scheduler::getImmediateSuccessorAlpha());
+			if (!probabilityOfIS) {
+				Scheduler::addReadyTask(
+					immediateSuccessor,
+					(immediateSuccessor->getDeviceType() == cpu->getType() ? cpu : nullptr),
+					SIBLING_TASK_HINT);
+			} else {
+				// Check if the task needs to execute an onReady handler
+				if (immediateSuccessor->handleOnready(this))
+					_task = immediateSuccessor;
+
+				// Otherwise, we have no IS and should just get a scheduler task
+			}
+			cpu->setFirstSuccessor(nullptr);
+		}
+
+		// No immediate successor, get a task
+		if (_task == nullptr) {
+			_task = Scheduler::getReadyTask(cpu, this);
+		}
+
 		if (_task != nullptr) {
 			WorkerThread *assignedThread = _task->getThread();
 
@@ -90,19 +115,14 @@ void WorkerThread::body()
 			if (assignedThread != nullptr) {
 				_task = nullptr;
 
-				ThreadManager::addIdler(this);
-
 				// Runtime Tracking Point - The current thread will suspend
 				TrackingPoints::threadWillSuspend(this, cpu);
+
+				ThreadManager::addIdler(this);
 
 				switchTo(assignedThread);
 			} else {
 				Instrument::workerThreadObtainedTask();
-				// If the task is a taskfor, the CPUManager may want to unidle
-				// collaborators to help execute it
-				if (_task->isTaskfor()) {
-					CPUManager::executeCPUManagerPolicy(cpu, HANDLE_TASKFOR, 0);
-				}
 
 				if (_task->isIf0()) {
 					// An if0 task executed outside of the implicit taskwait of its parent (i.e. not inline)
@@ -113,7 +133,7 @@ void WorkerThread::body()
 
 					If0Task::executeNonInline(this, if0Task, cpu);
 				} else {
-					handleTask(cpu);
+					handleTask(cpu, true);
 				}
 
 				_task = nullptr;
@@ -129,44 +149,27 @@ void WorkerThread::body()
 	// The thread should not have any task assigned at this point
 	assert(_task == nullptr);
 
+	Instrument::workerThreadEnd();
+
 	// Runtime Tracking Point - The current thread is gonna shutdown
 	TrackingPoints::threadWillShutdown();
 
 	ThreadManager::addShutdownThread(this);
 }
 
-void WorkerThread::handleTask(CPU *cpu)
+void WorkerThread::handleTask(CPU *cpu, bool)
 {
 	assert(_task != nullptr);
 	assert(cpu != nullptr);
 
-	// Only for source taskfors
-	if (_task->isTaskforSource()) {
-		Taskfor *source = (Taskfor *) _task;
-
-		// The scheduler set the chunk on the CPU preallocated taskfor
-		if (cpu->getPreallocatedTaskfor()->getMyChunk() >= 0) {
-			Taskfor *collaborator = LoopGenerator::createCollaborator(source, cpu);
-			assert(collaborator->isRunnable());
-			assert(collaborator->getMyChunk() >= 0);
-
-			_task = collaborator;
-		} else {
-			// The taskfor source has no chunks available
-			bool finished = source->notifyCollaboratorHasFinished();
-			if (finished) {
-				TaskFinalization::disposeTask(_task);
-			}
-			_task = nullptr;
-		}
-	}
+	Instrument::enterHandleTask();
 
 	// Execute the task
 	if (_task != nullptr) {
 		executeTask(cpu);
-
-		_task = nullptr;
 	}
+
+	Instrument::exitHandleTask();
 }
 
 void WorkerThread::executeTask(CPU *cpu)
@@ -184,12 +187,7 @@ void WorkerThread::executeTask(CPU *cpu)
 	_task->setThread(this);
 	_task->setMemoryPlace(memoryPlace);
 
-	Instrument::task_id_t taskId;
-	if (_task->isTaskforCollaborator()) {
-		taskId = _task->getParent()->getInstrumentationTaskId();
-	} else {
-		taskId = _task->getInstrumentationTaskId();
-	}
+	Instrument::task_id_t taskId = _task->getInstrumentationTaskId();
 	Instrument::ThreadInstrumentationContext instrumentationContext(
 		taskId, cpu->getInstrumentationId(), _instrumentationId
 	);

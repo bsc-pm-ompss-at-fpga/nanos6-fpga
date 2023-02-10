@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2020 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -69,7 +69,53 @@ namespace DataAccessRegistration {
 			}
 
 			CPUDependencyData::satisfied_originator_list_t &list = hpDependencyData.getSatisfiedOriginators(i);
-			if (list.size() > 0) {
+
+			if (list.size() == 0)
+				continue;
+
+			bool successorExists = (computePlace != nullptr && (computePlace->getFirstSuccessor() != nullptr));
+			if (i == nanos6_host_device
+				&& !fromBusyThread
+				&& !successorExists
+			) {
+				// Find the best immediate successor, which must be highest priority. On priority tie,
+				// grab the first one
+				long bestPriority = INT_MIN;
+				int bestIS = -1;
+				Task **successors = list.getArray();
+
+				for (int k = 0; k < (int)list.size(); ++k) {
+					if (successors[k]->getPriority() > bestPriority) {
+						bestPriority = successors[k]->getPriority();
+						bestIS = k;
+					}
+				}
+
+				if (bestIS >= 0) {
+					computePlace->setFirstSuccessor(successors[bestIS]);
+
+					Scheduler::addReadyTasks(
+					(nanos6_device_t)i,
+					list.getArray(),
+					bestIS,
+					computePlaceHint,
+					schedulingHint);
+
+					Scheduler::addReadyTasks(
+					(nanos6_device_t)i,
+					list.getArray() + bestIS + 1,
+					list.size() - bestIS - 1,
+					computePlaceHint,
+					schedulingHint);
+				} else {
+					Scheduler::addReadyTasks(
+					(nanos6_device_t)i,
+					list.getArray(),
+					list.size(),
+					computePlaceHint,
+					schedulingHint);
+				}
+			} else {
 				Scheduler::addReadyTasks(
 					(nanos6_device_t)i,
 					list.getArray(),
@@ -503,15 +549,14 @@ namespace DataAccessRegistration {
 		mailbox_t &mailBox = hpDependencyData._mailBox;
 		assert(mailBox.empty());
 
-		// Default deletableCount of 1.
-		accessStruct.increaseDeletableCount();
+		// Default deletableCount of 1, plus one for each non-duplicate access
+		accessStruct.increaseDeletableCount(1 + accessStruct.getRealAccessNumber());
 
 		// Get all seqs
 		accessStruct.forAll([&](void *address, DataAccess *access) -> bool {
 			DataAccessType accessType = access->getType();
 			ReductionInfo *reductionInfo = nullptr;
 			DataAccess *predecessor = nullptr;
-			bottom_map_t::iterator itMap;
 			bool weak = access->isWeak();
 			bool setHomeNode = true;
 
@@ -520,23 +565,17 @@ namespace DataAccessRegistration {
 				nullptr, accessType, false, access->getAccessRegion(), false, false,
 				false, Instrument::access_object_type_t::regular_access_type,
 				task->getInstrumentationTaskId());
-
-			accessStruct.increaseDeletableCount();
 			access->setInstrumentationId(dataAccessInstrumentationId);
 
 			bottom_map_t &addresses = parentAccessStruct._subaccessBottomMap;
 			// Determine our predecessor safely, and maybe insert ourselves to the map.
-			std::pair<bottom_map_t::iterator, bool> result = addresses.emplace(std::piecewise_construct,
-				std::forward_as_tuple(address),
-				std::forward_as_tuple(access));
+			BottomMapEntry &entry = addresses[address];
 
-			itMap = result.first;
-
-			if (!result.second) {
+			if (entry._access != nullptr) {
 				// Element already exists.
-				predecessor = itMap->second._access;
-				itMap->second._access = access;
+				predecessor = entry._access;
 			}
+			entry._access = access;
 
 			if (accessType == COMMUTATIVE_ACCESS_TYPE && !weak) {
 				// Calculate commutative mask
@@ -563,7 +602,7 @@ namespace DataAccessRegistration {
 			if (accessType == REDUCTION_ACCESS_TYPE) {
 				// Get the reduction info from the bottom map. If there is none, check
 				// if our parent has one (for weak reductions)
-				ReductionInfo *currentReductionInfo = itMap->second._reductionInfo;
+				ReductionInfo *currentReductionInfo = entry._reductionInfo;
 				reduction_type_and_operator_index_t typeAndOpIndex = access->getReductionOperator();
 				size_t length = access->getLength();
 
@@ -581,7 +620,7 @@ namespace DataAccessRegistration {
 				}
 
 				currentReductionInfo->incrementRegisteredAccesses();
-				itMap->second._reductionInfo = currentReductionInfo;
+				entry._reductionInfo = currentReductionInfo;
 
 				assert(currentReductionInfo != nullptr);
 				assert(currentReductionInfo->getTypeAndOperatorIndex() == typeAndOpIndex);
@@ -590,8 +629,8 @@ namespace DataAccessRegistration {
 
 				access->setReductionInfo(currentReductionInfo);
 			} else {
-				reductionInfo = itMap->second._reductionInfo;
-				itMap->second._reductionInfo = nullptr;
+				reductionInfo = entry._reductionInfo;
+				entry._reductionInfo = nullptr;
 			}
 
 			if (predecessor == nullptr) {
@@ -726,7 +765,7 @@ namespace DataAccessRegistration {
 		assert(computePlace != nullptr);
 		assert(task->isRunnable());
 
-		TaskDataAccesses &accessStruct = (task->isTaskfor() ? task->getParent()->getDataAccesses() : task->getDataAccesses());
+		TaskDataAccesses &accessStruct = task->getDataAccesses();
 		assert(!accessStruct.hasBeenDeleted());
 
 		if (!accessStruct.hasDataAccesses())
