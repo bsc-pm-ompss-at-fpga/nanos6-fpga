@@ -124,6 +124,7 @@ void FPGAAccelerator::callBody(Task *task)
 				xtasks_arg_val fpga_args[16]; //Current max supported number of arguments
 				assert (numArgs <= 16);
 
+				memset(fpga_args, 0, sizeof(fpga_args));
 				for (int i = 0; i < numArgs; ++i) {
 					assert (taskInfo->sizeof_table[i] <= (int)sizeof(xtasks_arg_val));
 					char* p = (char*)args + taskInfo->offset_table[i];
