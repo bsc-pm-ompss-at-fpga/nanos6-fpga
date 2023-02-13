@@ -787,10 +787,9 @@ public:
 		return _taskInfo->implementations[0].device_type_id;
 	}
 
-	//! \brief Get the device subtype for which this task is implemented, TODO: device_subtype_id.
-	inline uint64_t getDeviceSubType()
+	inline const nanos6_task_implementation_info_t* getImplementations()
 	{
-		return _taskInfo->implementations[0].device_subtype_id;
+		return _taskInfo->implementations;
 	}
 
 	inline DeviceEnvironment &getDeviceEnvironment()

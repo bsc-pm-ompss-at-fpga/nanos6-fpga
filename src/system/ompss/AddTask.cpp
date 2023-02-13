@@ -245,15 +245,14 @@ void nanos6_create_task(
 	void **args_block_pointer,
 	void **task_pointer,
 	size_t flags,
-	size_t num_deps,
-	int affinity
+	size_t num_deps
 ) {
 	// TODO: Temporary check until multiple implementations are supported
 	assert(task_info->implementation_count == 1);
 
 	nanos6_device_t deviceType = (nanos6_device_t) task_info->implementations[0].device_type_id;
 	if (!HardwareInfo::canDeviceRunTasks(deviceType)) {
-		FatalErrorHandler::fail("No hardware associated for task device type ", deviceType);
+		FatalErrorHandler::fail("No hardware associated for task device type", deviceType);
 	}
 
 	Task *task = AddTask::createTask(
@@ -262,8 +261,6 @@ void nanos6_create_task(
 		flags, num_deps, true
 	);
 	assert(task != nullptr);
-
-	task->setAccelAffinity(affinity);
 
 	*task_pointer = (void *) task;
 	*args_block_pointer = task->getArgsBlock();

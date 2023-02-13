@@ -18,7 +18,7 @@ public:
 
 	void submitDevice(const DeviceEnvironment&) const override {}
 	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment&) const override {return []() -> bool{return true;};}
-	void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
+	void generateDeviceEvironment(DeviceEnvironment&, const nanos6_task_implementation_info_t*) override {}
 
 	std::pair<void *, bool> accel_allocate(size_t) override {return {nullptr, false};}
 	bool accel_free(void *) override {return true;}

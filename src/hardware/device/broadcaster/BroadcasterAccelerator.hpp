@@ -63,7 +63,7 @@ public:
 	inline int getVendorDeviceId() const override {return 0;}
 	inline void submitDevice([[maybe_unused]] const DeviceEnvironment&) const override {}
 	inline std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment&) const override {return []() -> bool {return true;};}
-	inline void generateDeviceEvironment(DeviceEnvironment&, uint64_t) override {}
+	inline void generateDeviceEvironment(DeviceEnvironment&, const nanos6_task_implementation_info_t*) override {}
 };
 
 #endif // BROADCASTER_ACCELERATOR_HPP

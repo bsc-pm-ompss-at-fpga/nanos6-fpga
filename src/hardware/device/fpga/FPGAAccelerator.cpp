@@ -15,6 +15,8 @@
 #include <DataAccessRegistrationImplementation.hpp>
 #include "lowlevel/FatalErrorHandler.hpp"
 
+std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
+
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	Accelerator(fpgaDeviceIndex,
 		nanos6_fpga_device,
@@ -59,14 +61,15 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	}
 }
 
-inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) {
+inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, const nanos6_task_implementation_info_t* task_implementation) {
+	uint64_t deviceSubtype = _device_subtype_map[task_implementation];
 #ifndef NDEBUG
 	FatalErrorHandler::failIf(
-		_inner_accelerators.find(deviceSubtypeId) == _inner_accelerators.end(),
-		"Device subtype ", deviceSubtypeId, " not found"
+		_inner_accelerators.find(deviceSubtype) == _inner_accelerators.end(),
+		"Device subtype ", deviceSubtype, " not found"
 	);
 #endif
-	xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtypeId].getHandle();
+	xtasks_acc_handle accelerator = _inner_accelerators[deviceSubtype].getHandle();
 	xtasks_task_id parent = 0;
 	xtasksCreateTask((xtasks_task_id) &env.fpga, accelerator, parent, XTASKS_COMPUTE_ENABLE, (xtasks_task_handle*) &env.fpga.taskHandle);
 	env.fpga.taskFinished = false;

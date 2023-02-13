@@ -36,11 +36,12 @@ private:
 			return _accelHandle[(idx++)%_accelHandle.size()];
 		}
 	};
+
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
 	void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
 	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const override;
-	inline void generateDeviceEvironment(DeviceEnvironment& env, uint64_t deviceSubtypeId) override;
+	inline void generateDeviceEvironment(DeviceEnvironment&, const nanos6_task_implementation_info_t*) override;
 
 	inline void finishTaskCleanup([[maybe_unused]] Task *task) override{}
 
@@ -51,6 +52,9 @@ private:
 	void postRunTask(Task *task) override;
 
 public:
+
+	static std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> _device_subtype_map;
+
 	FPGAAccelerator(int fpgaDeviceIndex);
 
 	std::pair<void *, bool> accel_allocate(size_t size) override;

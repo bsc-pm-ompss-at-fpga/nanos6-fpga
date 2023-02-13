@@ -70,8 +70,6 @@ typedef struct
 	//! \brief Runtime device identifier (original type nanos6_device_t)
 	int device_type_id;
 
-	uint64_t device_subtype_id;
-
 	//! \brief Wrapper around the actual task implementation
 	//!
 	//! \param[in,out] args_block A pointer to a block of data for the parameters

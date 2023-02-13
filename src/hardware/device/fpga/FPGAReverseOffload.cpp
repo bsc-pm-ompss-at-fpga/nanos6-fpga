@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <vector>
 
-std::unordered_map<uint64_t, nanos6_task_info_t*> FPGAReverseOffload::_reverseMap;
+std::unordered_map<uint64_t, const nanos6_task_info_t*> FPGAReverseOffload::_reverseMap;
 
 void FPGAReverseOffload::serviceFunction(void *data)
 {
@@ -45,7 +45,7 @@ void FPGAReverseOffload::serviceLoop() {
 		bool foundTask = false;
 		if (stat == XTASKS_SUCCESS) {
 			foundTask = true;
-			std::unordered_map<uint64_t, nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
+			std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
 			assert(it != _reverseMap.end());
 			const nanos6_task_info_t* task_info = it->second;
 			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {

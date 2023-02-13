@@ -19,6 +19,30 @@
 
 #include <InstrumentTasktypeData.hpp>
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#if USE_FPGA
+#include <iostream>
+#include "hardware/device/fpga/FPGAAccelerator.hpp"
+#include "hardware/device/fpga/FPGAReverseOffload.hpp"
+
+static unsigned int simple_hash_str(const char *str)
+{
+    const int MULTIPLIER = 33;
+    unsigned int h;
+    unsigned const char *p;
+
+    h = 0;
+    for (p = (unsigned const char*)str; *p != '\0'; p++)
+        h = MULTIPLIER * h + *p;
+
+    h += (h >> 5);
+
+    return h; // or, h % ARRAY_SIZE;
+}
+#endif
 
 class TaskInfoManager;
 class TasktypeStatistics;
@@ -92,6 +116,24 @@ public:
 		assert(taskInfo != nullptr);
 		assert(taskInfo->implementations != nullptr);
 		assert(taskInfo->implementations[0].declaration_source != nullptr);
+
+#if USE_FPGA
+		if (taskInfo->implementations[0].device_type_id == nanos6_fpga_device) {
+			assert(taskInfo->implementations[0].device_function_name != nullptr);
+		}
+		if (taskInfo->implementations[0].device_function_name != nullptr) {
+			uint64_t subtype = simple_hash_str(taskInfo->implementations[0].device_function_name) & 0xFFFFFFFF;
+			std::cout << "Function name " << taskInfo->implementations[0].device_function_name << " with subtype " << subtype << std::endl;
+			if (taskInfo->implementations[0].device_type_id == nanos6_fpga_device) {
+				subtype |= 0x100000000lu;
+			}
+			else {
+				subtype |= 0x200000000lu;
+			}
+			FPGAAccelerator::_device_subtype_map[taskInfo->implementations] = subtype;
+			FPGAReverseOffload::_reverseMap[subtype] = taskInfo;
+		}
+#endif
 
 		// Global number of unlabeled task infos
 		static size_t unlabeledTaskInfos = 0;
