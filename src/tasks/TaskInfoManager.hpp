@@ -123,7 +123,6 @@ public:
 		}
 		if (taskInfo->implementations[0].device_function_name != nullptr) {
 			uint64_t subtype = simple_hash_str(taskInfo->implementations[0].device_function_name) & 0xFFFFFFFF;
-			std::cout << "Function name " << taskInfo->implementations[0].device_function_name << " with subtype " << subtype << std::endl;
 			if (taskInfo->implementations[0].device_type_id == nanos6_fpga_device) {
 				subtype |= 0x100000000lu;
 			}
