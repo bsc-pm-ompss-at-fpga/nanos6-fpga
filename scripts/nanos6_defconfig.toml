@@ -141,6 +141,8 @@ __!require_PQOS
 __require_FPGA
 	# OmpSs-2 @ FPGA
 	[devices.fpga]
+		# Enable/disable the reverse offload service
+		reverse_offload = false
 		# Byte alignment of the fpga memory allocations
 		alignment = 16
 		# If xtasks supports async copies, it can be "async", if not, the runtime can use the default xtasks memcpy and

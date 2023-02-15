@@ -23,7 +23,8 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<uint32_t>("devices.fpga.streams"),
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
-		_allocator(fpgaDeviceIndex)
+		_allocator(fpgaDeviceIndex),
+	_reverseOffload(_allocator, ConfigVariable<size_t>("devices.fpga.polling.period_us"))
 {
 	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
 	if (memSyncString == "async") {

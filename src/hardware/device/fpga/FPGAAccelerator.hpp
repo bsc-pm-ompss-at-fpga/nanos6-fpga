@@ -13,6 +13,7 @@
 #include "hardware/device/Accelerator.hpp"
 #include "tasks/Task.hpp"
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
+#include "FPGAReverseOffload.hpp"
 
 class FPGAAccelerator : public Accelerator {
 private:
@@ -23,6 +24,8 @@ private:
 	} _mem_sync_type;
 
 	FPGAPinnedAllocator _allocator;
+
+	FPGAReverseOffload _reverseOffload;
 
 	struct _fpgaAccel
 	{
@@ -67,6 +70,20 @@ public:
 	}
 
 	inline void setActiveDevice() const override {}
+
+	void initializeService() override {
+		Accelerator::initializeService();
+		if (ConfigVariable<bool>("devices.fpga.reverse_offload")) {
+			_reverseOffload.initializeService();
+		}
+	}
+
+	void shutdownService() override {
+		Accelerator::shutdownService();
+		if (ConfigVariable<bool>("devices.fpga.reverse_offload")) {
+			_reverseOffload.shutdownService();
+		}
+	}
 
 	std::function<std::function<bool(void)>()> copy_in(void *dst, void *src, size_t size, void* copy_extra) const override;
 	std::function<std::function<bool(void)>()> copy_out(void *dst, void *src, size_t size, void* copy_extra) const override;
