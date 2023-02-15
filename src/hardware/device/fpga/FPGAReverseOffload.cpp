@@ -48,23 +48,39 @@ void FPGAReverseOffload::serviceLoop() {
 			std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
 			assert(it != _reverseMap.end());
 			const nanos6_task_info_t* task_info = it->second;
+
 			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
-				char* mem = new char[xtasks_task->copies[i].size];
+				void* mem = MemoryAllocator::alloc(xtasks_task->copies[i].size);
 				xtasks_task->args[xtasks_task->copies[i].argIdx] = (uint64_t)mem;
 				if (xtasks_task->copies[i].flags & 0x01) {
 					_allocator.memcpy(mem, xtasks_task->copies[i].address, xtasks_task->copies[i].size, XTASKS_ACC_TO_HOST);
 				}
 			}
-			task_info->implementations[0].run(xtasks_task->args, nullptr, nullptr);
+
+			int numArgs = task_info->num_args;
+			int argsBlockSize = 0;
+			for (int i = 0; i < numArgs; ++i) {
+				argsBlockSize += task_info->sizeof_table[i];
+			}
+			void* argsBlock = MemoryAllocator::alloc(argsBlockSize);
+			for (int i = 0; i < numArgs; ++i) {
+				assert(task_info->sizeof_table[i] <= (int)sizeof(xtasks_newtask_arg));
+				memcpy((char*)argsBlock + task_info->offset_table[i], &xtasks_task->args[i], task_info->sizeof_table[i]);
+			}
+
+			task_info->implementations[0].run(argsBlock, nullptr, nullptr);
+
 			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
-				char* mem = (char*)xtasks_task->args[xtasks_task->copies[i].argIdx];
+				void* mem = (void*)xtasks_task->args[xtasks_task->copies[i].argIdx];
 				if (xtasks_task->copies[i].flags & 0x02) {
 					_allocator.memcpy(xtasks_task->copies[i].address, mem, xtasks_task->copies[i].size, XTASKS_HOST_TO_ACC);
 				}
-				delete mem;
+				MemoryAllocator::free(mem, xtasks_task->copies[i].size);
 			}
+
 			stat = xtasksNotifyFinishedTask(xtasks_task->parentId, xtasks_task->taskId);
 			assert(stat == XTASKS_SUCCESS);
+			MemoryAllocator::free(argsBlock, argsBlockSize);
 		}
 		else {
 			assert(stat == XTASKS_PENDING);
