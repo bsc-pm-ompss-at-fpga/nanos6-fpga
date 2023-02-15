@@ -46,7 +46,12 @@ void FPGAReverseOffload::serviceLoop() {
 		if (stat == XTASKS_SUCCESS) {
 			foundTask = true;
 			std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
-			assert(it != _reverseMap.end());
+#ifndef NDEBUG
+			FatalErrorHandler::failIf(
+				it == _reverseMap.end(),
+				"Device subtype ", xtasks_task->typeInfo, " not found in reverse map"
+			);
+#endif
 			const nanos6_task_info_t* task_info = it->second;
 
 			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
