@@ -35,7 +35,8 @@ void nanos6_create_task(
 		symbol = (nanos6_create_task_t *) _nanos6_resolve_symbol("nanos6_create_task", "essential", NULL);
 	}
 
-	(*symbol)(task_info, task_invocation_info, task_label, args_block_size, args_block_pointer, task_pointer, flags, num_deps, affinity);
+        (*symbol)(task_info, task_invocation_info, task_label, args_block_size,
+                  args_block_pointer, task_pointer, flags, num_deps);
 }
 
 
