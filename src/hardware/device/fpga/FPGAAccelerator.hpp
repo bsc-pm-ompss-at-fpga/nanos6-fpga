@@ -59,6 +59,7 @@ public:
 	static std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> _device_subtype_map;
 
 	FPGAAccelerator(int fpgaDeviceIndex);
+	~FPGAAccelerator() override;
 
 	std::pair<void *, bool> accel_allocate(size_t size) override;
 

@@ -23,6 +23,11 @@ public:
 		if (xtasksInit() != XTASKS_SUCCESS)
 			return;
 
+		#ifdef HAVE_OVNI_H
+		xtasks_stat res = xtasksInitHWIns(128);
+		std::cout << "xtasksInitHWIns: " << static_cast<int>(res) << std::endl;
+		#endif
+
 		FatalErrorHandler::failIf(
 			xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
 			"Xtasks: Can't get number of devices"
@@ -42,6 +47,10 @@ public:
 			assert(accelerator != nullptr);
 			delete (FPGAAccelerator *)accelerator;
 		}
+		#ifdef HAVE_OVNI_H
+		xtasks_stat res = xtasksFiniHWIns();
+		std::cout << "xtasksFiniHWIns: " << static_cast<int>(res) << std::endl;
+	#endif
 		xtasksFini();
 	}
 

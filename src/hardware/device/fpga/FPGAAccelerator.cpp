@@ -8,6 +8,7 @@
 #include "../directory/DeviceDirectory.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
+#include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
 
@@ -59,6 +60,22 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	{
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
+	}
+}
+
+FPGAAccelerator::~FPGAAccelerator() {
+	for (auto &&[_,accelType] : _inner_accelerators) {
+		for (auto &&handle : accelType._accelHandle) {
+			xtasks_ins_event events[128];
+			xtasks_acc_info info;
+			xtasksGetAccInfo(handle, &info);
+			xtasks_stat res = xtasksGetInstrumentData(handle, events, 128);
+			std::cout << "xtasksGetInstrumentData: " << static_cast<int>(res) << std::endl;
+			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
+				std::cout << "event [Type: " << events[i].eventType << ", ID: " << events[i].eventId << ", Value: " << events[i].value << ", time: " << events[i].timestamp/(double(info.freq)*1000) << "]" << std::endl;
+			}
+		}
+		
 	}
 }
 
