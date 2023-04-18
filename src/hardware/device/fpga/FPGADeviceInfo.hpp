@@ -12,6 +12,7 @@
 #include "hardware/places/MemoryPlace.hpp"
 
 #include "FPGAAccelerator.hpp"
+#include "instrument/api/InstrumentFPGAEvents.hpp"
 #include <libxtasks.h>
 
 class FPGADeviceInfo : public DeviceInfo {
@@ -23,11 +24,12 @@ public:
 		if (xtasksInit() != XTASKS_SUCCESS)
 			return;
 
-		#ifdef HAVE_OVNI_H
-		xtasks_stat res = xtasksInitHWIns(128);
-		std::cout << "xtasksInitHWIns: " << static_cast<int>(res) << std::endl;
-		#endif
-
+		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+			FatalErrorHandler::failIf(
+				xtasksInitHWIns(128) != XTASKS_SUCCESS,
+				"Xtasks: Can't init HW instrumentation"
+			);
+		}
 		FatalErrorHandler::failIf(
 			xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
 			"Xtasks: Can't get number of devices"
@@ -47,10 +49,12 @@ public:
 			assert(accelerator != nullptr);
 			delete (FPGAAccelerator *)accelerator;
 		}
-		#ifdef HAVE_OVNI_H
-		xtasks_stat res = xtasksFiniHWIns();
-		std::cout << "xtasksFiniHWIns: " << static_cast<int>(res) << std::endl;
-	#endif
+		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+			FatalErrorHandler::failIf(
+				xtasksFiniHWIns() != XTASKS_SUCCESS,
+				"Xtasks: Can't finish HW instrumentation"
+			);
+		}
 		xtasksFini();
 	}
 

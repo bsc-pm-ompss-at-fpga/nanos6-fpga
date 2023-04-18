@@ -11,9 +11,32 @@
 #include "support/config/ConfigVariable.hpp"
 
 #include "hardware/device/Accelerator.hpp"
+#include "support/config/toml/string.hpp"
 #include "tasks/Task.hpp"
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
 #include "FPGAReverseOffload.hpp"
+
+class FPGAAcceleratorInstrumentationService {
+public:
+	struct HandleWithInfo {
+		xtasks_acc_handle handle;
+		xtasks_acc_info info;
+	};
+private:
+std::atomic<bool> stopService;
+std::atomic<bool> finishedService;
+uint64_t pollingPeriodUs = 0;
+std::vector<HandleWithInfo> handles;
+	static void serviceFunction(void *data);
+	static void serviceCompleted(void *data);
+	void serviceLoop();
+public:
+
+	FPGAAcceleratorInstrumentationService(uint64_t pollingPeriodUs_) : pollingPeriodUs(pollingPeriodUs_) {}
+	void initializeService();
+	void shutdownService();
+	void setHandles(std::vector<HandleWithInfo> &&otherHandles) {handles = std::move(otherHandles);}
+};
 
 class FPGAAccelerator : public Accelerator {
 private:
@@ -26,7 +49,7 @@ private:
 	FPGAPinnedAllocator _allocator;
 
 	FPGAReverseOffload _reverseOffload;
-
+	FPGAAcceleratorInstrumentationService acceleratorInstrumentationService;
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
@@ -77,12 +100,18 @@ public:
 		if (ConfigVariable<bool>("devices.fpga.reverse_offload")) {
 			_reverseOffload.initializeService();
 		}
+		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+			acceleratorInstrumentationService.initializeService();
+		}
 	}
 
 	void shutdownService() override {
 		Accelerator::shutdownService();
 		if (ConfigVariable<bool>("devices.fpga.reverse_offload")) {
 			_reverseOffload.shutdownService();
+		}
+		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+			acceleratorInstrumentationService.shutdownService();
 		}
 	}
 

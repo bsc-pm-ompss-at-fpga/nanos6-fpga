@@ -8,6 +8,7 @@
 #include "../directory/DeviceDirectory.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
+#include "InstrumentFPGAEvents.hpp"
 #include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
@@ -18,6 +19,53 @@
 
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
 
+void FPGAAcceleratorInstrumentationService::serviceFunction(void *data) {
+	Instrument::startFPGAInstrumentation();
+	FPGAAcceleratorInstrumentationService *self = (FPGAAcceleratorInstrumentationService *)data;
+	// Execute the service loop
+	self->serviceLoop();
+}
+void FPGAAcceleratorInstrumentationService::serviceCompleted(void *data)
+{
+	Instrument::stopFPGAInstrumentation(); 
+	FPGAAcceleratorInstrumentationService *self = (FPGAAcceleratorInstrumentationService *)data;
+	// Mark the service as completed
+	self->finishedService = true;
+}
+void FPGAAcceleratorInstrumentationService::initializeService() {
+	// Spawn service function
+	SpawnFunction::spawnFunction(
+				serviceFunction, this,
+				serviceCompleted, this,
+				"FPGA instrumentation polling service", false
+				);
+}
+
+void FPGAAcceleratorInstrumentationService::shutdownService() {
+	stopService = true;
+	while (!finishedService);
+}
+
+void FPGAAcceleratorInstrumentationService::serviceLoop() {
+	while (!stopService) {
+		for (auto &&[handle, info] : handles) {
+			xtasks_ins_event events[128];
+			events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
+			xtasks_stat res = xtasksGetInstrumentData(handle, events, 128);
+			FatalErrorHandler::failIf(
+				res != XTASKS_SUCCESS,
+				"Error while retrieving instrumentation events from handle with id: ", info.id, ". xtasksGetInstrumentData returns: ", res
+			);
+			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
+				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, events[i].timestamp/(double(info.freq)*1000));
+			}
+		}
+		if (pollingPeriodUs) {
+			BlockingAPI::waitForUs(pollingPeriodUs);
+		}
+	}
+}
+
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	Accelerator(fpgaDeviceIndex,
 		nanos6_fpga_device,
@@ -25,7 +73,8 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
 		_allocator(fpgaDeviceIndex),
-		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling)
+		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling),
+		acceleratorInstrumentationService(0)
 {
 	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
 	if (memSyncString == "async") {
@@ -61,23 +110,14 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		xtasksGetAccInfo(handles[i], &info[i]);
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
-}
-
-FPGAAccelerator::~FPGAAccelerator() {
-	for (auto &&[_,accelType] : _inner_accelerators) {
-		for (auto &&handle : accelType._accelHandle) {
-			xtasks_ins_event events[128];
-			xtasks_acc_info info;
-			xtasksGetAccInfo(handle, &info);
-			xtasks_stat res = xtasksGetInstrumentData(handle, events, 128);
-			std::cout << "xtasksGetInstrumentData: " << static_cast<int>(res) << std::endl;
-			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-				std::cout << "event [Type: " << events[i].eventType << ", ID: " << events[i].eventId << ", Value: " << events[i].value << ", time: " << events[i].timestamp/(double(info.freq)*1000) << "]" << std::endl;
-			}
-		}
-		
+	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+		std::vector<FPGAAcceleratorInstrumentationService::HandleWithInfo> handlesWithInfo(accCount);
+		for(size_t i=0;i<accCount;++i) handlesWithInfo[i] = {handles[i], info[i]};
+		acceleratorInstrumentationService.setHandles(std::move(handlesWithInfo));
 	}
 }
+
+FPGAAccelerator::~FPGAAccelerator() = default;
 
 inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, const nanos6_task_implementation_info_t* task_implementation) {
 	uint64_t deviceSubtype = _device_subtype_map[task_implementation];

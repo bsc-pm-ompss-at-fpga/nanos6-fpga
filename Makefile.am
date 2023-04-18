@@ -864,6 +864,7 @@ noinst_HEADERS = \
 	src/instrument/ctf/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/ctf/InstrumentExternalThreadId.hpp \
 	src/instrument/ctf/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/ctf/InstrumentFPGAEvents.hpp \
 	src/instrument/ctf/InstrumentInitAndShutdown.hpp \
 	src/instrument/ctf/InstrumentInstrumentationContext.hpp \
 	src/instrument/ctf/InstrumentLeaderThread.hpp \
@@ -921,6 +922,7 @@ noinst_HEADERS = \
 	src/instrument/extrae/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/extrae/InstrumentExternalThreadId.hpp \
 	src/instrument/extrae/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/extrae/InstrumentFPGAEvents.hpp \
 	src/instrument/extrae/InstrumentExtrae.hpp \
 	src/instrument/extrae/InstrumentInitAndShutdown.hpp \
 	src/instrument/extrae/InstrumentLeaderThread.hpp \
@@ -961,6 +963,7 @@ noinst_HEADERS = \
 	src/instrument/lint/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/lint/InstrumentExternalThreadId.hpp \
 	src/instrument/lint/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/lint/InstrumentFPGAEvents.hpp \
 	src/instrument/lint/InstrumentInitAndShutdown.hpp \
 	src/instrument/lint/InstrumentInstrumentationContext.hpp \
 	src/instrument/lint/InstrumentLeaderThread.hpp \
@@ -996,6 +999,7 @@ noinst_HEADERS = \
 	src/instrument/null/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/null/InstrumentExternalThreadId.hpp \
 	src/instrument/null/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/null/InstrumentFPGAEvents.hpp \
 	src/instrument/null/InstrumentInitAndShutdown.hpp \
 	src/instrument/null/InstrumentInstrumentationContext.hpp \
 	src/instrument/null/InstrumentLeaderThread.hpp \
@@ -1031,6 +1035,7 @@ noinst_HEADERS = \
 	src/instrument/ovni/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/ovni/InstrumentExternalThreadId.hpp \
 	src/instrument/ovni/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/ovni/InstrumentFPGAEvents.hpp \
 	src/instrument/ovni/InstrumentInitAndShutdown.hpp \
 	src/instrument/ovni/InstrumentInstrumentationContext.hpp \
 	src/instrument/ovni/InstrumentLeaderThread.hpp \
@@ -1079,6 +1084,7 @@ noinst_HEADERS = \
 	src/instrument/verbose/InstrumentDependencySubsystemEntryPoints.hpp \
 	src/instrument/verbose/InstrumentExternalThreadId.hpp \
 	src/instrument/verbose/InstrumentExternalThreadLocalData.hpp \
+	src/instrument/verbose/InstrumentFPGAEvents.hpp \
 	src/instrument/verbose/InstrumentInitAndShutdown.hpp \
 	src/instrument/verbose/InstrumentLeaderThread.hpp \
 	src/instrument/verbose/InstrumentLogMessage.hpp \
