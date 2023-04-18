@@ -16,6 +16,7 @@
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
 #include "FPGAReverseOffload.hpp"
 
+#include <thread>
 class FPGAAcceleratorInstrumentationService {
 public:
 	struct HandleWithInfo {
@@ -25,14 +26,12 @@ public:
 private:
 std::atomic<bool> stopService;
 std::atomic<bool> finishedService;
-uint64_t pollingPeriodUs = 0;
 std::vector<HandleWithInfo> handles;
-	static void serviceFunction(void *data);
-	static void serviceCompleted(void *data);
+std::thread internalThread;
 	void serviceLoop();
 public:
 
-	FPGAAcceleratorInstrumentationService(uint64_t pollingPeriodUs_) : pollingPeriodUs(pollingPeriodUs_) {}
+	FPGAAcceleratorInstrumentationService() {}
 	void initializeService();
 	void shutdownService();
 	void setHandles(std::vector<HandleWithInfo> &&otherHandles) {handles = std::move(otherHandles);}

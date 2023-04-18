@@ -9,6 +9,7 @@
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 #include "InstrumentFPGAEvents.hpp"
+#include "instrument/api/InstrumentFPGAEvents.hpp"
 #include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
@@ -19,34 +20,18 @@
 
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
 
-void FPGAAcceleratorInstrumentationService::serviceFunction(void *data) {
-	Instrument::startFPGAInstrumentation();
-	FPGAAcceleratorInstrumentationService *self = (FPGAAcceleratorInstrumentationService *)data;
-	// Execute the service loop
-	self->serviceLoop();
-}
-void FPGAAcceleratorInstrumentationService::serviceCompleted(void *data)
-{
-	Instrument::stopFPGAInstrumentation(); 
-	FPGAAcceleratorInstrumentationService *self = (FPGAAcceleratorInstrumentationService *)data;
-	// Mark the service as completed
-	self->finishedService = true;
-}
 void FPGAAcceleratorInstrumentationService::initializeService() {
-	// Spawn service function
-	SpawnFunction::spawnFunction(
-				serviceFunction, this,
-				serviceCompleted, this,
-				"FPGA instrumentation polling service", false
-				);
+	internalThread = std::thread(&FPGAAcceleratorInstrumentationService::serviceLoop, this);
 }
 
 void FPGAAcceleratorInstrumentationService::shutdownService() {
 	stopService = true;
 	while (!finishedService);
+	internalThread.join();
 }
 
 void FPGAAcceleratorInstrumentationService::serviceLoop() {
+	Instrument::startFPGAInstrumentation();
 	while (!stopService) {
 		for (auto &&[handle, info] : handles) {
 			xtasks_ins_event events[128];
@@ -60,10 +45,9 @@ void FPGAAcceleratorInstrumentationService::serviceLoop() {
 				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, events[i].timestamp/(double(info.freq)*1000));
 			}
 		}
-		if (pollingPeriodUs) {
-			BlockingAPI::waitForUs(pollingPeriodUs);
-		}
 	}
+	Instrument::stopFPGAInstrumentation();
+	finishedService = true;
 }
 
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
@@ -73,8 +57,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
 		_allocator(fpgaDeviceIndex),
-		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling),
-		acceleratorInstrumentationService(0)
+		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling)
 {
 	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
 	if (memSyncString == "async") {
