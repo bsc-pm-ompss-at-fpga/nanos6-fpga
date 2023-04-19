@@ -15,6 +15,7 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 
 namespace Instrument {
+	uint64_t getCPUTimeForFPGA();
 	//! This function is called at startup when an FPGA is known to have to start emiting events 
 	void startFPGAInstrumentation();
 	//! This function is called at exit, if startFPGAInstrumentation has been called.

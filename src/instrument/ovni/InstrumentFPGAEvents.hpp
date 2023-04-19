@@ -8,8 +8,10 @@
 #include "instrument/api/InstrumentFPGAEvents.hpp"
 
 #include "OvniTrace.hpp"
+#include "ovni.h"
 
 namespace Instrument {
+	inline uint64_t getCPUTimeForFPGA() {return ovni_clock_now();}
 	inline void startFPGAInstrumentation() {
 		Ovni::threadInit();
 
