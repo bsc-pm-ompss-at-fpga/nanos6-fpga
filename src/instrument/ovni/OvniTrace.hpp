@@ -214,7 +214,7 @@ namespace Instrument {
 			struct ovni_ev ev;
 			memset(&ev, 0, sizeof(struct ovni_ev));
 			ovni_ev_set_clock(&ev, time);
-			ovni_ev_set_mcv(&ev, "Fse");
+			ovni_ev_set_mcv(&ev, "Xse");
 			addPayload(&ev, value, eventId, eventType);
 			ovni_ev_emit(&ev);
 		}
