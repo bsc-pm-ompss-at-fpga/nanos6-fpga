@@ -8,6 +8,7 @@
 #define INSTRUMENT_FPGA_EVENTS_HPP
 
 
+#include <cstdint>
 #include <nanos6.h>
 
 #include <InstrumentInstrumentationContext.hpp>
@@ -19,7 +20,7 @@ namespace Instrument {
 	//! This function is called at exit, if startFPGAInstrumentation has been called.
 	void stopFPGAInstrumentation();
 	//! This function is called upon recieving an event
-	void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, double time);
+	void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime);
 }
 
 

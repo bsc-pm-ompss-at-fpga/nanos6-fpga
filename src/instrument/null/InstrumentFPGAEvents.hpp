@@ -9,6 +9,7 @@
 
 
 #include "instrument/api/InstrumentFPGAEvents.hpp"
+#include <cstdint>
 
 namespace Instrument {
 	inline void startFPGAInstrumentation() {}
@@ -16,7 +17,7 @@ namespace Instrument {
 	inline void emitFPGAEvent([[maybe_unused]] uint64_t value, 
 		[[maybe_unused]] uint32_t eventId, 
 		[[maybe_unused]] uint32_t eventType,
-		[[maybe_unused]] double time) {
+		[[maybe_unused]] uint64_t utime) {
 		}
 }
 

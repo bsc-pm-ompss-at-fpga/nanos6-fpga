@@ -33,7 +33,7 @@ void FPGAAcceleratorInstrumentationService::shutdownService() {
 void FPGAAcceleratorInstrumentationService::serviceLoop() {
 	Instrument::startFPGAInstrumentation();
 	while (!stopService) {
-		for (auto &&[handle, info] : handles) {
+		for (auto &&[handle, info, startTime] : handles) {
 			xtasks_ins_event events[128];
 			events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
 			xtasks_stat res = xtasksGetInstrumentData(handle, events, 128);
@@ -42,7 +42,7 @@ void FPGAAcceleratorInstrumentationService::serviceLoop() {
 				"Error while retrieving instrumentation events from handle with id: ", info.id, ". xtasksGetInstrumentData returns: ", res
 			);
 			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, events[i].timestamp/(double(info.freq)*1000));
+				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-startTime)*1'000'000)/(info.freq));
 			}
 		}
 	}
@@ -95,7 +95,11 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	}
 	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
 		std::vector<FPGAAcceleratorInstrumentationService::HandleWithInfo> handlesWithInfo(accCount);
-		for(size_t i=0;i<accCount;++i) handlesWithInfo[i] = {handles[i], info[i]};
+		for(size_t i=0;i<accCount;++i) {
+			xtasks_ins_timestamp timestamp;
+			xtasksGetAccCurrentTime(handles[i], &timestamp);
+			handlesWithInfo[i] = {handles[i], info[i], timestamp};
+		}
 		acceleratorInstrumentationService.setHandles(std::move(handlesWithInfo));
 	}
 }

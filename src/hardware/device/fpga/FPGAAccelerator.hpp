@@ -22,6 +22,7 @@ public:
 	struct HandleWithInfo {
 		xtasks_acc_handle handle;
 		xtasks_acc_info info;
+		uint64_t startTime;
 	};
 private:
 std::atomic<bool> stopService;

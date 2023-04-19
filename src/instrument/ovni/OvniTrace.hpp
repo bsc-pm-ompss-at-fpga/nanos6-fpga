@@ -206,14 +206,14 @@ namespace Instrument {
 			emitGeneric(1, "6Te", taskId);
 		}
 
-		static void fpgaEvent(uint64_t value, uint32_t eventId, uint32_t eventType, double time)
+		static void fpgaEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t time)
 		{
 			if (1 > _level)
 				return;
 
 			struct ovni_ev ev;
 			memset(&ev, 0, sizeof(struct ovni_ev));
-			ovni_ev_set_clock(&ev, uint64_t(time*1'000'000'000));
+			ovni_ev_set_clock(&ev, time);
 			ovni_ev_set_mcv(&ev, "Fse");
 			addPayload(&ev, value, eventId, eventType);
 			ovni_ev_emit(&ev);
