@@ -15,7 +15,7 @@ namespace Instrument {
 
 	}
 	inline void stopFPGAInstrumentation() {
-		Ovni::threadEnd();
+		Ovni::flush();
 		ovni_thread_free();
 	}
 	inline void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime) {

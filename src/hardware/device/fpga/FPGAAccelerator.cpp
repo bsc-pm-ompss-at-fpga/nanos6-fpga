@@ -31,8 +31,7 @@ void FPGAAcceleratorInstrumentationService::shutdownService() {
 }
 
 void FPGAAcceleratorInstrumentationService::serviceLoop() {
-	Instrument::startFPGAInstrumentation();
-	while (!stopService) {
+	auto fetchInstrumentation = [&] {
 		for (auto &&[handle, info, startTime] : handles) {
 			xtasks_ins_event events[128];
 			events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
@@ -45,7 +44,11 @@ void FPGAAcceleratorInstrumentationService::serviceLoop() {
 				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-startTime)*1'000'000)/(info.freq));
 			}
 		}
-	}
+	};
+
+	Instrument::startFPGAInstrumentation();
+	while (!stopService) fetchInstrumentation();
+	fetchInstrumentation();
 	Instrument::stopFPGAInstrumentation();
 	finishedService = true;
 }
