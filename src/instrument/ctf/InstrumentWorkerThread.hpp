@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef INSTRUMENT_CTF_WORKERTHREAD_HPP
@@ -41,6 +41,18 @@ namespace Instrument {
 		}
 	}
 
+	inline void workerProgressing()
+	{
+	}
+
+	inline void workerResting()
+	{
+	}
+
+	inline void workerAbsorbing()
+	{
+	}
+
 	inline void workerThreadBusyWaits()
 	{
 		ThreadLocalData &tld = getThreadLocalData();
@@ -72,6 +84,8 @@ namespace Instrument {
 	inline void exitSuspend() {}
 	inline void enterResume() {}
 	inline void exitResume() {}
+	inline void enterSpongeMode() {}
+	inline void exitSpongeMode() {}
 }
 
 #endif // INSTRUMENT_CTF_WORKERTHREAD_HPP

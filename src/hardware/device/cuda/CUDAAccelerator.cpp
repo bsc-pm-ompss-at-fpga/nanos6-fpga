@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #include <algorithm>
@@ -17,7 +17,56 @@
 
 #include <DataAccessRegistration.hpp>
 #include <DataAccessRegistrationImplementation.hpp>
+#include <InstrumentWorkerThread.hpp>
 
+
+ConfigVariable<bool> CUDAAccelerator::_pinnedPolling("devices.cuda.polling.pinned");
+ConfigVariable<size_t> CUDAAccelerator::_usPollingPeriod("devices.cuda.polling.period_us");
+
+thread_local Task *CUDAAccelerator::_currentTask;
+
+
+void CUDAAccelerator::acceleratorServiceLoop()
+{
+	const size_t sleepTime = _usPollingPeriod.getValue();
+
+	WorkerThread *currentThread = WorkerThread::getCurrentWorkerThread();
+	assert(currentThread != nullptr);
+
+	while (!shouldStopService()) {
+		bool activeDevice = false;
+		do {
+			// Launch as many ready device tasks as possible
+			while (_streamPool.streamAvailable()) {
+				Task *task = Scheduler::getReadyTask(_computePlace, currentThread);
+				if (task == nullptr) {
+					// The scheduler might have reported the thread as resting
+					Instrument::workerProgressing();
+					break;
+				}
+
+				runTask(task);
+			}
+
+			// Only set the active device if there have been tasks launched
+			// Setting the device during e.g. bootstrap caused issues
+			if (!_activeEvents.empty()) {
+				if (!activeDevice) {
+					activeDevice = true;
+					setActiveDevice();
+				}
+
+				// Process the active events
+				processCUDAEvents();
+			}
+
+			// Iterate while there are running tasks and pinned polling is enabled
+		} while (_pinnedPolling && !_activeEvents.empty());
+
+		// Sleep for a configured amount of microseconds
+		BlockingAPI::waitForUs(sleepTime);
+	}
+}
 
 // For each CUDA device task a CUDA stream is required for the asynchronous
 // launch; To ensure kernel completion a CUDA event is 'recorded' on the stream

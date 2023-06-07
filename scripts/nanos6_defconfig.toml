@@ -1,6 +1,6 @@
 # This file is part of Nanos6 and is licensed under the terms contained in the COPYING file
 #
-# Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
+# Copyright (C) 2020-2023 Barcelona Supercomputing Center (BSC)
 
 # The Nanos6 default configuration file. More details about the configuration options and the possible
 # values are available on the OmpSs-2 User Guide (https://pm.bsc.es/ftp/ompss-2/doc/user-guide/) or on
@@ -24,6 +24,15 @@
 	# results. It enables flush-to-zero (FZ) and denormals are zero (DAZ) optimizations in Intel®
 	# processors. Default is false
 	enabled = false
+	# Enable a warm-up of the memory allocation arenas for worker threads. This will enable a "warmup"
+	# phase when worker threads are first created, which basically implies performing memory allocation.
+	# When using Jemalloc, the first memory allocation on each thread may incur performance penalties,
+	# and for some Linux kernel versions it will serialize the initialization of workers. This has negative
+	# effects on application performance, since the application will start running while workers are
+	# performing the first memory allocation.
+	# This option will prevent this effect. The initialization time of the runtime will be higher, but
+	# once the "main" starts everything will be ready. Default is true
+	warmup = true
 
 [scheduler]
 	# Choose the task scheduling policy. Default is "fifo"
@@ -31,8 +40,8 @@
 	policy = "fifo"
 	# Probability of enabling the immediate successor feature to improve cache data reutilization between
 	# successor tasks. If enabled, when a CPU finishes a task it starts executing the successor task
-	# (computed through their data dependencies). Default is 1.0
-	immediate_successor = 1.0
+	# (computed through their data dependencies). Default is 0.75
+	immediate_successor = 0.75
 	# Indicate whether the scheduler should consider task priorities defined by the user in the
 	# task's priority clause. Default is true
 	priority = true
@@ -46,6 +55,16 @@
 	# works for the 'hybrid' policy. This number will be divided by the number of active CPUs to
 	# obtain a "busy_iters per CPU" metric for each individual CPU to busy-wait for
 	busy_iters = 240000
+	# The CPUs that should be in sponge mode. A sponge CPU is a CPU that the runtime system has available
+	# but it does not execute any task (or runtime code) on it. Such CPUs are useful to reduce the system
+	# noise. The runtime leaves these CPUs free (without consuming CPU time) so that the system can schedule
+	# other threads and interruptions on them.
+	# The option accepts a list of CPU system identifiers that must be in sponge mode. The user is responsible
+	# for ensuring the runtime can progress with the specified set of sponge CPUs. If DLB is enabled, this
+	# option is ignored.
+	# As an example, sponge_cpus = [ 2, 8 ] would leave the CPUs with system id 2 and 8 free to absorb noise.
+	# By default, there are no sponge CPUs, and the runtime uses all CPUs from the process CPU mask
+	sponge_cpus = [ ]
 
 [throttle]
 	# Enable throttle to stop creating tasks when certain conditions are met. Default is false

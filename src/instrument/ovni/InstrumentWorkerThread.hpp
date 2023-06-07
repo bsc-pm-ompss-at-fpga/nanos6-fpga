@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef INSTRUMENT_OVNI_WORKERTHREAD_HPP
@@ -14,6 +14,34 @@ namespace Instrument {
 
 	inline void workerThreadSpins() {}
 	inline void workerThreadObtainedTask() {}
+
+	inline void workerProgressing()
+	{
+		ThreadLocalData &tld = getThreadLocalData();
+		if (tld._workerStatus != worker_status_t::progressing) {
+			tld._workerStatus = worker_status_t::progressing;
+			Ovni::workerProgressing();
+		}
+	}
+
+	inline void workerResting()
+	{
+		ThreadLocalData &tld = getThreadLocalData();
+		if (tld._workerStatus != worker_status_t::resting) {
+			tld._workerStatus = worker_status_t::resting;
+			Ovni::workerResting();
+		}
+	}
+
+	inline void workerAbsorbing()
+	{
+		ThreadLocalData &tld = getThreadLocalData();
+		if (tld._workerStatus != worker_status_t::absorbing) {
+			tld._workerStatus = worker_status_t::absorbing;
+			Ovni::workerAbsorbing();
+		}
+	}
+
 	inline void workerThreadBusyWaits() {}
 
 	inline void workerThreadBegin()
@@ -66,6 +94,16 @@ namespace Instrument {
 	inline void exitResume()
 	{
 		Ovni::resumeExit();
+	}
+
+	inline void enterSpongeMode()
+	{
+		Ovni::spongeModeEnter();
+	}
+
+	inline void exitSpongeMode()
+	{
+		Ovni::spongeModeExit();
 	}
 }
 

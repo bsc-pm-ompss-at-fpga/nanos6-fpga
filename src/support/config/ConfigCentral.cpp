@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2020-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2020-2023 Barcelona Supercomputing Center (BSC)
 */
 
 
@@ -24,8 +24,9 @@ ConfigCentral::ConfigCentral() :
 	registerOption<integer_t>("cluster.va_start", 0);
 
 	// CPU manager
-	registerOption<size_t>("cpumanager.busy_iters", 240000);
+	registerOption<integer_t>("cpumanager.busy_iters", 240000);
 	registerOption<string_t>("cpumanager.policy", "default");
+	registerOption<integer_t>("cpumanager.sponge_cpus", {});
 
 
 	// DIRECTORY
@@ -145,7 +146,7 @@ ConfigCentral::ConfigCentral() :
 	registerOption<string_t>("numa.tracking", "auto");
 
 	// Scheduler
-	registerOption<float_t>("scheduler.immediate_successor", true);
+	registerOption<float_t>("scheduler.immediate_successor", 1.0);
 	registerOption<string_t>("scheduler.policy", "fifo");
 	registerOption<bool_t>("scheduler.priority", true);
 
@@ -163,6 +164,7 @@ ConfigCentral::ConfigCentral() :
 
 	// Turbo
 	registerOption<bool_t>("turbo.enabled", false);
+	registerOption<bool_t>("turbo.warmup", true);
 
 	// Version details
 	registerOption<bool_t>("version.debug", false);

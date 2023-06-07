@@ -14,13 +14,16 @@ To install Nanos6 the following tools and libraries must be installed:
 1. [boost](http://boost.org) >= 1.59
 1. [hwloc](https://www.open-mpi.org/projects/hwloc/)
 1. [numactl](http://oss.sgi.com/projects/libnuma/)
-1. Finally, it's highly recommended to have a installation of [Mercurium](https://github.com/bsc-pm/mcxx) with OmpSs-2 support enabled. When installing OmpSs-2 for the first time, you can break the chicken and egg dependence between Nanos6 and Mercurium in both sides: on one hand, you can install Nanos6 without specifying a valid installation of Mercurium. On the other hand, you can install Mercurium without a valid installation of Nanos6 using the `--enable-nanos6-bootstrap` configuration flag.
+
+It's highly recommended to have an installation of the [OmpSs-2 LLVM/Clang](https://github.com/bsc-pm/llvm) which supports the OmpSs-2 model. When installing OmpSs-2 for the first time, you can break the chicken and egg dependency between Nanos6 and LLVM/Clang in the following way: you can build Nanos6 without specifying any LLVM/Clang, then, build LLVM/Clang specifying that Nanos6 installation, and finally, re-configure and build Nanos6 passing the `--with-nanos6-clang` to specify the LLVM/Clang path.
+
+**Important:** The [Mercurium](https://github.com/bsc-pm/mcxx) source-to-source compiler is the OmpSs-2 legacy compiler and it is unsupported now. You do not have to install it to use OmpSs-2. We recommend using the [LLVM/Clang](https://github.com/bsc-pm/llvm) compiler instead.
 
 ### Optional libraries and tools
 
 In addition to the build requirements, the following libraries and tools enable additional features:
 
-1. [extrae](https://tools.bsc.es/extrae) to generate execution traces for offline performance analysis with [paraver](https://tools.bsc.es/paraver)
+1. [Extrae](https://tools.bsc.es/extrae) to generate execution traces for offline performance analysis with [Paraver](https://tools.bsc.es/paraver)
 1. [elfutils](https://sourceware.org/elfutils/) and [libunwind](http://www.nongnu.org/libunwind) to generate sample-based profiling
 1. [graphviz](http://www.graphviz.org/) and pdfjam or pdfjoin from [TeX](http://www.tug.org/texlive/) to generate graphical representations of the dependency graph
 1. [parallel](https://www.gnu.org/software/parallel/) to generate the graph representation in parallel
@@ -31,7 +34,7 @@ In addition to the build requirements, the following libraries and tools enable 
 1. [jemalloc](https://github.com/jemalloc/jemalloc) to use jemalloc as the default memory allocator, providing better performance than the default glibc implementation. Jemalloc must be compiled with `--enable-stats` and `--with-jemalloc-prefix=nanos6_je_` to link with the runtime
 1. [PAPI](http://icl.utk.edu/papi/software/) >= 5.6.0
 1. [Babeltrace2](https://babeltrace.org/) to enable the fast CTF converter (`ctf2prv --fast`) and the multi-process trace merger (`nanos6-mergeprv`)
-1. [ovni](https://ovni.readthedocs.io/) to enable the ovni instrumentation
+1. [ovni](https://ovni.readthedocs.io/) to generate execution traces for performance analysis with [Paraver](https://tools.bsc.es/paraver)
 
 
 ## Build procedure
@@ -40,10 +43,10 @@ Nanos6 uses the standard GNU automake and libtool toolchain.
 When cloning from a repository, the building environment must be prepared through the following command:
 
 ```sh
-$ autoreconf -f -i -v
+$ ./autogen.sh
 ```
 
-When the code is distributed through a tarball, it usually does not need that command.
+Use this script instead of the `autoreconf` command. When the code is distributed through a tarball, it usually does not need that command.
 
 Then execute the following commands:
 
@@ -57,6 +60,7 @@ where `INSTALLATION_PREFIX` is the directory into which to install Nanos6.
 
 The configure script accepts the following options:
 
+1. `--with-nanos6-clang=prefix` to specify the prefix of the LLVM/Clang installation which supports OmpSs-2
 1. `--with-nanos6-mercurium=prefix` to specify the prefix of the Mercurium installation
 1. `--with-boost=prefix` to specify the prefix of the Boost installation
 1. `--with-libunwind=prefix` to specify the prefix of the libunwind installation
@@ -73,7 +77,21 @@ The configure script accepts the following options:
 1. `--with-babeltrace2=prefix` to specify the prefix of the Babeltrace2 installation and enable the fast CTF converter (`ctf2prv --fast`) and the multi-process trace merger (`nanos6-mergeprv`)
 1. `--with-ovni=prefix` to specify the prefix of the ovni installation and enable the ovni instrumentation
 
-The location of elfutils and hwloc is always retrieved through pkg-config.
+The hwloc dependency can be specified using the `--with-hwloc` option. This option can take these values:
+* `pkgconfig`: The hwloc is an external installation and Nanos6 should discover it through the pkg-config tool.
+Make sure to set the `PKG_CONFIG_PATH` if the hwloc is not installed in non-standard directories.
+This is the **default** behavior if the option is not present or no value is provided
+* A prefix of an external hwloc installation
+* `embedded`: The hwloc is built and embedded into the Nanos6 library as an internal module.
+This is useful when user programs may have third-party software (e.g., MPI libraries) that depend on a different hwloc version and may conflict with the one used by Nanos6.
+When embedded, the hwloc library is internal and is only used by Nanos6.
+To this end, the `deps` folder contains a default hwloc source tarball.
+This tarball is automatically extracted into `deps/hwloc` by our `autogen.sh` script, which is then built and embedded when `--with-hwloc=embedded` is chosen.
+You may change the embedded hwloc version by placing the desired tarball inside the `deps` folder and re-running `autogen.sh` with the option `--embed-hwloc <VERSION>`.
+For the moment, the tarball must follow the format `deps/hwloc-<VERSION>.tar.gz`
+
+The location of elfutils is always retrieved through pkg-config.
+The same occurs for hwloc by default or when specifying `--with-hwloc=pkgconfig`.
 If they are installed in non-standard locations, pkg-config can be told where to find them through the `PKG_CONFIG_PATH` environment variable.
 For instance:
 
@@ -85,16 +103,19 @@ To enable CUDA the `--with-cuda` flag is needed.
 The location of CUDA can be retrieved automatically, if it is in standard system locations (`/usr/lib`, `/usr/include`, etc), or through pkg-config.
 Alternatively, for non-standard installation paths, it can be specified using the optional `=prefix` of the parameter.
 
+The ``--enable-openacc`` flag is needed to enable OpenACC tasks.
 The location of PGI compilers can be retrieved from the `$PATH` variable, if it is not specified through the `--with-pgi` parameter.
 
-After Nanos6 has been installed, it can be used by compiling your C, C++ and Fortran codes with Mercurium using the `--ompss-2` flag.
+After Nanos6 has been installed, it can be used by compiling your C and C++ codes with LLVM/Clang using the `-fompss-2` flag.
 Example:
 
 ```sh
-$ mcc -c --ompss-2 a_part_in_c.c
-$ mcxx -c --ompss-2 a_part_in_c_plus_plus.cxx
-$ mcxx --ompss-2 a_part_in_c.o a_part_in_c_plus_plus.o -o app
+$ clang -c -fompss-2 a_part_in_c.c
+$ clang++ -c -fompss-2 a_part_in_c_plus_plus.cxx
+$ clang++ -fompss-2 a_part_in_c.o a_part_in_c_plus_plus.o -o app
 ```
+
+We still recommend using the [Mercurium](https://github.com/bsc-pm/mcxx) source-to-source compiler for Fortran applications.
 
 ## Execution
 
@@ -130,7 +151,7 @@ For example, to change the dependency implementation and CTF instrumentation: `N
 The scheduling infrastructure provides the following configuration variables to modify the behavior of the task scheduler.
 
 * `scheduler.policy`: Specifies whether ready tasks are added to the ready queue using a FIFO (`fifo`) or a LIFO (`lifo`) policy. The **fifo** is the default.
-* `scheduler.immediate_successor`: Boolean indicating whether the immediate successor policy is enabled. If enabled, once a CPU finishes a task, the same CPU starts executing its successor task (computed through the data dependencies) such that it can reuse the data on the cache. **Enabled** by default.
+* `scheduler.immediate_successor`: Probability of enabling the immediate successor feature to improve cache data reutilization between successor tasks. If enabled, when a CPU finishes a task it starts executing the successor task (computed through their data dependencies). Default is **0.75**.
 * `scheduler.priority`: Boolean indicating whether the scheduler should consider the task priorities defined by the user in the task's priority clause. **Enabled** by default.
 
 ## Benchmarking, tracing, debugging and other options
@@ -157,7 +178,29 @@ Changing the dependency system implementation may also affect the performance of
 The different dependency implementations and how to enable them are explained in the Section [Choosing a dependency implementation](#choosing-a-dependency-implementation).
 
 
-### Tracing a Nanos6 application with Extrae
+### Tracing an OmpSs-2 application with ovni (recommended)
+
+Nanos6 can generate execution traces with the ovni library, which generates
+lightweight binary traces, and it is possible to mix ovni-instrumented libraries
+together with an OmpSs-2 program and obtain a single coherent trace.
+
+To enable the generation of ovni traces, Nanos6 must be built with the
+`--with-ovni` option, and without `--disable-ovni-instrumentation`. The
+application must run with the `version.instrument=ovni` configuration option.
+The trace will be left in a `ovni/` directory, which can be transformed into a
+Paraver trace with the `ovniemu` utility. The Paraver configuration files
+(views) can be found in the `ovni/cfg` directory.
+
+See the [ovni documentation][ovnidoc] for more details.
+
+[ovnidoc]: https://ovni.readthedocs.io/
+
+The level of detail can be controlled with the `instrument.ovni.level`
+configuration option, a higher number includes more events but also incurs in a
+larger performance penalty.
+
+
+### Tracing an OmpSs-2 application with Extrae
 
 To generate an extrae trace, run the application with the `version.instrument` config set to `extrae`.
 
@@ -168,7 +211,7 @@ The resulting trace will show the activity of the actual threads instead of the 
 In the future, this problem will be fixed.
 
 
-### Tracing a Nanos6 application with CTF
+### Tracing an OmpSs-2 application with CTF
 
 Nanos6 includes another instrumentation mechanism which provides detailed
 information of the internal runtime state as the execution evolves. The
@@ -251,24 +294,6 @@ information on how the CTF instrumentation variant works see
 
 To run the experimental fast converter, add the option `--fast`.
 
-### Tracing a Nanos6 application with ovni
-
-Nanos6 can also generate execution traces with the ovni library, which generates
-lightweight binary traces, and it is possible to mix ovni-instrumented libraries
-together with an OmpSs-2 program and obtain a single coherent trace.
-
-To enable the generation of ovni traces, Nanos6 must be built with the
-`--with-ovni` option, and without `--disable-ovni-instrumentation`. The
-application must run with the `version.instrument=ovni` configuration option.
-The trace will be left in a `ovni/` directory, which can be transformed into a
-Paraver trace with the `ovniemu` utility. See the [ovni documentation][ovnidoc]
-for more details.
-
-[ovnidoc]: https://ovni.readthedocs.io/
-
-The level of detail can be controlled with the `instrument.ovni.level`
-configuration option, a higher number includes more events but also incurs in a
-larger performance penalty.
 
 ### Generating a graphical representation of the dependency graph
 
@@ -358,9 +383,6 @@ To enable validity checks, run the application with the `version.debug` config s
 This will enable many internal validity checks that may be violated with the application code is incorrect.
 In the future we may include a validation mode that will perform extensive application code validation.
 Notice that all instrumentation variants can be executed either with or without enabling the debug option.
-
-To debug an application with a regular debugger, please compile its code with the regular debugging flags and also the `-keep` flag.
-This flag will force Mercurium to dump the transformed code in the local file system, so that it will be available for the debugger.
 
 To debug dependencies, it is advised to reduce the problem size so that very few tasks trigger the problem, and then use let the runtime make a graphical representation of the dependency graph as shown previously.
 

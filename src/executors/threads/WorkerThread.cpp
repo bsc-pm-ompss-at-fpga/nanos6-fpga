@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -12,7 +12,6 @@
 #include <atomic>
 #include <cassert>
 #include <cstring>
-#include <iostream>
 #include <pthread.h>
 
 #include "CPUManager.hpp"
@@ -23,6 +22,7 @@
 #include "dependencies/SymbolTranslation.hpp"
 #include "hardware/HardwareInfo.hpp"
 #include "hardware/device/AcceleratorStream.hpp"
+#include "lowlevel/TurboSettings.hpp"
 #include "scheduling/Scheduler.hpp"
 #include "system/If0Task.hpp"
 #include "system/TrackingPoints.hpp"
@@ -35,7 +35,10 @@
 #include <InstrumentThreadInstrumentationContext.hpp>
 #include <InstrumentWorkerThread.hpp>
 
+
 #include "hardware/device/directory/DeviceDirectory.hpp"
+
+std::atomic<uint64_t> WorkerThread::_initializedThreads;
 
 void WorkerThread::initialize()
 {
@@ -53,10 +56,22 @@ void WorkerThread::initialize()
 	// Runtime Tracking Point - A thread is initializing
 	TrackingPoints::threadInitialized(this, cpu);
 
+	// At this point we're in the initial CPU
+	// Perform warm-up phase if required
+	if (TurboSettings::isWarmupEnabled())
+		TurboSettings::warmupPhase();
+
+	_initializedThreads.fetch_add(1, std::memory_order_relaxed);
+
 	// This is needed for kernel-level threads to stop them after initialization
 	synchronizeInitialization();
-}
 
+	if (TurboSettings::isWarmupEnabled()) {
+		while (getInitializedThreads() < CPUManager::getAvailableCPUs())
+			spinWait();
+		spinWaitRelease();
+	}
+}
 
 void WorkerThread::body()
 {
@@ -70,6 +85,24 @@ void WorkerThread::body()
 	);
 
 	Instrument::workerThreadBegin();
+
+	// There may be some CPUs in sponge mode. A CPU is in sponge mode when it is
+	// available for the runtime system, but it does not execute any task on it to
+	// avoid consuming its CPU time
+	if (CPUManager::checkCPUStatusTransitions(this) != CPU::shutdown_status && CPUManager::isSpongeCPU(cpu)) {
+		assert(cpu->isOwned());
+
+		Instrument::enterSpongeMode();
+		Instrument::workerAbsorbing();
+
+		// Block the current thread on the CPU until the runtime finalization
+		CPUManager::enterSpongeMode(cpu);
+
+		assert(CPUManager::checkCPUStatusTransitions(this) == CPU::shutdown_status);
+
+		Instrument::workerProgressing();
+		Instrument::exitSpongeMode();
+	}
 
 	// The WorkerThread will iterate until its CPU status signals that there is
 	// an ongoing shutdown and thus the thread must stop executing

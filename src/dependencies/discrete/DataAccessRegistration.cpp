@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifdef HAVE_CONFIG_H
@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <deque>
+#include <limits>
 #include <mutex>
 #include <numaif.h>
 
@@ -50,7 +51,7 @@ namespace DataAccessRegistration {
 	static inline void releaseReductionInfo(ReductionInfo *info);
 
 	static inline void decreaseDeletableCountOrDelete(Task *originator,
-		CPUDependencyData::deletable_originator_list_t &deletableOriginators);
+		CPUDependencyData &hpDependencyData);
 
 	//! Process all the originators that have become ready
 	static inline void processSatisfiedOriginators(
@@ -58,9 +59,9 @@ namespace DataAccessRegistration {
 		ComputePlace *computePlace,
 		bool fromBusyThread)
 	{
-		for (int i = 0; i < nanos6_device_t::nanos6_device_type_num; ++i) {
+		for (int device = 0; device < nanos6_device_type_num; ++device) {
 			ComputePlace *computePlaceHint = nullptr;
-			if (computePlace != nullptr && computePlace->getType() == i)
+			if (computePlace != nullptr && computePlace->getType() == device)
 				computePlaceHint = computePlace;
 
 			ReadyTaskHint schedulingHint = SIBLING_TASK_HINT;
@@ -68,61 +69,37 @@ namespace DataAccessRegistration {
 				schedulingHint = BUSY_COMPUTE_PLACE_TASK_HINT;
 			}
 
-			CPUDependencyData::satisfied_originator_list_t &list = hpDependencyData.getSatisfiedOriginators(i);
-
+			auto &list = hpDependencyData.getSatisfiedOriginators(device);
 			if (list.size() == 0)
 				continue;
 
-			bool successorExists = (computePlace != nullptr && (computePlace->getFirstSuccessor() != nullptr));
-			if (i == nanos6_host_device
-				&& !fromBusyThread
-				&& !successorExists
-			) {
+			bool successorExists = (computePlace != nullptr && computePlace->getFirstSuccessor() != nullptr);
+			if (device == nanos6_host_device && !fromBusyThread && !successorExists) {
 				// Find the best immediate successor, which must be highest priority. On priority tie,
 				// grab the first one
-				long bestPriority = INT_MIN;
-				int bestIS = -1;
+				Task::priority_t highest = std::numeric_limits<Task::priority_t>::min();
+				int candidate = -1;
+
 				Task **successors = list.getArray();
 
-				for (int k = 0; k < (int)list.size(); ++k) {
-					if (successors[k]->getPriority() > bestPriority) {
-						bestPriority = successors[k]->getPriority();
-						bestIS = k;
+				for (size_t s = 0; s < list.size(); ++s) {
+					if (successors[s]->getPriority() > highest) {
+						highest = successors[s]->getPriority();
+						candidate = (int) s;
 					}
 				}
 
-				if (bestIS >= 0) {
-					computePlace->setFirstSuccessor(successors[bestIS]);
-
-					Scheduler::addReadyTasks(
-					(nanos6_device_t)i,
-					list.getArray(),
-					bestIS,
-					computePlaceHint,
-					schedulingHint);
-
-					Scheduler::addReadyTasks(
-					(nanos6_device_t)i,
-					list.getArray() + bestIS + 1,
-					list.size() - bestIS - 1,
-					computePlaceHint,
-					schedulingHint);
-				} else {
-					Scheduler::addReadyTasks(
-					(nanos6_device_t)i,
-					list.getArray(),
-					list.size(),
-					computePlaceHint,
-					schedulingHint);
+				if (candidate >= 0) {
+					// Set the successor and remove from the list
+					computePlace->setFirstSuccessor(successors[candidate]);
+					list.erase(candidate);
 				}
-			} else {
-				Scheduler::addReadyTasks(
-					(nanos6_device_t)i,
-					list.getArray(),
-					list.size(),
-					computePlaceHint,
-					schedulingHint);
 			}
+
+			Scheduler::addReadyTasks(
+				(nanos6_device_t) device,
+				list.getArray(), list.size(),
+				computePlaceHint, schedulingHint);
 		}
 
 		hpDependencyData.clearSatisfiedOriginators();
@@ -148,12 +125,16 @@ namespace DataAccessRegistration {
 		// As there is no "task garbage collection", the runtime will only destruct the tasks for us if we mark them as
 		// not needed on the unregisterTaskDataAccesses call, so this takes care on tasks ended anywhere else.
 
-		for (Task *deletableOriginator : hpDependencyData._deletableOriginators) {
+		auto &list = hpDependencyData.getDeletableOriginators();
+
+		for (size_t t = 0; t < list.size(); ++t) {
+			Task *deletableOriginator = list.get(t);
 			assert(deletableOriginator != nullptr);
+
 			TaskFinalization::disposeTask(deletableOriginator);
 		}
 
-		hpDependencyData._deletableOriginators.clear();
+		hpDependencyData.clearDeletableOriginators();
 	}
 
 	static inline void satisfyTask(
@@ -170,7 +151,7 @@ namespace DataAccessRegistration {
 
 			hpDependencyData.addSatisfiedOriginator(task, task->getDeviceType());
 
-			if (hpDependencyData.full())
+			if (hpDependencyData.fullSatisfiedOriginators())
 				processSatisfiedOriginators(hpDependencyData, computePlace, fromBusyThread);
 		}
 	}
@@ -255,7 +236,7 @@ namespace DataAccessRegistration {
 					Task *task = next.to->getOriginator();
 					assert(!task->getDataAccesses().hasBeenDeleted());
 					assert(next.to != next.from);
-					decreaseDeletableCountOrDelete(task, hpDependencyData._deletableOriginators);
+					decreaseDeletableCountOrDelete(task, hpDependencyData);
 				}
 			}
 
@@ -288,7 +269,7 @@ namespace DataAccessRegistration {
 			if (dispose) {
 				Task *task = next.from->getOriginator();
 				assert(!task->getDataAccesses().hasBeenDeleted());
-				decreaseDeletableCountOrDelete(task, hpDependencyData._deletableOriginators);
+				decreaseDeletableCountOrDelete(task, hpDependencyData);
 			}
 		}
 	}
@@ -353,7 +334,7 @@ namespace DataAccessRegistration {
 			propagateMessages(hpDependencyData, mailBox, reductionInfo, computePlace, fromBusyThread);
 			assert(!dispose);
 		} else if (dispose) {
-			decreaseDeletableCountOrDelete(task, hpDependencyData._deletableOriginators);
+			decreaseDeletableCountOrDelete(task, hpDependencyData);
 		}
 	}
 
@@ -446,7 +427,7 @@ namespace DataAccessRegistration {
 			m.from = m.to = access;
 			m.flagsAfterPropagation = ACCESS_PARENT_DONE;
 			if (access->applyPropagated(m))
-				decreaseDeletableCountOrDelete(access->getOriginator(), hpDependencyData._deletableOriginators);
+				decreaseDeletableCountOrDelete(access->getOriginator(), hpDependencyData);
 
 			ReductionInfo *reductionInfo = itMap->second._reductionInfo;
 			if (reductionInfo != nullptr) {
@@ -652,7 +633,7 @@ namespace DataAccessRegistration {
 					assert(!dispose);
 
 					if (dispose)
-						decreaseDeletableCountOrDelete(parentTask, hpDependencyData._deletableOriginators);
+						decreaseDeletableCountOrDelete(parentTask, hpDependencyData);
 				} else {
 					schedule = true;
 					fromCurrent = access->applySingle(
@@ -675,7 +656,7 @@ namespace DataAccessRegistration {
 
 				dispose = predecessor->applyPropagated(message);
 				if (dispose)
-					decreaseDeletableCountOrDelete(predecessor->getOriginator(), hpDependencyData._deletableOriginators);
+					decreaseDeletableCountOrDelete(predecessor->getOriginator(), hpDependencyData);
 			}
 
 			// The homeNode couldn't be propagated, check it in the directory
@@ -731,11 +712,14 @@ namespace DataAccessRegistration {
 	}
 
 	static inline void decreaseDeletableCountOrDelete(Task *originator,
-		CPUDependencyData::deletable_originator_list_t &deletableOriginators)
+		CPUDependencyData &hpDependencyData)
 	{
 		if (originator->getDataAccesses().decreaseDeletableCount()) {
 			if (originator->decreaseRemovalBlockingCount()) {
-				deletableOriginators.push_back(originator); // Ensure destructor is called
+				hpDependencyData.addDeletableOriginator(originator);
+
+				if (hpDependencyData.fullDeletableOriginators())
+					processDeletableOriginators(hpDependencyData);
 			}
 		}
 	}
