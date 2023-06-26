@@ -28,7 +28,7 @@ public:
 private:
 std::atomic<bool> stopService;
 std::atomic<bool> finishedService;
-std::vector<HandleWithInfo> handles;
+HandleWithInfo handle;
 std::thread internalThread;
 	void serviceLoop();
 public:
@@ -36,7 +36,7 @@ public:
 	FPGAAcceleratorInstrumentationService() {}
 	void initializeService();
 	void shutdownService();
-	void setHandles(std::vector<HandleWithInfo> &&otherHandles) {handles = std::move(otherHandles);}
+	void setHandles(HandleWithInfo &&otherHandle) {handle = std::move(otherHandle);}
 };
 
 class FPGAAccelerator : public Accelerator {
@@ -50,7 +50,7 @@ private:
 	FPGAPinnedAllocator _allocator;
 
 	FPGAReverseOffload _reverseOffload;
-	FPGAAcceleratorInstrumentationService acceleratorInstrumentationService;
+	std::vector<FPGAAcceleratorInstrumentationService> acceleratorInstrumentationServices;
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
@@ -102,7 +102,8 @@ public:
 			_reverseOffload.initializeService();
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			acceleratorInstrumentationService.initializeService();
+			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
+				acceleratorInstrumentationService.initializeService();
 		}
 	}
 
@@ -112,7 +113,8 @@ public:
 			_reverseOffload.shutdownService();
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			acceleratorInstrumentationService.shutdownService();
+			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
+				acceleratorInstrumentationService.shutdownService();
 		}
 	}
 

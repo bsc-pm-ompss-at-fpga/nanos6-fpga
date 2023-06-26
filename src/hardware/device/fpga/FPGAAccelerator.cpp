@@ -32,18 +32,16 @@ void FPGAAcceleratorInstrumentationService::shutdownService() {
 
 void FPGAAcceleratorInstrumentationService::serviceLoop() {
 	auto fetchInstrumentation = [&] {
-		for (auto &&[handle, info, startTimeFpga, startTimeCpu] : handles) {
 			xtasks_ins_event events[128];
 			events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
-			xtasks_stat res = xtasksGetInstrumentData(handle, events, 128);
+			xtasks_stat res = xtasksGetInstrumentData(handle.handle, events, 128);
 			FatalErrorHandler::failIf(
 				res != XTASKS_SUCCESS,
-				"Error while retrieving instrumentation events from handle with id: ", info.id, ". xtasksGetInstrumentData returns: ", res
+				"Error while retrieving instrumentation events from handle with id: ", handle.info.id, ". xtasksGetInstrumentData returns: ", res
 			);
 			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-startTimeFpga)*1'000'000)/(info.freq) + startTimeCpu);
+				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
 			}
-		}
 	};
 
 	Instrument::startFPGAInstrumentation();
@@ -97,13 +95,13 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
 	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-		std::vector<FPGAAcceleratorInstrumentationService::HandleWithInfo> handlesWithInfo(accCount);
 		for(size_t i=0;i<accCount;++i) {
 			xtasks_ins_timestamp timestamp;
 			xtasksGetAccCurrentTime(handles[i], &timestamp);
-			handlesWithInfo[i] = {handles[i], info[i], timestamp, Instrument::getCPUTimeForFPGA()};
+			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], timestamp, Instrument::getCPUTimeForFPGA()};
+			acceleratorInstrumentationServices.emplace_back();
+			acceleratorInstrumentationServices.back().setHandles(std::move(handlesWithInfo));
 		}
-		acceleratorInstrumentationService.setHandles(std::move(handlesWithInfo));
 	}
 }
 

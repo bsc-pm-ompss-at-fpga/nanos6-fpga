@@ -21,7 +21,6 @@ namespace Instrument {
 		ovni_thread_free();
 	}
 	inline void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime) {
-		std::cout << "event [Type: " << eventType << ", ID: " << eventId << ", Value: " << value << ", time: " << double(utime)/1'000'000 << "ms]" << std::endl;
 		Ovni::fpgaEvent(value, eventId, eventType, utime);
 	}
 }
