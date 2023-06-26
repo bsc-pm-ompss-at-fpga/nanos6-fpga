@@ -95,12 +95,12 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
 	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+		acceleratorInstrumentationServices = std::vector<FPGAAcceleratorInstrumentationService>(accCount);
 		for(size_t i=0;i<accCount;++i) {
 			xtasks_ins_timestamp timestamp;
 			xtasksGetAccCurrentTime(handles[i], &timestamp);
 			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], timestamp, Instrument::getCPUTimeForFPGA()};
-			acceleratorInstrumentationServices.emplace_back();
-			acceleratorInstrumentationServices.back().setHandles(std::move(handlesWithInfo));
+			acceleratorInstrumentationServices[i].setHandles(std::move(handlesWithInfo));
 		}
 	}
 }
