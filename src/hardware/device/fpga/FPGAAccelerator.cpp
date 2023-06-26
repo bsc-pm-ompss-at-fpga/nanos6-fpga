@@ -16,11 +16,14 @@
 
 #include <DataAccessRegistration.hpp>
 #include <DataAccessRegistrationImplementation.hpp>
+#include <memory>
 #include "lowlevel/FatalErrorHandler.hpp"
 
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
 
 void FPGAAcceleratorInstrumentationService::initializeService() {
+	stopService = false;
+	finishedService = false;
 	internalThread = std::thread(&FPGAAcceleratorInstrumentationService::serviceLoop, this);
 }
 
@@ -95,12 +98,12 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
 	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-		acceleratorInstrumentationServices = std::vector<FPGAAcceleratorInstrumentationService>(accCount);
 		for(size_t i=0;i<accCount;++i) {
 			xtasks_ins_timestamp timestamp;
 			xtasksGetAccCurrentTime(handles[i], &timestamp);
 			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], timestamp, Instrument::getCPUTimeForFPGA()};
-			acceleratorInstrumentationServices[i].setHandles(std::move(handlesWithInfo));
+			acceleratorInstrumentationServices.push_back(std::make_unique<FPGAAcceleratorInstrumentationService>());
+			acceleratorInstrumentationServices.back()->setHandles(std::move(handlesWithInfo));
 		}
 	}
 }

@@ -50,7 +50,7 @@ private:
 	FPGAPinnedAllocator _allocator;
 
 	FPGAReverseOffload _reverseOffload;
-	std::vector<FPGAAcceleratorInstrumentationService> acceleratorInstrumentationServices;
+	std::vector<std::unique_ptr<FPGAAcceleratorInstrumentationService>> acceleratorInstrumentationServices;
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
@@ -103,7 +103,7 @@ public:
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
 			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
-				acceleratorInstrumentationService.initializeService();
+				acceleratorInstrumentationService->initializeService();
 		}
 	}
 
@@ -114,7 +114,7 @@ public:
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
 			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
-				acceleratorInstrumentationService.shutdownService();
+				acceleratorInstrumentationService->shutdownService();
 		}
 	}
 
