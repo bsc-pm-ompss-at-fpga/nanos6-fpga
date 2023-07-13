@@ -12,13 +12,14 @@ class FPGAReverseOffload
 	std::atomic<bool> _finishedService;
 	uint64_t _pollingPeriodUs;
 	FPGAPinnedAllocator& _allocator;
+	bool _isPinnedPolling;
 
 public:
 
 	static std::unordered_map<uint64_t, const nanos6_task_info_t*> _reverseMap;
 
-	FPGAReverseOffload(FPGAPinnedAllocator& allocator, uint64_t pollingPeriodUs) :
-		_stopService(false), _finishedService(false), _pollingPeriodUs(pollingPeriodUs), _allocator(allocator)
+	FPGAReverseOffload(FPGAPinnedAllocator& allocator, uint64_t pollingPeriodUs, bool isPinnedPolling) :
+		_stopService(false), _finishedService(false), _pollingPeriodUs(pollingPeriodUs), _allocator(allocator), _isPinnedPolling(isPinnedPolling)
 	{}
 
 	void initializeService();

@@ -39,57 +39,60 @@ void FPGAReverseOffload::shutdownService() {
 
 void FPGAReverseOffload::serviceLoop() {
 	while (!_stopService) {
-		xtasks_stat stat;
-		xtasks_newtask* xtasks_task = NULL;
-		stat = xtasksTryGetNewTask(&xtasks_task);
 		bool foundTask = false;
-		if (stat == XTASKS_SUCCESS) {
-			foundTask = true;
-			std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
-#ifndef NDEBUG
-			FatalErrorHandler::failIf(
-				it == _reverseMap.end(),
-				"Device subtype ", xtasks_task->typeInfo, " not found in reverse map"
-			);
+		do {
+			xtasks_stat stat;
+			xtasks_newtask* xtasks_task = NULL;
+			stat = xtasksTryGetNewTask(&xtasks_task);
+			if (stat == XTASKS_SUCCESS) {
+				foundTask = true;
+				std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
+#ifndef 	NDEBUG
+				FatalErrorHandler::failIf(
+					it == _reverseMap.end(),
+					"Device subtype ", xtasks_task->typeInfo, " not found in reverse map"
+				);
 #endif
-			const nanos6_task_info_t* task_info = it->second;
+				const nanos6_task_info_t* task_info = it->second;
 
-			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
-				void* mem = MemoryAllocator::alloc(xtasks_task->copies[i].size);
-				xtasks_task->args[xtasks_task->copies[i].argIdx] = (uint64_t)mem;
-				if (xtasks_task->copies[i].flags & 0x01) {
-					_allocator.memcpy(mem, xtasks_task->copies[i].address, xtasks_task->copies[i].size, XTASKS_ACC_TO_HOST);
+				for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
+					void* mem = MemoryAllocator::alloc(xtasks_task->copies[i].size);
+					xtasks_task->args[xtasks_task->copies[i].argIdx] = (uint64_t)mem;
+					if (xtasks_task->copies[i].flags & 0x01) {
+						_allocator.memcpy(mem, xtasks_task->copies[i].address, xtasks_task->copies[i].size, XTASKS_ACC_TO_HOST);
+					}
 				}
-			}
 
-			int numArgs = task_info->num_args;
-			int argsBlockSize = 0;
-			for (int i = 0; i < numArgs; ++i) {
-				argsBlockSize += task_info->sizeof_table[i];
-			}
-			void* argsBlock = MemoryAllocator::alloc(argsBlockSize);
-			for (int i = 0; i < numArgs; ++i) {
-				assert(task_info->sizeof_table[i] <= (int)sizeof(xtasks_newtask_arg));
-				memcpy((char*)argsBlock + task_info->offset_table[i], &xtasks_task->args[i], task_info->sizeof_table[i]);
-			}
-
-			task_info->implementations[0].run(argsBlock, nullptr, nullptr);
-
-			for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
-				void* mem = (void*)xtasks_task->args[xtasks_task->copies[i].argIdx];
-				if (xtasks_task->copies[i].flags & 0x02) {
-					_allocator.memcpy(xtasks_task->copies[i].address, mem, xtasks_task->copies[i].size, XTASKS_HOST_TO_ACC);
+				int numArgs = task_info->num_args;
+				int argsBlockSize = 0;
+				for (int i = 0; i < numArgs; ++i) {
+					argsBlockSize += task_info->sizeof_table[i];
 				}
-				MemoryAllocator::free(mem, xtasks_task->copies[i].size);
-			}
+				void* argsBlock = MemoryAllocator::alloc(argsBlockSize);
+				for (int i = 0; i < numArgs; ++i) {
+					assert(task_info->sizeof_table[i] <= (int)sizeof(xtasks_newtask_arg));
+					memcpy((char*)argsBlock + task_info->offset_table[i], &xtasks_task->args[i], task_info->sizeof_table[i]);
+				}
 
-			stat = xtasksNotifyFinishedTask(xtasks_task->parentId, xtasks_task->taskId);
-			assert(stat == XTASKS_SUCCESS);
-			MemoryAllocator::free(argsBlock, argsBlockSize);
-		}
-		else {
-			assert(stat == XTASKS_PENDING);
-		}
+				task_info->implementations[0].run(argsBlock, nullptr, nullptr);
+
+				for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
+					void* mem = (void*)xtasks_task->args[xtasks_task->copies[i].argIdx];
+					if (xtasks_task->copies[i].flags & 0x02) {
+						_allocator.memcpy(xtasks_task->copies[i].address, mem, xtasks_task->copies[i].size, XTASKS_HOST_TO_ACC);
+					}
+					MemoryAllocator::free(mem, xtasks_task->copies[i].size);
+				}
+
+				stat = xtasksNotifyFinishedTask(xtasks_task->parentId, xtasks_task->taskId);
+				assert(stat == XTASKS_SUCCESS);
+				MemoryAllocator::free(argsBlock, argsBlockSize);
+			}
+			else {
+				assert(stat == XTASKS_PENDING);
+			}
+		} while (_isPinnedPolling && !_stopService);
+
 		if (!foundTask)
 			BlockingAPI::waitForUs(_pollingPeriodUs);
 	}
