@@ -10,6 +10,7 @@ std::unordered_map<uint64_t, const nanos6_task_info_t*> FPGAReverseOffload::_rev
 void FPGAReverseOffload::serviceFunction(void *data)
 {
 	FPGAReverseOffload *reverseOffload = (FPGAReverseOffload *)data;
+	assert(reverseOffload != nullptr);
 
 	// Execute the service loop
 	reverseOffload->serviceLoop();
@@ -18,6 +19,8 @@ void FPGAReverseOffload::serviceFunction(void *data)
 void FPGAReverseOffload::serviceCompleted(void *data)
 {
 	FPGAReverseOffload *reverseOffload = (FPGAReverseOffload *)data;
+	assert(reverseOffload != nullptr);
+	assert(reverseOffload->_stopService);
 
 	// Mark the service as completed
 	reverseOffload->_finishedService = true;
