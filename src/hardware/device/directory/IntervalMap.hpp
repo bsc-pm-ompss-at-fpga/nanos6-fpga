@@ -40,11 +40,11 @@ public:
 	//This will try to free all the data for a handle that is valid in a different device, this is done to try to free memory
 	//instead of crashing when out-of-memory for a device. If there are tasks that are reading the DATA, they will lose the directory
 	//entry with the valid data, but the inner region will not be freed until that task ends, so this function is safe to use.
-	inline void freeAllocationsForHandle(int handle, const std::vector<std::shared_ptr<DeviceAllocation>>& untouchableAllocations)
+	inline void freeAllocationsForHandle(int handle, const std::vector<std::shared_ptr<DeviceAllocation>> untouchableAllocations)
 	{
 		std::lock_guard<std::mutex> guard(_map_mtx);
-		const auto isTouchable = [&](auto& t){
-			for(auto& a : untouchableAllocations) if(a == t) return false;
+		const auto isTouchable = [&](auto t){
+			for(auto a : untouchableAllocations) if(a == t) return false;
 			return true;
 		};
 

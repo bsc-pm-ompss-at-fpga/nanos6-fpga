@@ -167,7 +167,7 @@ bool DeviceDirectory::register_regions(Task *task)
 
 //SYMBOL PROCESSING
 
-void DeviceDirectory::processSymbol(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> &deviceAllocation)
+void DeviceDirectory::processSymbol(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, SymbolRepresentation &symbol, std::shared_ptr<DeviceAllocation> deviceAllocation)
 {
 	symbol.setSymbolTranslation(deviceAllocation);
 	processSymbolRegions(handle, copy_extra, acceleratorStream, symbol.getInputRegions(), deviceAllocation, READ_ACCESS_TYPE);
@@ -175,20 +175,20 @@ void DeviceDirectory::processSymbol(const int handle, void* copy_extra, Accelera
 	processSymbolRegions(handle, copy_extra, acceleratorStream, symbol.getInputOutputRegions(), deviceAllocation, READWRITE_ACCESS_TYPE);
 }
 
-void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> &region, DataAccessType RW_TYPE)
+void DeviceDirectory::processSymbolRegions(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, const std::vector<DataAccessRegion> &dataAccessVector, std::shared_ptr<DeviceAllocation> region, DataAccessType RW_TYPE)
 {
-	const auto in_lambda = [=, &region](DirectoryEntry *entry) {
+	const auto in_lambda = [=](DirectoryEntry *entry) {
 		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
 		processSymbolRegions_in(handle, copy_extra, acceleratorStream, *entry);
 		return true;
 	};
 
-	const auto out_lambda = [=, &region](DirectoryEntry *entry) {
+	const auto out_lambda = [=](DirectoryEntry *entry) {
 		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
 		processSymbolRegions_out(handle, *entry);
 		return true;
 	};
-	const auto inout_lambda = [=, &region](DirectoryEntry *entry) {
+	const auto inout_lambda = [=](DirectoryEntry *entry) {
 		processRegionWithOldAllocation(handle, copy_extra, acceleratorStream, *entry, region, RW_TYPE);
 		processSymbolRegions_inout(handle, copy_extra, acceleratorStream, *entry);
 		return true;
@@ -235,13 +235,13 @@ std::shared_ptr<DeviceAllocation> DeviceDirectory::getDeviceAllocation(const int
 
 	auto host_region = symbol.getHostRegion();
 	auto iter = _dirMap.getIterator(host_region);
-	std::shared_ptr<DeviceAllocation> &deviceAllocation = iter->second->getDeviceAllocation(handle);
+	std::shared_ptr<DeviceAllocation> deviceAllocation = iter->second->getDeviceAllocation(handle);
 
 	if (deviceAllocation != nullptr) {
 		const auto symbol_end_address = (uintptr_t)symbol.getEndAddress();
 		const auto checkIfRegionIsAllocated = [=](DirectoryEntry *entry)
 		{
-			const auto &allocation = entry->getDeviceAllocation(handle);
+			const auto allocation = entry->getDeviceAllocation(handle);
 			if (allocation != deviceAllocation)
 				return false;
 			if (allocation->getHostEnd() < symbol_end_address)
@@ -340,7 +340,7 @@ void DeviceDirectory::processSymbolRegions_in(const int handle, void* copy_extra
 
 //the control logic that comes afterwards will enqueue a copy operation from SMP to the device again
 //since a stream is sequential, this is valid.
-void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> &region, DataAccessType type)
+void DeviceDirectory::processRegionWithOldAllocation(const int handle, void* copy_extra, AcceleratorStream* acceleratorStream, DirectoryEntry &entry, std::shared_ptr<DeviceAllocation> region, DataAccessType type)
 {
 	if (entry.getDeviceAllocation(handle) != region && handle != SMP_HANDLER) {
 		if (entry.getModifiedLocation() == handle && type != WRITE_ACCESS_TYPE) {

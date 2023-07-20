@@ -75,7 +75,7 @@ class DirectoryEntry
  	bool isPending(int handler)  const   {return _valid_locations[handler] == STATUS::PENDING_TO_VALID;}
  	bool isInvalid(int handler)  const   {return _valid_locations[handler] == STATUS::INVALID;}
  	bool isModified(int handler) const   {return _modified_location == handler;}
-    std::shared_ptr<DeviceAllocation>& getDeviceAllocation(int handler){return _perDeviceAllocation[handler];}
+    std::shared_ptr<DeviceAllocation> getDeviceAllocation(int handler){return _perDeviceAllocation[handler];}
 
 
     void setHome(int handler){ _home = handler;}
@@ -90,7 +90,7 @@ class DirectoryEntry
 	void setModified(int handler){_modified_location = handler;}
 
 	void setStatus(int handler, STATUS status){_valid_locations[handler] = status;}
-	void setDeviceAllocation(int handler, std::shared_ptr<DeviceAllocation>& deviceAllocation)
+	void setDeviceAllocation(int handler, std::shared_ptr<DeviceAllocation> deviceAllocation)
     {
         _perDeviceAllocation[handler] = deviceAllocation;
     }
