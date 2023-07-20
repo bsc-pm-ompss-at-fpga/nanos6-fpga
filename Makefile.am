@@ -20,18 +20,22 @@ if USE_HWLOC_EMBEDDED
 HWLOC_EMBEDDED_SUBDIR_COND = $(HWLOC_EMBEDDED_SUBDIR)
 endif
 
+# The subdir of the embedded jemalloc
+if USE_JEMALLOC_EMBEDDED
+JEMALLOC_EMBEDDED_SUBDIR_COND = $(JEMALLOC_EMBEDDED_SUBDIR)
+endif
+
 # Note: do not use HWLOC_EMBEDDED_SUBDIR here, since it is not defined yet
 ACLOCAL_AMFLAGS = -I m4 -I deps/hwloc/config
-
 AM_CFLAGS = -I$(srcdir)/api -I$(srcdir)/loader -I.
 AM_CXXFLAGS = -I$(srcdir)/src -I$(builddir)/src -I$(srcdir)/api -I. 
 AM_LDFLAGS = $(AS_NEEDED_FLAGS)  
 AM_CXXFLAGS += $(FALIGNED_NEW_FLAG) 
 
-# Add the embedded hwloc (if necessary) into SUBDIRS, but not in DIST_SUBDIRS. Adding it
-# would enable the distributable rules of hwloc and generate its own tarball. Instead, it
-# is distributed as a regular directory by adding it to EXTRA_DIST
-SUBDIRS = $(HWLOC_EMBEDDED_SUBDIR_COND) . commands tests/directive_based/clang tests/directive_based/mercurium scripts
+# Add the embedded hwloc and jemalloc (if necessary) into SUBDIRS, but not in DIST_SUBDIRS.
+# Adding them to DIST_SUBDIRS would enable their distributable rules and generate their own
+# tarball. Instead, these are distributed as a regular directory by adding it to EXTRA_DIST
+SUBDIRS = $(HWLOC_EMBEDDED_SUBDIR_COND) $(JEMALLOC_EMBEDDED_SUBDIR_COND) . commands tests/directive_based/clang tests/directive_based/mercurium scripts
 DIST_SUBDIRS = . commands tests/directive_based/clang tests/directive_based/mercurium scripts
 
 
@@ -300,7 +304,7 @@ libnanos6_la_SOURCES = \
 	loader/support/toml/toml.c \
 	loader/support/toml/toml.h
 
-libnanos6_la_CPPFLAGS = -DSONAME_MAJOR=\"$(lib_major)\" -DSONAME_SUFFIX=\"$(lib_suffix)\" -DINSTALLED_CONFIG_DIR=\"$(docdir)\" $(jemalloc_CFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS)
+libnanos6_la_CPPFLAGS = -DSONAME_MAJOR=\"$(lib_major)\" -DSONAME_SUFFIX=\"$(lib_suffix)\" -DINSTALLED_CONFIG_DIR=\"$(datadir)\" $(jemalloc_CPPFLAGS) $(CUDA_CFLAGS) $(MPI_CXXFLAGS)
 libnanos6_la_LDFLAGS = $(jemalloc_LIBS) $(AM_LDFLAGS) $(PTHREAD_CFLAGS) $(PTHREAD_LIBS) $(DLOPEN_LIBS) $(LDFLAGS_NOUNDEFINED)
 
 
@@ -696,7 +700,6 @@ dist_instrument_sources = \
 	$(instrument_stats_sources) \
 	$(instrument_verbose_sources) \
 	$(noinstrument_sources)
-
 
 if HAVE_JEMALLOC
 memory_allocator_sources =
@@ -1418,7 +1421,9 @@ noinst_HEADERS = \
 	tests/Atomic.hpp \
 	tests/Functors.hpp \
 	tests/TestAnyProtocolProducer.hpp \
-	tests/Timer.hpp
+	tests/Timer.hpp \
+	tests/Utils.hpp \
+	tests/UtilsCUDA.hpp
 
 
 EXTRA_DIST += \
@@ -1950,6 +1955,7 @@ deprecated_libs = \
 uninstall_libs = nanos6/libprv.la
 uninstall_bins = nanos6-ctf2prv-fast nanos6-mergeprv
 uninstall_links = nanos6-ctf2prv
+uninstall_docfiles = scripts/nanos6_hwcounters.json scripts/nanos6.toml
 
 
 all-local: $(lib_OBJECTS)
@@ -1987,7 +1993,7 @@ install-exec-local: $(lib_OBJECTS)
 		fi ; \
 	done
 	@echo Removing deprecated documentation files
-	for f in scripts/nanos6_hwcounters.json ; do \
+	for f in $(uninstall_docfiles) ; do \
 		if test -f "$(DESTDIR)$(docdir)/$$f" ; then \
 			rm -f "$(DESTDIR)$(docdir)/$$f" ; \
 		fi ; \
@@ -2037,7 +2043,7 @@ uninstall-hook:
 		fi ; \
 	done
 	@echo Removing deprecated documentation files
-	for f in scripts/nanos6_hwcounters.json ; do \
+	for f in $(uninstall_docfiles) ; do \
 		if test -f "$(DESTDIR)$(docdir)/$$f" ; then \
 			rm -f "$(DESTDIR)$(docdir)/$$f" ; \
 		fi ; \
@@ -2220,8 +2226,8 @@ disabled_config_features += "PQOS"
 endif
 
 # Generate processed config file according to user chosen installation
-scripts/nanos6.toml: $(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml
-	$(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml $(disabled_config_features) > scripts/nanos6.toml
+nanos6.toml: $(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml
+	$(top_srcdir)/scripts/generate_config.sh $(top_srcdir)/scripts/nanos6_defconfig.toml $(disabled_config_features) > nanos6.toml
 
 # All potential files in those lists will be distributed
 # regardless of the Makefile conditionals
@@ -2243,7 +2249,8 @@ EXTRA_DIST += \
 	docs/devices/OpenACC.md \
 	scripts/generate_config.sh \
 	scripts/nanos6_defconfig.toml \
-	$(HWLOC_EMBEDDED_SUBDIR)
+	$(HWLOC_EMBEDDED_SUBDIR) \
+	$(JEMALLOC_EMBEDDED_SUBDIR)
 
 
 CLEANFILES += LICENSE.txt
@@ -2346,9 +2353,8 @@ nobase_dist_paraverconfig_DATA = \
 	paraver-cfg/nanos6/ctf2prv/kernel/kernel_thread_id.cfg
 
 
-configfiledir = ${docdir}
-nobase_nodist_configfile_DATA = \
-	scripts/nanos6.toml
+nobase_nodist_data_DATA = \
+	nanos6.toml
 
 ctfdir = ${docdir}
 nobase_dist_ctf_DATA = \

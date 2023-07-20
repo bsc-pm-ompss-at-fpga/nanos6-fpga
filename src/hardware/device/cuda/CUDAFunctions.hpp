@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2022 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2022-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef CUDA_FUNCTIONS_HPP
@@ -152,60 +152,68 @@ public:
 		CUDAErrorHandler::handle(cudaEventRecord(event, stream), "While recording CUDA event");
 	}
 
-	static bool cudaEventFinished(cudaEvent_t &event)
+	static bool isEventFinished(cudaEvent_t &event)
 	{
 		return CUDAErrorHandler::handleEvent(
 			cudaEventQuery(event), "While querying event");
 	}
 
-	static float getMillisBetweenEvents(cudaEvent_t &event_1, cudaEvent_t &event_2)
+	static void prefetchMemory(void *pHost, size_t size, int device, cudaStream_t &stream, bool readOnly)
 	{
-		float ms;
-		CUDAErrorHandler::warn(cudaEventElapsedTime(&ms, event_1, event_2));
-		return ms;
-	}
+		// Ensure that we have a stream assigned; stream 0 is special in CUDA and we do not
+		// launch tasks are never launched on it
+		assert(stream != 0);
 
-	static void cudaDevicePrefetch(void *pHost, size_t size, int device, cudaStream_t &stream, bool readOnly)
-	{
 		if (size == 0)
 			return;
 
 		// Depending on the access we're prefetching, we will advise the driver to do a shared copy
 		cudaMemoryAdvise advice = (readOnly ? cudaMemAdviseSetReadMostly : cudaMemAdviseUnsetReadMostly);
 		cudaError_t err = cudaMemAdvise(pHost, size, advice, device);
-		CUDAErrorHandler::handle(err, "Advising memory region");
 
-		// Ensure that we have a stream assigned. Stream 0 is special in CUDA and tasks are never launched on it.
-		assert(stream != 0);
+		// The memory may not be managed memory, and thus, skip prefetching
+		if (err == cudaErrorInvalidValue)
+			return;
+
+		// Check the rest of errors
+		CUDAErrorHandler::handle(err, "Advising memory region");
 
 		// Call a prefetch operation on the same stream that we are going to launch that task on
 		err = cudaMemPrefetchAsync(pHost, size, device, stream);
 		CUDAErrorHandler::handle(err, "Prefetching memory to device");
 	}
 
-	static void memcpy(void *destination, const void *from, size_t count, cudaMemcpyKind kind)
+	static void copyMemory(void *dst, const void *src, size_t count, cudaMemcpyKind kind)
 	{
-	/*	if(kind ==  cudaMemcpyKind::cudaMemcpyDeviceToHost)  printf("[SERIAL][CUDA]%p -> [HOST]%p 0x%X\n", from, destination, count);
-		else printf("[SERIAL][HOST]%p -> [CUDA]%p 0x%X\n", from, destination, count);
-*/
-		cudaError_t err = cudaMemcpy(destination, from, count, kind);
+		cudaError_t err = cudaMemcpy(dst, src, count, kind);
 		CUDAErrorHandler::handle(err, "Copying memory");
 	}
 
-	static void memcpyAsync(void *destination, const void *from, size_t count, cudaMemcpyKind kind, cudaStream_t stream)
-	{
-		cudaError_t err = cudaMemcpyAsync(destination, from, count, kind, stream);
-		CUDAErrorHandler::handle(err, "Copying memory");
+	static void launchKernel(
+		const char *kernelName, void **kernelParams,
+		size_t gridDim1, size_t gridDim2, size_t gridDim3,
+		size_t blockDim1, size_t blockDim2, size_t blockDim3,
+		size_t sharedMemoryBytes, CUstream stream
+	) {
+		CUresult res = cuLaunchKernel(loadFunction(kernelName),
+			gridDim1, gridDim2, gridDim3, blockDim1, blockDim2, blockDim3,
+			sharedMemoryBytes, stream, kernelParams, nullptr);
+
+		if (res != CUDA_SUCCESS) {
+			const char *errorDescription;
+			res = cuGetErrorString(res, &errorDescription);
+			if (res != CUDA_SUCCESS)
+				errorDescription = "Unknown error";
+
+			FatalErrorHandler::fail(
+				"Failed when launching kernel ", kernelName, ":\n"
+				"    error: ", errorDescription, "\n"
+				"    configuration:\n"
+				"        grid: ", gridDim1, " x ", gridDim2, " x ", gridDim3, "\n"
+				"        block: ", blockDim1, " x ", blockDim2, " x ", blockDim3, "\n"
+				"        shmem: ", sharedMemoryBytes, " bytes");
+		}
 	}
-
-	static void memcpyAsyncP2P( void* dst, int  dstDevice, const void* src, int  srcDevice, size_t count, cudaStream_t stream = 0)
-	{
-		//printf("[CUDA[%d]]%p -> [CUDA[%d]]%p 0x%X\n", srcDevice, src, dstDevice, dst, count);
-		cudaError_t err =  cudaMemcpyPeerAsync(dst,dstDevice,src,srcDevice,count, stream);
-		CUDAErrorHandler::handle(err, "Copying memory");
-
-	}
-
 };
 
 #endif // CUDA_FUNCTIONS_HPP
