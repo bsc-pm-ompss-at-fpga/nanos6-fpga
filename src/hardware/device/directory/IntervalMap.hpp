@@ -97,6 +97,9 @@ public:
 
 	IntervalMapIterator getIterator(uintptr_t left)
 	{
+
+		std::lock_guard<std::mutex> guard(_map_mtx);
+
 		assert(_inner_m.size() != 0);
 		return _inner_m.find(left);
 	}
@@ -120,9 +123,9 @@ public:
 	//if function returns false, cancel execution and return false.
 	bool applyToRange(std::pair<uintptr_t, uintptr_t> apply, std::function<bool(DirectoryEntry  *)> function)
 	{
-		std::lock_guard<std::mutex> guard(_map_mtx);
 
 		IntervalMapIterator it = getIterator(apply.first);
+		std::lock_guard<std::mutex> guard(_map_mtx);
 		IntervalMapIterator end_it = std::end(_inner_m);
 
 		while(it != end_it && it->second->getLeft()<apply.first) ++it;
@@ -146,9 +149,9 @@ public:
 
 	void remRangeOnFlush(const std::pair<uintptr_t, uintptr_t>& range_to_del, const int remove_only_if_handle_equals = -1)
 	{
-		std::lock_guard<std::mutex> guard(_map_mtx);
 
 		auto it = getIterator(range_to_del.first);
+		std::lock_guard<std::mutex> guard(_map_mtx);
 
 		while(it != std::end(_inner_m) && it->second->getRight() <= range_to_del.second)
 		{
