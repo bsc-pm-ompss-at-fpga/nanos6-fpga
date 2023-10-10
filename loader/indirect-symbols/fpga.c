@@ -76,5 +76,31 @@ nanos6_fpga_stat_t nanos6_fpga_memcpy(void* usr_ptr, uint64_t fpga_addr, uint64_
     (*symbol)(usr_ptr, fpga_addr, size, copy_type);
 }
 
+nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_in(void * dst, const unsigned long long int addr, const unsigned int num_elems)
+{
+    typedef void nanos6_fpga_memcpy_wideport_in_t(void * dst, const unsigned long long int addr, const unsigned int num_elems);
+
+    static nanos6_fpga_memcpy_wideport_in_t *symbol = NULL;
+    if (__builtin_expect(symbol == NULL, 0))
+    {
+        symbol = (nanos6_fpga_memcpy_wideport_in_t *) _nanos6_resolve_symbol("nanos6_fpga_memcpy_wideport_in", "essential", NULL);
+    }
+
+    (*symbol)(dst, addr, num_elems);
+}
+
+nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_out(void * dst, const unsigned long long int addr, const unsigned int num_elems)
+{
+    typedef void nanos6_fpga_memcpy_wideport_out_t(void * dst, const unsigned long long int addr, const unsigned int num_elems);
+
+    static nanos6_fpga_memcpy_wideport_out_t *symbol = NULL;
+    if (__builtin_expect(symbol == NULL, 0))
+    {
+        symbol = (nanos6_fpga_memcpy_wideport_out_t *) _nanos6_resolve_symbol("nanos6_fpga_memcpy_wideport_out", "essential", NULL);
+    }
+
+    (*symbol)(dst, addr, num_elems);
+}
+
 #pragma GCC visibility pop
 #endif
