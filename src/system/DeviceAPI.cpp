@@ -26,7 +26,7 @@
 #include <Dependencies.hpp>
 #include "dependencies/DataAccessType.hpp"
 
-#include "ompss/AddTask.hpp"
+#include "system/AddTask.hpp"
 extern "C" {
 
 
