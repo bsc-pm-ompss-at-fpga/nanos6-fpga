@@ -1,5 +1,5 @@
 #include "FPGAReverseOffload.hpp"
-#include "system/ompss/SpawnFunction.hpp"
+#include "system/SpawnFunction.hpp"
 #include "system/BlockingAPI.hpp"
 #include <libxtasks.h>
 #include <assert.h>
