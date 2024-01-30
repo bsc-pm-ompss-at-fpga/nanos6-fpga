@@ -789,7 +789,6 @@ namespace DataAccessRegistration {
 		assert(access != nullptr);
 		assert(task != nullptr);
 		assert(access->getOriginator() == task);
-		assert(accessStructures._lock.isLockedByThisThread());
 		assert((access->getObjectType() == taskwait_type) || (access->getObjectType() == top_level_sink_type));
 
 		accessStructures._subaccessBottomMap.processIntersecting(
@@ -918,18 +917,6 @@ namespace DataAccessRegistration {
 	}
 
 
-#ifndef NDEBUG
-	static bool noAccessIsReachable(TaskDataAccesses &accessStructures)
-	{
-		assert(!accessStructures.hasBeenDeleted());
-		return accessStructures._accesses.processAll(
-			[&](TaskDataAccesses::accesses_t::iterator position) -> bool {
-				return !position->isReachable();
-			});
-	}
-#endif
-
-
 	static inline BottomMapEntry *fragmentBottomMapEntry(
 		BottomMapEntry *bottomMapEntry, DataAccessRegion region,
 		TaskDataAccesses &accessStructures, bool removeIntersection)
@@ -940,7 +927,6 @@ namespace DataAccessRegistration {
 		}
 
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
 
 		TaskDataAccesses::subaccess_bottom_map_t::iterator position =
 			accessStructures._subaccessBottomMap.iterator_to(*bottomMapEntry);
@@ -1092,8 +1078,6 @@ namespace DataAccessRegistration {
 		TaskDataAccesses &accessStructures)
 	{
 		assert(dataAccess != nullptr);
-		// assert(accessStructures._lock.isLockedByThisThread()); // Not necessary when fragmenting an access that is not reachable
-		assert(accessStructures._lock.isLockedByThisThread() || noAccessIsReachable(accessStructures));
 		assert(&dataAccess->getOriginator()->getDataAccesses() == &accessStructures);
 		assert(!accessStructures.hasBeenDeleted());
 		assert(!dataAccess->hasBeenDiscounted());
@@ -1431,7 +1415,6 @@ namespace DataAccessRegistration {
 		assert(task != nullptr);
 
 		TaskDataAccesses &accessStructures = task->getDataAccesses();
-		assert(accessStructures._lock.isLockedByThisThread());
 
 		if (link._objectType == access_type) {
 			return accessStructures._accesses.processIntersecting(
@@ -1583,7 +1566,6 @@ namespace DataAccessRegistration {
 		BottomMapEntryProcessorType bottomMapEntryProcessor = [](BottomMapEntry *) {})
 	{
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
 
 		accessStructures._subaccessBottomMap.processIntersecting(
 			region,
@@ -1648,7 +1630,6 @@ namespace DataAccessRegistration {
 		BottomMapEntryProcessorType bottomMapEntryProcessor = [](BottomMapEntry *) {})
 	{
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
 
 		accessStructures._subaccessBottomMap.processAll(
 			[&](TaskDataAccesses::subaccess_bottom_map_t::iterator bottomMapPosition) -> bool {
@@ -1711,7 +1692,6 @@ namespace DataAccessRegistration {
 		assert(!operation.empty());
 		assert(!operation._region.empty());
 		assert(!accessStructures.hasBeenDeleted());
-		assert(accessStructures._lock.isLockedByThisThread());
 
 		assert(operation._linkBottomMapAccessesToNext);
 		foreachBottomMapMatch(

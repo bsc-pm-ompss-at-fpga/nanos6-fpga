@@ -24,9 +24,6 @@ It's highly recommended to have an installation of the [OmpSs-2 LLVM/Clang](http
 In addition to the build requirements, the following libraries and tools enable additional features:
 
 1. [Extrae](https://tools.bsc.es/extrae) to generate execution traces for offline performance analysis with [Paraver](https://tools.bsc.es/paraver)
-1. [elfutils](https://sourceware.org/elfutils/) and [libunwind](http://www.nongnu.org/libunwind) to generate sample-based profiling
-1. [graphviz](http://www.graphviz.org/) and pdfjam or pdfjoin from [TeX](http://www.tug.org/texlive/) to generate graphical representations of the dependency graph
-1. [parallel](https://www.gnu.org/software/parallel/) to generate the graph representation in parallel
 1. [CUDA](https://developer.nvidia.com/cuda-zone) to enable CUDA tasks
 1. [PGI or NVIDIA HPC-SDK](https://pgroup.com) to enable OpenACC tasks
 1. [PQOS](https://github.com/intel/intel-cmt-cat) to generate real-time statistics of hardware counters
@@ -63,7 +60,6 @@ The configure script accepts the following options:
 1. `--with-nanos6-clang=prefix` to specify the prefix of the LLVM/Clang installation which supports OmpSs-2
 1. `--with-nanos6-mercurium=prefix` to specify the prefix of the Mercurium installation
 1. `--with-boost=prefix` to specify the prefix of the Boost installation
-1. `--with-libunwind=prefix` to specify the prefix of the libunwind installation
 1. `--with-libnuma=prefix` to specify the prefix of the numactl installation
 1. `--with-extrae=prefix` to specify the prefix of the extrae installation
 1. `--with-dlb=prefix` to specify the prefix of the DLB installation
@@ -76,34 +72,34 @@ The configure script accepts the following options:
 1. `--with-babeltrace2=prefix` to specify the prefix of the Babeltrace2 installation and enable the fast CTF converter (`ctf2prv --fast`) and the multi-process trace merger (`nanos6-mergeprv`)
 1. `--with-ovni=prefix` to specify the prefix of the ovni installation and enable the ovni instrumentation
 
-The hwloc dependency can be specified using the `--with-hwloc` option.
-This option can take these values:
-* `pkgconfig`: The hwloc is an external installation and Nanos6 should discover it through the pkg-config tool.
-Make sure to set the `PKG_CONFIG_PATH` if the hwloc is not installed in non-standard directories.
-This is the **default** behavior if the option is not present or no value is provided
-* A prefix of an external hwloc installation
-* `embedded`: The hwloc is built and embedded into the Nanos6 library as an internal module.
+The hwloc dependency is mandatory, and, by default, an internal hwloc is embedded to the Nanos6 library.
+This behavior can be modified through the `--with-hwloc` option, which can take the following values:
+* `--with-hwloc=embedded`: The hwloc is built and embedded into the Nanos6 library as an internal module.
 This is useful when user programs may have third-party software (e.g., MPI libraries) that depend on a different hwloc version and may conflict with the one used by Nanos6.
-When embedded, the hwloc library is internal and is only used by Nanos6.
+In this way, the hwloc library is internal and is only used by Nanos6.
+This is the **default** behavior if the option is not present, or no value is provided.
 See [Embeddeding software dependencies](#embedding-software-dependencies) for more information
+* `--with-hwloc=pkgconfig`: The hwloc is an external installation and Nanos6 should discover it through the pkg-config tool.
+Make sure to set the `PKG_CONFIG_PATH` if the hwloc is not installed in non-standard directories
+* `--with-hwloc=<prefix>`: A prefix of an external hwloc installation
 
-Similarly, the jemalloc dependency can be specified using the `--with-jemalloc` option.
-The jemalloc allocator significantly improves the performance of our runtime by optimizing the memory allocations.
-Thus, it is highly **recommended** to enable the jemalloc allocator.
-The `--with-jemalloc` option can take two values:
-* A prefix of an external jemalloc installation configured with the `--enable-stats` and `--with-jemalloc-prefix=nanos6_je_` options
-* `embedded`: The jemalloc is built and embedded into Nanos6 as an internal library.
+The jemalloc dependency is optional but highly **recommended**.
+This allocator significantly improves the performance of the Nanos6 runtime by optimizing the memory allocations.
+By default, an internal jemalloc is embedded to the Nanos6 library.
+This behavior can be modified through the `--with-jemalloc` option, which can take the following values:
+* `--with-jemalloc=embedded`: The jemalloc is built and embedded into Nanos6 as an internal library.
 The building process installs the jemalloc headers and libraries in `$INSTALLATION_PREFIX/deps/nanos6/jemalloc` and dynamically links our runtime against the jemalloc library.
 This is the **default** behavior if the option is not provided.
 See [Embeddeding software dependencies](#embedding-software-dependencies)
+* `--with-jemalloc=<prefix>`: A prefix of an external jemalloc installation configured with the `--enable-stats` and `--with-jemalloc-prefix=nanos6_je_` options
+* `--with-jemalloc=no` or `--without-jemalloc`: Disable the jemalloc allocator (not recommended)
 
-The location of elfutils is always retrieved through pkg-config.
-The same occurs for hwloc by default or when specifying `--with-hwloc=pkgconfig`.
-If they are installed in non-standard locations, pkg-config can be told where to find them through the `PKG_CONFIG_PATH` environment variable.
+The location of an external hwloc can be retrieved through pkg-config when specifying `--with-hwloc=pkgconfig`.
+If it is installed in a non-standard location, pkg-config can be told where to find it through the `PKG_CONFIG_PATH` environment variable.
 For instance:
 
 ```sh
-$ export PKG_CONFIG_PATH=$HOME/installations-mn4/elfutils-0.169/lib/pkgconfig:/apps/HWLOC/2.0.0/INTEL/lib/pkgconfig:$PKG_CONFIG_PATH
+$ export PKG_CONFIG_PATH=/apps/HWLOC/2.0.0/INTEL/lib/pkgconfig:$PKG_CONFIG_PATH
 ```
 
 To enable CUDA the `--with-cuda` flag is needed.
@@ -115,10 +111,10 @@ The location of PGI compilers can be retrieved from the `$PATH` variable, if it 
 
 ### Embedding software dependencies
 
-As mentioned above, there are some software dependencies that can be embedded into Nanos6.
-This is the case for hwloc and jemalloc, which you can embed into the Nanos6 installation by configuring with `--with-hwloc=embedded` and `--with-jemalloc=embedded`, respectively.
-The sources of these embedded dependencies are taken from the `deps` subdirectory in this repository.
-Inside the subdirectory, there is a default hwloc and jemalloc source tarballs.
+As mentioned above, there are some software dependencies that may be embedded into Nanos6.
+This is the case for hwloc and jemalloc, which will be embedded by default.
+The sources of these embedded dependencies are taken from the `deps` sub-directory in this repository.
+Inside the sub-directory, there is a default hwloc and jemalloc source tarballs.
 These tarballs are automatically extracted into `deps/hwloc` and `deps/jemalloc` by our `autogen.sh` script.
 
 These are the source packages that are then built when choosing `--with-hwloc=embedded` or `--with-jemalloc=embedded`.
@@ -258,15 +254,15 @@ The CTF instrumentation supports multiple processes running in parallel with MPI
 In order to coordinate the clock synchronization, it is required to run the
 application with [TAMPI](https://github.com/bsc-pm/tampi) (at least version 1.1).
 
-Every process will create the rank subdirectory inside the trace directory, with
+Every process will create the rank sub-directory inside the trace directory, with
 a name that corresponds to the rank number. In the absence of MPI, when there is
 only a single process, the folder will be named 0.
 
-Inside the rank directory, the CTF trace is stored in a subdirectory named
+Inside the rank directory, the CTF trace is stored in a sub-directory named
 "ctf". A post-processing step is required to reconstruct the timeline of events
 from the CTF trace. In order to visualize the events, the trace is converted to
 the Paraver PRV format. The resulting PRV trace is stored in the "prv"
-subdirectory.
+sub-directory.
 
 By default, Nanos6 will convert the trace automatically at the end of the
 execution unless the user explicitly sets the configuration variable
@@ -321,23 +317,6 @@ information on how the CTF instrumentation variant works see
 To run the experimental fast converter, add the option `--fast`.
 
 
-### Generating a graphical representation of the dependency graph
-
-To generate the graph, run the application with the `version.instrument` config set to `graph`.
-
-By default, the graph nodes include the full path of the source code.
-To remove the directories, set the `instrument.graph.shorten_filenames` config to `true`.
-
-The resulting file is a PDF that contains several pages.
-Each page represents the graph at a given point in time.
-Setting the `instrument.graph.show_dead_dependencies` config to `true` forces future and previous dependencies to be shown with different graphical attributes.
-
-The `instrument.graph.display` config, if set to `true`, will make the resulting PDF to be opened automatically.
-The default viewer is `xdg-open`, but it can be overridden through the `instrument.graph.display_command` config.
-
-For best results, we suggest to display the PDF with "single page" view, showing a full page and to advance page by page.
-
-
 ### Verbose logging
 
 To enable verbose logging, run the application with the `version.instrument` config set to `verbose`.
@@ -368,39 +347,6 @@ By default, the output is emitted to standard error, but it can be sent to a fil
 Also `instrument.verbose.dump_only_on_exit` can be set to `true` to delay the output to the end of the program to avoid getting it mixed with the output of the program.
 
 
-### Obtaining statistics
-
-To enable collecting timing statistics, run the application with the `version.instrument` config set to `stats`.
-
-By default, the statistics are emitted standard error when the program ends.
-The output can be sent to a file through the `instrument.stats.output_file` config.
-
-The contents of the output contain the average for each task type and the total task average of the following metrics:
-
-* Number of instances
-* Mean instantiation time
-* Mean pending time (not ready due to dependencies)
-* Mean ready time
-* Mean execution time
-* Mean blocked time (due to a critical or a taskwait)
-* Mean zombie time (finished but not yet destroyed)
-* Mean lifetime (time between creation and destruction)
-
-The output also contains information about:
-
-* Number of CPUs
-* Total number of threads
-* Mean threads per CPU
-* Mean tasks per thread
-* Mean thread lifetime
-* Mean thread running time
-
-
-Most codes consist of an initialization phase, a calculation phase and final phase for verification or writing the results.
-Usually these phases are separated by a taskwait.
-The runtime uses the taskwaits at the outermost level to identify phases and will emit individual metrics for each phase.
-
-
 ### Debugging
 
 By default, the runtime is optimized for speed and will assume that the application code is correct.
@@ -409,8 +355,6 @@ To enable validity checks, run the application with the `version.debug` config s
 This will enable many internal validity checks that may be violated with the application code is incorrect.
 In the future we may include a validation mode that will perform extensive application code validation.
 Notice that all instrumentation variants can be executed either with or without enabling the debug option.
-
-To debug dependencies, it is advised to reduce the problem size so that very few tasks trigger the problem, and then use let the runtime make a graphical representation of the dependency graph as shown previously.
 
 Processing the configuration file involves selecting at run time a runtime compiled for the corresponding instrumentation.
 This part of the bootstrap is performed by a component of the runtime called "loader".
@@ -573,6 +517,11 @@ Although the throttle feature is disabled by default, it can be enabled and tune
 * `throttle.tasks`: Maximum absolute number of alive childs that any task can have. It is divided by 10 at each nesting level. By default is 5.000.000.
 * `throttle.pressure`: Percentage of memory budget used at which point the number of tasks allowed to exist will be decreased linearly until reaching 1 at 100% memory pressure. By default is 70.
 * `throttle.max_memory`: Maximum used memory or memory budget. Note that this variable can be set in terms of bytes or in memory units. For example: ``throttle.max_memory = "50GB"``. The default is the half of the available physical memory.
+
+## Task-Aware Libraries Support
+
+Nanos6 exposes and implements the ALPI tasking interface, which provides support for task-aware libraries, such as the [Task-Aware MPI](https://github.com/bsc-pm/tampi) library.
+The runtime system implements the ALPI interface version 1.0, which is exposed through the [alpi.h](./api/nanos6/alpi.h) API header.
 
 ## NUMA support
 

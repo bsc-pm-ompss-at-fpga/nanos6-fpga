@@ -1,7 +1,7 @@
 /*
 	This file is part of Nanos6 and is licensed under the terms contained in the COPYING file.
 
-	Copyright (C) 2015-2021 Barcelona Supercomputing Center (BSC)
+	Copyright (C) 2015-2023 Barcelona Supercomputing Center (BSC)
 */
 
 #ifndef WORKER_THREAD_IMPLEMENTATION_HPP
@@ -18,8 +18,8 @@
 #include <InstrumentThreadManagement.hpp>
 
 
-inline WorkerThread::WorkerThread(CPU *cpu)
-	: WorkerThreadBase(cpu), _task(nullptr), _dependencyDomain(),
+inline WorkerThread::WorkerThread(CPU *cpu) :
+	WorkerThreadBase(cpu), _task(nullptr), _dependencyDomain(),
 	_instrumentationData(), _hwCounters(), _replacementCount(0), _ISDistribution(0.0, 1.0)
 {
 	_originalNumaNode = cpu->getNumaNodeId();
@@ -97,26 +97,19 @@ inline WorkerThread *WorkerThread::getCurrentWorkerThread()
 	}
 }
 
+inline Task *WorkerThread::getCurrentTask()
+{
+	WorkerThread *thread = WorkerThread::getCurrentWorkerThread();
+	if (thread == nullptr)
+		return nullptr;
+
+	return thread->getTask();
+}
+
 inline ThreadHardwareCounters &WorkerThread::getHardwareCounters()
 {
 	return _hwCounters;
 }
-
-#ifndef NDEBUG
-namespace ompss_debug {
-	__attribute__((weak)) WorkerThread *getCurrentWorkerThread()
-	{
-		WorkerThread *current = WorkerThread::getCurrentWorkerThread();
-
-		if (current == nullptr) {
-			return (WorkerThread *) ~0UL;
-		} else {
-			return current;
-		}
-	}
-}
-#endif
-
 
 inline bool WorkerThread::isTaskReplaceable() const
 {

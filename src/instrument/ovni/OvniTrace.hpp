@@ -275,6 +275,7 @@ namespace Instrument {
 			emitGeneric(1, "OHe");
 			// Flush the events to disk before killing the thread
 			ovni_flush();
+			ovni_thread_free();
 		}
 
 		static void threadSignal(int32_t tid)
@@ -309,12 +310,6 @@ namespace Instrument {
 			ovni_proc_init(1, loomName, pid);
 		}
 
-		static void procSetRank(int rank, int nranks)
-		{
-			assert(ovni_thread_isready());
-			ovni_proc_set_rank(rank, nranks);
-		}
-
 		static void procFini()
 		{
 			ovni_proc_fini();
@@ -329,19 +324,7 @@ namespace Instrument {
 		static void threadInit()
 		{
 			ovni_thread_init(gettid());
-		}
-
-		static void threadMaybeInit()
-		{
-			if (!ovni_thread_isready()) {
-				threadInit();
-				threadExecute(-1, -1, -1);
-			}
-		}
-
-		static void flush()
-		{
-			ovni_flush();
+			ovni_thread_require("nanos6", "1.0.0");
 		}
 	};
 

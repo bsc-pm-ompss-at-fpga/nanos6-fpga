@@ -16,13 +16,6 @@ ConfigCentral::ConfigCentral() :
 	_defaults(),
 	_listDefaults()
 {
-	// Cluster
-	registerOption<string_t>("cluster.communication", "disabled");
-	registerOption<memory_t>("cluster.distributed_memory", 2UL << 30);
-	registerOption<memory_t>("cluster.local_memory", 0);
-	registerOption<string_t>("cluster.scheduling_policy", "locality");
-	registerOption<integer_t>("cluster.va_start", 0);
-
 	// CPU manager
 	registerOption<integer_t>("cpumanager.busy_iters", 240000);
 	registerOption<string_t>("cpumanager.policy", "default");
@@ -93,22 +86,6 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("instrument.extrae.as_threads", false);
 	registerOption<integer_t>("instrument.extrae.detail_level", 1);
 
-	// Graph instrumentation
-	registerOption<bool_t>("instrument.graph.display", false);
-	registerOption<string_t>("instrument.graph.display_command", "xdg-open");
-	registerOption<bool_t>("instrument.graph.shorten_filenames", false);
-	registerOption<bool_t>("instrument.graph.show_all_steps", false);
-	registerOption<bool_t>("instrument.graph.show_dead_dependency_structures", false);
-	registerOption<bool_t>("instrument.graph.show_dead_dependencies", false);
-	registerOption<bool_t>("instrument.graph.show_dependency_structures", false);
-	registerOption<bool_t>("instrument.graph.show_log", false);
-	registerOption<bool_t>("instrument.graph.show_regions", false);
-	registerOption<bool_t>("instrument.graph.show_spurious_dependency_structures", false);
-	registerOption<bool_t>("instrument.graph.show_superaccess_links", true);
-
-	// Stats instrumentation
-	registerOption<string_t>("instrument.stats.output_file", "/dev/stderr");
-
 	// Verbose instrumentation
 	registerOption<string_t>("instrument.verbose.areas", {
 			"all", "!ComputePlaceManagement", "!DependenciesByAccess",
@@ -124,10 +101,6 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("loader.warn_envars", true);
 	registerOption<string_t>("loader.library_path", "");
 	registerOption<string_t>("loader.report_prefix", "");
-
-	// Memory allocator
-	registerOption<memory_t>("memory.pool.global_alloc_size", 8 * 1024 * 1024);
-	registerOption<memory_t>("memory.pool.chunk_size", 128 * 1024);
 
 	// Miscellaneous
 	registerOption<memory_t>("misc.stack_size", 8 * 1024 * 1024);

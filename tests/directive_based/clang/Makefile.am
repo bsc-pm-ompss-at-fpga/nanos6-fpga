@@ -44,6 +44,7 @@ base_tests += \
 	dep-wait.clang.test \
 	simple-commutative.clang.test \
 	commutative-stencil.clang.test \
+	alpi.clang.test \
 	taskloop-multiaxpy.clang.test \
 	taskloop-dep-multiaxpy.clang.test \
 	taskloop-nested-dep-multiaxpy.clang.test \
@@ -72,6 +73,9 @@ else
 cpu_management_tests += \
 	cpu-activation.clang.test
 endif
+
+user_mutex_tests += \
+	critical.clang.test
 
 linear_region_tests += \
 	lr-nonest.clang.test \
@@ -128,6 +132,7 @@ base_tests +=  \
 	dep-wait.clang.debug.test \
 	simple-commutative.clang.debug.test \
 	commutative-stencil.clang.debug.test \
+	alpi.clang.debug.test \
 	taskloop-multiaxpy.clang.debug.test \
 	taskloop-dep-multiaxpy.clang.debug.test \
 	taskloop-nested-dep-multiaxpy.clang.debug.test \
@@ -154,6 +159,9 @@ else
 cpu_management_tests += \
 	cpu-activation.clang.debug.test
 endif
+
+user_mutex_tests += \
+	critical.clang.debug.test
 
 linear_region_tests += \
 	lr-nonest.clang.debug.test \
@@ -201,15 +209,11 @@ endif
 check_PROGRAMS = $(base_tests)
 TESTS = $(base_tests)
 
-if HAVE_CPU_MANAGEMENT
 check_PROGRAMS += $(cpu_management_tests)
 TESTS += $(cpu_management_tests)
-endif
 
-if HAVE_WORKING_USER_MUTEX
 check_PROGRAMS += $(user_mutex_tests)
 TESTS += $(user_mutex_tests)
-endif
 
 if HAVE_LINEAR_REGION_SUPPORT
 check_PROGRAMS += $(linear_region_tests)
@@ -351,6 +355,15 @@ cpu_activation_clang_test_CPPFLAGS = -DNDEBUG
 cpu_activation_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 cpu_activation_clang_test_LDFLAGS = $(test_common_ldflags)
 
+critical_clang_debug_test_SOURCES = ../critical/critical.cpp
+critical_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+critical_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+critical_clang_test_SOURCES = ../critical/critical.cpp
+critical_clang_test_CPPFLAGS = -DNDEBUG
+critical_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+critical_clang_test_LDFLAGS = $(test_common_ldflags)
+
 dep_nonest_clang_debug_test_SOURCES = ../dependencies/dep-nonest.cpp
 dep_nonest_clang_debug_test_CPPFLAGS =
 if HAVE_CONCURRENT_SUPPORT
@@ -426,6 +439,15 @@ commutative_stencil_clang_test_SOURCES = ../commutative/commutative-stencil.cpp
 commutative_stencil_clang_test_CPPFLAGS = -DNDEBUG
 commutative_stencil_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
 commutative_stencil_clang_test_LDFLAGS = $(test_common_ldflags)
+
+alpi_clang_debug_test_SOURCES = ../alpi/alpi.cpp
+alpi_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
+alpi_clang_debug_test_LDFLAGS = $(test_common_debug_ldflags)
+
+alpi_clang_test_SOURCES = ../alpi/alpi.cpp
+alpi_clang_test_CPPFLAGS = -DNDEBUG
+alpi_clang_test_CXXFLAGS = $(OPT_CLANG_CXXFLAGS) $(AM_CXXFLAGS)
+alpi_clang_test_LDFLAGS = $(test_common_ldflags)
 
 taskloop_multiaxpy_clang_debug_test_SOURCES = ../taskloop/taskloop-multiaxpy.cpp
 taskloop_multiaxpy_clang_debug_test_CXXFLAGS = $(DBG_CXXFLAGS) $(AM_CXXFLAGS)
