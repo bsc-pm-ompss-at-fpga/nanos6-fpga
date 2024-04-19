@@ -124,10 +124,10 @@ public:
 		if (taskInfo->implementations[0].device_function_name != nullptr) {
 			uint64_t subtype = simple_hash_str(taskInfo->implementations[0].device_function_name) & 0xFFFFFFFF;
 			if (taskInfo->implementations[0].device_type_id == nanos6_fpga_device) {
-				subtype |= 0x100000000lu;
+				subtype |= 0x100000000llu;
 			}
 			else {
-				subtype |= 0x200000000lu;
+				subtype |= 0x200000000llu;
 			}
 			FPGAAccelerator::_device_subtype_map[taskInfo->implementations] = subtype;
 			FPGAReverseOffload::_reverseMap[subtype] = taskInfo;
