@@ -202,6 +202,7 @@ symbol_resolution += \
 	loader/symbol-resolver/config.c \
 	loader/symbol-resolver/cpu-control.c \
 	loader/symbol-resolver/debugging.c \
+	loader/symbol-resolver/device-api.c \
 	loader/symbol-resolver/dependencies.c \
 	loader/symbol-resolver/events.c \
 	loader/symbol-resolver/final.c \
@@ -249,6 +250,7 @@ symbol_resolution += \
 	loader/indirect-symbols/cpu-control.c \
 	loader/indirect-symbols/debugging.c \
 	loader/indirect-symbols/dependencies.c \
+	loader/indirect-symbols/device-api.c \
 	loader/indirect-symbols/events.c \
 	loader/indirect-symbols/final.c \
 	loader/indirect-symbols/lint.c \
@@ -495,20 +497,22 @@ cuda_sources += \
 	src/system/CUDADeviceAPI.cpp
 endif
 
+fpga_sources =
+
 if USE_FPGA
-common_sources += \
+fpga_sources += \
 	src/hardware/device/fpga/FPGAAccelerator.cpp \
 	src/hardware/device/fpga/FPGAReverseOffload.cpp \
-	src/system/FPGADeviceAPI.cpp 
+	src/system/FPGADeviceAPI.cpp
 endif
 
+dist_sources =
+
 if USE_DISTRIBUTED
-common_sources += \
+dist_sources += \
 	src/hardware/device/broadcaster/BroadcasterAccelerator.cpp \
 	src/system/DistributedAPI.cpp
 endif
-
-common_sources += $(cuda_sources)
 
 openacc_sources =
 
@@ -517,7 +521,7 @@ openacc_sources += \
 	src/hardware/device/openacc/OpenAccAccelerator.cpp
 endif
 
-common_sources += $(openacc_sources)
+common_sources += $(cuda_sources) $(fpga_sources) $(dist_sources) $(openacc_sources)
 
 regions_dependency_sources = \
 	src/dependencies/linear-regions-fragmented/DataAccessRegistration.cpp \
@@ -798,7 +802,7 @@ noinst_HEADERS = \
 	src/hardware/device/directory/IntervalMap.hpp \
 	src/hardware/device/directory/DirectoryEntry.hpp \
 	src/hardware/device/directory/DeviceDirectory.hpp \
-   src/hardware/device/host/HostAccelerator.hpp \
+	src/hardware/device/host/HostAccelerator.hpp \
 	src/hardware/hwinfo/DeviceInfo.hpp \
 	src/hardware/hwinfo/HostInfo.hpp \
 	src/hardware/places/ComputePlace.hpp \
