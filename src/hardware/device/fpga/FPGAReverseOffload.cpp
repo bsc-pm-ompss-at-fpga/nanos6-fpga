@@ -1,9 +1,27 @@
 #include "FPGAReverseOffload.hpp"
 #include "system/SpawnFunction.hpp"
 #include "system/BlockingAPI.hpp"
+#include "tasks/Task.hpp"
 #include <libxtasks.h>
 #include <assert.h>
 #include <vector>
+
+#include "../directory/DeviceDirectory.hpp"
+#include "hardware/places/ComputePlace.hpp"
+#include "hardware/places/MemoryPlace.hpp"
+#include "InstrumentFPGAEvents.hpp"
+#include "instrument/api/InstrumentFPGAEvents.hpp"
+#include "libxtasks.h"
+#include "scheduling/Scheduler.hpp"
+#include "system/BlockingAPI.hpp"
+
+#include <DataAccessRegistration.hpp>
+#include <DataAccessRegistrationImplementation.hpp>
+#include <memory>
+#include "lowlevel/FatalErrorHandler.hpp"
+
+#include "instrument/ovni/OvniTrace.hpp"
+#include "/home/djimenez/ovni/installdir-djg/ovni/include/ovni.h"
 
 std::unordered_map<uint64_t, const nanos6_task_info_t*> FPGAReverseOffload::_reverseMap;
 
@@ -41,6 +59,7 @@ void FPGAReverseOffload::shutdownService() {
 }
 
 void FPGAReverseOffload::serviceLoop() {
+//	Instrument::startFPGAInstrumentation();
 	while (!_stopService) {
 		bool foundTask = false;
 		do {
@@ -57,6 +76,13 @@ void FPGAReverseOffload::serviceLoop() {
 				);
 #endif
 				const nanos6_task_info_t* task_info = it->second;
+
+				if (_isInstrumented)
+				{
+                                   uint64_t value_start = 0;
+				   uint32_t eventType = 0x24; // SMP task
+				   Instrument::emitReverseOffloadingEvent(value_start, eventType);
+				}
 
 				for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
 					void* mem = MemoryAllocator::alloc(xtasks_task->copies[i].size);
@@ -87,6 +113,13 @@ void FPGAReverseOffload::serviceLoop() {
 					MemoryAllocator::free(mem, xtasks_task->copies[i].size);
 				}
 
+				if (_isInstrumented)
+				{
+                                   uint64_t value_end= 1;
+				   uint32_t eventType = 0x24; // SMP task
+				   Instrument::emitReverseOffloadingEvent(value_end, eventType);
+				}
+
 				stat = xtasksNotifyFinishedTask(xtasks_task->parentId, xtasks_task->taskId);
 				assert(stat == XTASKS_SUCCESS);
 				MemoryAllocator::free(argsBlock, argsBlockSize);
@@ -99,4 +132,5 @@ void FPGAReverseOffload::serviceLoop() {
 		if (!foundTask)
 			BlockingAPI::waitForUs(_pollingPeriodUs);
 	}
+//	Instrument::stopFPGAInstrumentation();
 }

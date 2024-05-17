@@ -22,6 +22,8 @@ namespace Instrument {
 	void stopFPGAInstrumentation();
 	//! This function is called upon recieving an event
 	void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime);
+	//! This function is called upon receiving a reverse offload task
+	void emitReverseOffloadingEvent(uint64_t value, uint32_t eventType);
 }
 
 

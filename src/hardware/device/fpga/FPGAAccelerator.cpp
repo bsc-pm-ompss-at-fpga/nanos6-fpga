@@ -18,6 +18,8 @@
 #include <DataAccessRegistrationImplementation.hpp>
 #include <memory>
 #include "lowlevel/FatalErrorHandler.hpp"
+#include <iostream>
+
 
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
 
@@ -43,7 +45,23 @@ void FPGAAcceleratorInstrumentationService::serviceLoop() {
 				"Error while retrieving instrumentation events from handle with id: ", handle.info.id, ". xtasksGetInstrumentData returns: ", res
 			);
 			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
+				//Instrument::emitFPGAEvent(events[i].value, events[i].eventId, events[i].eventType, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
+				//   Patch in case adapter instrumentation emits non init bits
+			        //   events[i].eventType = events[i].eventType & 0x0F;	
+				switch(events[i].eventType){
+				case XTASKS_EVENT_TYPE_BURST_OPEN:
+				case XTASKS_EVENT_TYPE_BURST_CLOSE:
+				    Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
+				    break;
+				case XTASKS_EVENT_TYPE_POINT:
+                                   // Events has been lost 
+				   if (events[i].eventId == 82)
+				      std::cout << "Warning: Event Lost : " << events[i].eventType << "Type: " << events[i].value << std::endl;
+				   break;
+				default:
+				   std::cout << "Ignoring unkown fpga event type: " << events[i].eventType << "Type: " << events[i].value << std::endl;
+				}
+
 			}
 	};
 
@@ -61,7 +79,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 		ConfigVariable<bool>("devices.fpga.polling.pinned")),
 		_allocator(fpgaDeviceIndex),
-		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling)
+		_reverseOffload(_allocator, _pollingPeriodUs, _isPinnedPolling, (ConfigVariable<std::string>("version.instrument").getValue() == "ovni"))
 {
 	std::string memSyncString = ConfigVariable<std::string>("devices.fpga.mem_sync_type");
 	if (memSyncString == "async") {

@@ -17,11 +17,15 @@ namespace Instrument {
 
 	}
 	inline void stopFPGAInstrumentation() {
-		Ovni::flush();
+		ovni_flush();
 		ovni_thread_free();
 	}
 	inline void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime) {
 		Ovni::fpgaEvent(value, eventId, eventType, utime);
+	}
+
+	inline void emitReverseOffloadingEvent(uint64_t value, uint32_t eventType) {
+		Ovni::reverseOffloadingEvent(value, eventType);
 	}
 }
 #endif // INSTRUMENT_OVNI_FPGA_EVENTS_HPP

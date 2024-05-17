@@ -20,6 +20,9 @@ namespace Instrument {
 		[[maybe_unused]] uint32_t eventType,
 		[[maybe_unused]] uint64_t utime) {
 		}
+	inline void emitReverseOffloadingEvent([[maybe_unused]] uint64_t value, 
+		[[maybe_unused]] uint32_t eventType) {
+		}
 }
 
 

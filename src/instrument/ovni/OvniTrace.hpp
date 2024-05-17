@@ -10,8 +10,10 @@
 #include <cassert> 
 #include <cstdint>
 #include <cstdlib>
-#include <ovni.h>
+#include "ovni.h"
 #include <string>
+#include <iostream>
+
 
 #include "lowlevel/CompatSyscalls.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
@@ -206,6 +208,20 @@ namespace Instrument {
 			emitGeneric(1, "6Te", taskId);
 		}
 
+		static void reverseOffloadingEvent(uint64_t value, uint32_t eventType)
+		{
+			if (1 > _level)
+				return;
+			struct ovni_ev ev;
+			uint32_t eventId   = 6660; // Reverse Offload task
+			uint64_t time      = ovni_clock_now();
+			memset(&ev, 0, sizeof(struct ovni_ev));
+			ovni_ev_set_clock(&ev, time);
+			ovni_ev_set_mcv(&ev, "Xse");
+			addPayload(&ev, value, eventId, eventType);
+			ovni_ev_emit(&ev);
+		}
+
 		static void fpgaEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t time)
 		{
 			if (1 > _level)
@@ -229,6 +245,12 @@ namespace Instrument {
 				event.emit("6Yc");
 			}
 		}
+
+		static std::string getEnvVar( std::string const & key )
+                {
+                    char * val = getenv( key.c_str() );
+                    return val == NULL ? std::string("") : std::string(val);
+                }
 
 		// Generic ovni events
 		ALIAS_TRACEPOINT(1, burst, "OB.")
@@ -328,6 +350,38 @@ namespace Instrument {
 			ovni_proc_fini();
 		}
 
+
+		static void procParaver()
+		{
+			int returnCode;
+			// Look for ovniemu emulator config variable
+			std::string config_file = Ovni::getEnvVar("XTASKS_CONFIG_FILE"); 
+		        // -x bitstream/reverse_print.xtasks.config  ovni	
+
+			if (config_file!="")
+			{
+			   std::cout << "Xtasks config file detected "<< config_file <<" " << std::endl;
+			   std::string xtasks_info = "-x "+ config_file;
+			   std::string ovniemu_cmd = "ovniemu " + xtasks_info + " ovni";
+	                   returnCode = system(ovniemu_cmd.c_str());
+			}
+			else
+			{
+			   std::cout << "Xtasks config file not detected "<< std::endl;
+			   std::string ovniemu_cmd = "ovniemu ovni";
+	                   returnCode = system(ovniemu_cmd.c_str());
+			}
+	                // checking if the command was executed successfully
+                	if (returnCode == 0) {
+                	    std::cout << "Command ovniemu executed successfully." << std::endl;
+                	}
+                	else {
+                            std::cout << "Command ovniemu execution failed or returned "
+                				"non-zero: " << returnCode << std::endl;
+                	}
+
+		}
+
 		static void genBursts()
 		{
 			for (int i = 0; i < 100; i++)
@@ -337,7 +391,7 @@ namespace Instrument {
 		static void threadInit()
 		{
 			ovni_thread_init(gettid());
-			ovni_thread_require("nanos6", "1.0.0");
+			//ovni_thread_require("nanos6", "1.0.0");
 		}
 	};
 
