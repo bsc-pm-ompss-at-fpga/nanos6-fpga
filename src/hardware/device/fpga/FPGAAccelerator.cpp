@@ -9,7 +9,6 @@
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
 #include "InstrumentFPGAEvents.hpp"
-#include "instrument/api/InstrumentFPGAEvents.hpp"
 #include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
@@ -36,38 +35,34 @@ void FPGAAcceleratorInstrumentationService::shutdownService() {
 }
 
 void FPGAAcceleratorInstrumentationService::serviceLoop() {
-	auto fetchInstrumentation = [&] {
-			xtasks_ins_event events[128];
-			events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
-			xtasks_stat res = xtasksGetInstrumentData(handle.handle, events, 128);
-			FatalErrorHandler::failIf(
-				res != XTASKS_SUCCESS,
-				"Error while retrieving instrumentation events from handle with id: ", handle.info.id, ". xtasksGetInstrumentData returns: ", res
-			);
-			for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-				//Instrument::emitFPGAEvent(events[i].value, events[i].eventId, events[i].eventType, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
-				//   Patch in case adapter instrumentation emits non init bits
-			        //   events[i].eventType = events[i].eventType & 0x0F;	
-				switch(events[i].eventType){
-				case XTASKS_EVENT_TYPE_BURST_OPEN:
-				case XTASKS_EVENT_TYPE_BURST_CLOSE:
-				    Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
-				    break;
-				case XTASKS_EVENT_TYPE_POINT:
-                                   // Events has been lost 
-				   if (events[i].eventId == 82)
-				      std::cout << "Warning: Event Lost : " << events[i].eventType << "Type: " << events[i].value << std::endl;
-				   break;
-				default:
-				   std::cout << "Ignoring unkown fpga event type: " << events[i].eventType << "Type: " << events[i].value << std::endl;
-				}
-
-			}
-	};
-
 	Instrument::startFPGAInstrumentation();
-	while (!stopService) fetchInstrumentation();
-	fetchInstrumentation();
+	bool stopService_delayed = false;
+	while (!stopService || stopService_delayed) {
+		xtasks_ins_event events[128];
+		events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
+		xtasks_stat res = xtasksGetInstrumentData(handle.handle, events, 128);
+		FatalErrorHandler::failIf(
+			res != XTASKS_SUCCESS,
+			"Error while retrieving instrumentation events from handle with id: ", handle.info.id, ". xtasksGetInstrumentData returns: ", res
+		);
+		for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
+			switch(events[i].eventType) {
+			case XTASKS_EVENT_TYPE_BURST_OPEN:
+			case XTASKS_EVENT_TYPE_BURST_CLOSE:
+				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
+				break;
+			case XTASKS_EVENT_TYPE_POINT:
+				// Events has been lost
+				if (events[i].eventId == 82)
+					std::cout << "Warning: Event Lost : " << events[i].eventType << "Type: " << events[i].value << std::endl;
+				break;
+			default:
+				std::cout << "Ignoring unkown fpga event type: " << events[i].eventType << "Type: " << events[i].value << std::endl;
+			}
+		}
+		if (stopService_delayed) stopService_delayed = false;
+		else if (!stopService) stopService_delayed = true;
+	}
 	Instrument::stopFPGAInstrumentation();
 	finishedService = true;
 }

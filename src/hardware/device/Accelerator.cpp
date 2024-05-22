@@ -200,14 +200,11 @@ void Accelerator::acceleratorServiceLoop() {
 				Task *task = Scheduler::getReadyTask(_computePlace, currentThread);
 				if (task == nullptr)
 					break;
-
 				runTask(task);
 			}
-
 			_streamPool.processStreams();
 		// Iterate while there are running tasks and pinned polling is enabled
 		} while (_isPinnedPolling && _streamPool.ongoingStreams());
-
 		// Sleep for a configured amount of microseconds
 		BlockingAPI::waitForUs(_pollingPeriodUs);
 	}

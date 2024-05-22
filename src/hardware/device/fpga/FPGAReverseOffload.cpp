@@ -5,23 +5,7 @@
 #include <libxtasks.h>
 #include <assert.h>
 #include <vector>
-
-#include "../directory/DeviceDirectory.hpp"
-#include "hardware/places/ComputePlace.hpp"
-#include "hardware/places/MemoryPlace.hpp"
 #include "InstrumentFPGAEvents.hpp"
-#include "instrument/api/InstrumentFPGAEvents.hpp"
-#include "libxtasks.h"
-#include "scheduling/Scheduler.hpp"
-#include "system/BlockingAPI.hpp"
-
-#include <DataAccessRegistration.hpp>
-#include <DataAccessRegistrationImplementation.hpp>
-#include <memory>
-#include "lowlevel/FatalErrorHandler.hpp"
-
-#include "instrument/ovni/OvniTrace.hpp"
-#include "/home/djimenez/ovni/installdir-djg/ovni/include/ovni.h"
 
 std::unordered_map<uint64_t, const nanos6_task_info_t*> FPGAReverseOffload::_reverseMap;
 
@@ -69,7 +53,7 @@ void FPGAReverseOffload::serviceLoop() {
 			if (stat == XTASKS_SUCCESS) {
 				foundTask = true;
 				std::unordered_map<uint64_t, const nanos6_task_info_t*>::const_iterator it = _reverseMap.find(xtasks_task->typeInfo);
-#ifndef 	NDEBUG
+#ifndef NDEBUG
 				FatalErrorHandler::failIf(
 					it == _reverseMap.end(),
 					"Device subtype ", xtasks_task->typeInfo, " not found in reverse map"

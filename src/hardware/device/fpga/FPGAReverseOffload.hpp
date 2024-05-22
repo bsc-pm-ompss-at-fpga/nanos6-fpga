@@ -1,21 +1,10 @@
 #ifndef FPGAREVERSEOFFLOAD_HPP
 #define FPGAREVERSEOFFLOAD_HPP
 
-#include "instrument/ovni/OvniTrace.hpp"
 #include <unordered_map>
 #include <nanos6/task-instantiation.h>
 #include <atomic>
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
-
-#include <list>
-#include "support/config/ConfigVariable.hpp"
-
-#include "hardware/device/Accelerator.hpp"
-#include "support/config/toml/string.hpp"
-#include "tasks/Task.hpp"
-#include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
-
-#include <thread>
 
 class FPGAReverseOffload
 {
