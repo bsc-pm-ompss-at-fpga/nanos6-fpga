@@ -4,8 +4,10 @@
  Copyright (C) 2015-2017 Barcelona Supercomputing Center (BSC)
  */
 
-#ifdef USE_FPGA
+#include <config.h>
+#ifdef USE_FPGA // Defined in config.h
 #include "resolve.h"
+#include "api/nanos6/fpga_device.h"
 
 #pragma GCC visibility push(default)
 
