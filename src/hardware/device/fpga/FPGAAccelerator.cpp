@@ -39,7 +39,6 @@ void FPGAAcceleratorInstrumentationService::serviceLoop() {
 	bool stopService_delayed = false;
 	while (!stopService || stopService_delayed) {
 		xtasks_ins_event events[128];
-		events[0].eventType = XTASKS_EVENT_TYPE_INVALID; // In some errors, xtasks does not propery mark an end.
 		xtasks_stat res = xtasksGetInstrumentData(handle.handle, events, 128);
 		FatalErrorHandler::failIf(
 			res != XTASKS_SUCCESS,
@@ -111,10 +110,11 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		_inner_accelerators[info[i].type]._accelHandle.push_back(handles[i]);
 	}
 	if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
+		xtasks_ins_timestamp startTimeFpga;
+		xtasksGetAccCurrentTime(handles[0], &startTimeFpga);
+		uint64_t startTimeCpu = Instrument::getCPUTimeForFPGA();
 		for(size_t i=0;i<accCount;++i) {
-			xtasks_ins_timestamp timestamp;
-			xtasksGetAccCurrentTime(handles[i], &timestamp);
-			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], timestamp, Instrument::getCPUTimeForFPGA()};
+			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], startTimeFpga, startTimeCpu};
 			acceleratorInstrumentationServices.push_back(std::make_unique<FPGAAcceleratorInstrumentationService>());
 			acceleratorInstrumentationServices.back()->setHandles(std::move(handlesWithInfo));
 		}
