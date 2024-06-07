@@ -15,29 +15,7 @@
 #include "tasks/Task.hpp"
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
 #include "FPGAReverseOffload.hpp"
-
-#include <thread>
-class FPGAAcceleratorInstrumentationService {
-public:
-	struct HandleWithInfo {
-		xtasks_acc_handle handle;
-		xtasks_acc_info info;
-		uint64_t startTimeFpga;
-		uint64_t startTimeCpu;
-	};
-private:
-std::atomic<bool> stopService;
-std::atomic<bool> finishedService;
-HandleWithInfo handle;
-std::thread internalThread;
-	void serviceLoop();
-public:
-
-	FPGAAcceleratorInstrumentationService() {}
-	void initializeService();
-	void shutdownService();
-	void setHandles(HandleWithInfo &&otherHandle) {handle = std::move(otherHandle);}
-};
+#include "FPGAAcceleratorInstrumentation.hpp"
 
 class FPGAAccelerator : public Accelerator {
 private:
@@ -49,8 +27,9 @@ private:
 
 	FPGAPinnedAllocator _allocator;
 
+	size_t accCount;
 	FPGAReverseOffload _reverseOffload;
-	std::vector<std::unique_ptr<FPGAAcceleratorInstrumentationService>> acceleratorInstrumentationServices;
+	FPGAAcceleratorInstrumentation *acceleratorInstrumentationServices;
 	struct _fpgaAccel
 	{
 		std::vector<xtasks_acc_handle> _accelHandle;
@@ -102,8 +81,8 @@ public:
 			_reverseOffload.initializeService();
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
-				acceleratorInstrumentationService->initializeService();
+			for (unsigned int i = 0; i < accCount; ++i)
+				acceleratorInstrumentationServices[i].initializeService();
 		}
 	}
 
@@ -113,8 +92,8 @@ public:
 			_reverseOffload.shutdownService();
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			for (auto &acceleratorInstrumentationService : acceleratorInstrumentationServices)
-				acceleratorInstrumentationService->shutdownService();
+			for (unsigned int i = 0; i < accCount; ++i)
+				acceleratorInstrumentationServices[i].shutdownService();
 		}
 	}
 

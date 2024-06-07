@@ -14,7 +14,6 @@ namespace Instrument {
 	inline uint64_t getCPUTimeForFPGA() {return ovni_clock_now();}
 	inline void startFPGAInstrumentation() {
 		Ovni::threadInit();
-
 	}
 	inline void stopFPGAInstrumentation() {
 		ovni_flush();

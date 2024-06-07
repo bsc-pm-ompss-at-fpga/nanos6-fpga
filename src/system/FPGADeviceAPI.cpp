@@ -58,8 +58,8 @@ nanos6_fpga_stat_t nanos6_fpga_memcpy(void* usr_ptr, uint64_t fpga_addr, uint64_
 	return NANOS6_FPGA_SUCCESS;
 }
 
-nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_in(void* dst, const unsigned long long int addr, const unsigned int num_elems) {}
-nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_out(void* dst, const unsigned long long int addr, const unsigned int num_elems) {}
+nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_in([[maybe_unused]] void* dst, [[maybe_unused]] const unsigned long long int addr, [[maybe_unused]] const unsigned int num_elems) {return NANOS6_FPGA_ERROR;}
+nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_out([[maybe_unused]] void* dst, [[maybe_unused]] const unsigned long long int addr, [[maybe_unused]] const unsigned int num_elems) {return NANOS6_FPGA_ERROR;}
 
 }
 

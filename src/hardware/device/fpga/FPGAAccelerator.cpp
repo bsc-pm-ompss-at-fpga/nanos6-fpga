@@ -8,63 +8,18 @@
 #include "../directory/DeviceDirectory.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
-#include "InstrumentFPGAEvents.hpp"
 #include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
+#include "InstrumentFPGAEvents.hpp"
 
 #include <DataAccessRegistration.hpp>
 #include <DataAccessRegistrationImplementation.hpp>
 #include <memory>
 #include "lowlevel/FatalErrorHandler.hpp"
-#include <iostream>
 
 
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
-
-void FPGAAcceleratorInstrumentationService::initializeService() {
-	stopService = false;
-	finishedService = false;
-	internalThread = std::thread(&FPGAAcceleratorInstrumentationService::serviceLoop, this);
-}
-
-void FPGAAcceleratorInstrumentationService::shutdownService() {
-	stopService = true;
-	while (!finishedService);
-	internalThread.join();
-}
-
-void FPGAAcceleratorInstrumentationService::serviceLoop() {
-	Instrument::startFPGAInstrumentation();
-	bool stopService_delayed = false;
-	while (!stopService || stopService_delayed) {
-		xtasks_ins_event events[128];
-		xtasks_stat res = xtasksGetInstrumentData(handle.handle, events, 128);
-		FatalErrorHandler::failIf(
-			res != XTASKS_SUCCESS,
-			"Error while retrieving instrumentation events from handle with id: ", handle.info.id, ". xtasksGetInstrumentData returns: ", res
-		);
-		for (int i = 0; i < 128 && events[i].eventType != XTASKS_EVENT_TYPE_INVALID; ++i) {
-			switch(events[i].eventType) {
-			case XTASKS_EVENT_TYPE_BURST_OPEN:
-			case XTASKS_EVENT_TYPE_BURST_CLOSE:
-				Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
-				break;
-			case XTASKS_EVENT_TYPE_POINT:
-				// Events has been lost
-				if (events[i].eventId == 82)
-					std::cout << "Warning: Event Lost : " << events[i].eventType << "Type: " << events[i].value << std::endl;
-				break;
-			default:
-				std::cout << "Ignoring unkown fpga event type: " << events[i].eventType << "Type: " << events[i].value << std::endl;
-			}
-		}
-		if (stopService_delayed) stopService_delayed = false;
-		else if (!stopService) stopService_delayed = true;
-	}
-	Instrument::stopFPGAInstrumentation();
-	finishedService = true;
-}
 
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 	Accelerator(fpgaDeviceIndex,
@@ -89,7 +44,8 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		FatalErrorHandler::fail("Config value", memSyncString, " is not valid for devices.fpga.mem_sync_type");
 	}
 
-	size_t accCount = 0, handlesCount=0;
+	size_t handlesCount=0;
+	accCount = 0;
 
 	FatalErrorHandler::failIf(
         xtasksGetNumAccs(fpgaDeviceIndex, &accCount) != XTASKS_SUCCESS,
@@ -113,15 +69,21 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 		xtasks_ins_timestamp startTimeFpga;
 		xtasksGetAccCurrentTime(handles[0], &startTimeFpga);
 		uint64_t startTimeCpu = Instrument::getCPUTimeForFPGA();
+
+		acceleratorInstrumentationServices = new FPGAAcceleratorInstrumentation[accCount];
 		for(size_t i=0;i<accCount;++i) {
-			FPGAAcceleratorInstrumentationService::HandleWithInfo handlesWithInfo = {handles[i], info[i], startTimeFpga, startTimeCpu};
-			acceleratorInstrumentationServices.push_back(std::make_unique<FPGAAcceleratorInstrumentationService>());
-			acceleratorInstrumentationServices.back()->setHandles(std::move(handlesWithInfo));
+			FPGAAcceleratorInstrumentation::HandleWithInfo handleWithInfo = {handles[i], info[i], startTimeFpga, startTimeCpu};
+			acceleratorInstrumentationServices[i].setHandle(handleWithInfo);
 		}
+	} else {
+		acceleratorInstrumentationServices = nullptr;
 	}
 }
 
-FPGAAccelerator::~FPGAAccelerator() = default;
+FPGAAccelerator::~FPGAAccelerator() {
+	if (acceleratorInstrumentationServices == nullptr)
+		delete acceleratorInstrumentationServices;
+}
 
 inline void FPGAAccelerator::generateDeviceEvironment(DeviceEnvironment& env, const nanos6_task_implementation_info_t* task_implementation) {
 	uint64_t deviceSubtype = _device_subtype_map[task_implementation];

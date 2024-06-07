@@ -499,7 +499,8 @@ if USE_FPGA
 common_sources += \
 	src/hardware/device/fpga/FPGAAccelerator.cpp \
 	src/hardware/device/fpga/FPGAReverseOffload.cpp \
-	src/system/FPGADeviceAPI.cpp 
+	src/system/FPGADeviceAPI.cpp \
+	src/hardware/device/fpga/FPGAAcceleratorInstrumentation.cpp
 endif
 
 if USE_DISTRIBUTED
@@ -792,13 +793,14 @@ noinst_HEADERS = \
 	src/hardware/device/openacc/OpenAccQueuePool.hpp \
 	src/hardware/device/fpga/FPGAAccelerator.hpp \
 	src/hardware/device/fpga/FPGAReverseOffload.hpp \
+	src/hardware/device/fpga/FPGAAcceleratorInstrumentation.hpp \
 	src/hardware/device/fpga/FPGADeviceInfo.hpp \
 	src/hardware/device/broadcaster/BroadcasterAccelerator.hpp \
 	src/hardware/device/broadcaster/BroadcasterDeviceInfo.hpp \
 	src/hardware/device/directory/IntervalMap.hpp \
 	src/hardware/device/directory/DirectoryEntry.hpp \
 	src/hardware/device/directory/DeviceDirectory.hpp \
-   src/hardware/device/host/HostAccelerator.hpp \
+	src/hardware/device/host/HostAccelerator.hpp \
 	src/hardware/hwinfo/DeviceInfo.hpp \
 	src/hardware/hwinfo/HostInfo.hpp \
 	src/hardware/places/ComputePlace.hpp \
