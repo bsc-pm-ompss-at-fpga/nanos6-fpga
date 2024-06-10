@@ -1,7 +1,6 @@
 #include "FPGAAcceleratorInstrumentation.hpp"
 #include "InstrumentFPGAEvents.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
-#include <stack>
 
 void FPGAAcceleratorInstrumentation::serviceFunction(void *data)
 {
