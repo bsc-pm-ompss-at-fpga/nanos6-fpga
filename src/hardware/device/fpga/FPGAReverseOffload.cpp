@@ -43,7 +43,7 @@ void FPGAReverseOffload::shutdownService() {
 }
 
 void FPGAReverseOffload::serviceLoop() {
-//	Instrument::startFPGAInstrumentation();
+	Instrument::startFPGAInstrumentation();
 	while (!_stopService) {
 		bool foundTask = false;
 		do {
@@ -63,9 +63,9 @@ void FPGAReverseOffload::serviceLoop() {
 
 				if (_isInstrumented)
 				{
-                                   uint64_t value_start = 0;
-				   uint32_t eventType = 0x24; // SMP task
-				   Instrument::emitReverseOffloadingEvent(value_start, eventType);
+					uint64_t eventValue = 0x24; // SMP task
+					uint32_t eventType = 0;
+					Instrument::emitReverseOffloadingEvent(eventValue, eventType);
 				}
 
 				for (unsigned int i = 0; i < xtasks_task->numCopies; ++i) {
@@ -99,9 +99,9 @@ void FPGAReverseOffload::serviceLoop() {
 
 				if (_isInstrumented)
 				{
-                                   uint64_t value_end= 1;
-				   uint32_t eventType = 0x24; // SMP task
-				   Instrument::emitReverseOffloadingEvent(value_end, eventType);
+					uint64_t eventValue = 0x24; // SMP task
+					uint32_t eventType = 1;
+					Instrument::emitReverseOffloadingEvent(eventValue, eventType);
 				}
 
 				stat = xtasksNotifyFinishedTask(xtasks_task->parentId, xtasks_task->taskId);

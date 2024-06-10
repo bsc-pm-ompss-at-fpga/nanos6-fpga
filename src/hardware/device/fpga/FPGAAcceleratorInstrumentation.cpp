@@ -45,7 +45,7 @@ void FPGAAcceleratorInstrumentation::shutdownService() {
 
 void FPGAAcceleratorInstrumentation::serviceLoop() {
     constexpr int nEvents = 128;
-    Instrument::startFPGAInstrumentation();
+    Instrument::startFPGAInstrumentationNewThread();
     bool getLastEvents = false;
     while (!_stopService || getLastEvents) {
         bool eventsFound = false;
@@ -60,7 +60,7 @@ void FPGAAcceleratorInstrumentation::serviceLoop() {
             switch(events[i].eventType) {
             case XTASKS_EVENT_TYPE_BURST_OPEN:
             case XTASKS_EVENT_TYPE_BURST_CLOSE:
-                Instrument::emitFPGAEvent(events[i].eventType, events[i].eventId, events[i].value, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
+                Instrument::emitFPGAEvent(events[i].value, events[i].eventId, events[i].eventType, ((events[i].timestamp-handle.startTimeFpga)*1'000'000)/(handle.info.freq) + handle.startTimeCpu);
                 break;
             case XTASKS_EVENT_TYPE_POINT:
                 // Events has been lost

@@ -13,6 +13,7 @@
 
 namespace Instrument {
 	inline uint64_t getCPUTimeForFPGA() {return 0;}
+	inline void startFPGAInstrumentationNewThread() {}
 	inline void startFPGAInstrumentation() {}
 	inline void stopFPGAInstrumentation() {}
 	inline void emitFPGAEvent([[maybe_unused]] uint64_t value, 

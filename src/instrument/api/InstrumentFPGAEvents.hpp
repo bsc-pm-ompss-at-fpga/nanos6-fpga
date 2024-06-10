@@ -16,6 +16,9 @@
 
 namespace Instrument {
 	uint64_t getCPUTimeForFPGA();
+	//! This function is called at startup when an FPGA is known to have to start emiting events
+	//! and the thread emiting events was not created by Nanos6
+	void startFPGAInstrumentationNewThread();
 	//! This function is called at startup when an FPGA is known to have to start emiting events 
 	void startFPGAInstrumentation();
 	//! This function is called at exit, if startFPGAInstrumentation has been called.

@@ -12,8 +12,12 @@
 
 namespace Instrument {
 	inline uint64_t getCPUTimeForFPGA() {return ovni_clock_now();}
-	inline void startFPGAInstrumentation() {
+	inline void startFPGAInstrumentationNewThread() {
 		Ovni::threadInit();
+		ovni_thread_require("xtasks", "1.0.0");
+	}
+	inline void startFPGAInstrumentation() {
+		ovni_thread_require("xtasks", "1.0.0");
 	}
 	inline void stopFPGAInstrumentation() {
 		ovni_flush();
@@ -22,7 +26,6 @@ namespace Instrument {
 	inline void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime) {
 		Ovni::fpgaEvent(value, eventId, eventType, utime);
 	}
-
 	inline void emitReverseOffloadingEvent(uint64_t value, uint32_t eventType) {
 		Ovni::reverseOffloadingEvent(value, eventType);
 	}
