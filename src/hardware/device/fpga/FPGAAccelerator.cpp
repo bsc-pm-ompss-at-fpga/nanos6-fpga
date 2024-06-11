@@ -81,7 +81,7 @@ FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :
 }
 
 FPGAAccelerator::~FPGAAccelerator() {
-	if (acceleratorInstrumentationServices == nullptr)
+	if (acceleratorInstrumentationServices != nullptr)
 		delete acceleratorInstrumentationServices;
 }
 
