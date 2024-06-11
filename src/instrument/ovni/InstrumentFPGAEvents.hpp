@@ -13,7 +13,7 @@
 namespace Instrument {
 	inline uint64_t getCPUTimeForFPGA() {return ovni_clock_now();}
 	inline void startFPGAInstrumentationNewThread() {
-		Ovni::threadInit();
+		ovni_thread_init(gettid());
 		ovni_thread_require("xtasks", "1.0.0");
 	}
 	inline void startFPGAInstrumentation() {
