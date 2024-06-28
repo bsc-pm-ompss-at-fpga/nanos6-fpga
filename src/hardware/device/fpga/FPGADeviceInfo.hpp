@@ -21,6 +21,9 @@ public:
 	{
 		_deviceInitialized = false;
 		_deviceCount = 0;
+		// There are no FPGA tasks in the application
+		if (FPGAAccelerator::_device_subtype_map.size() == 0)
+			return;
 		if (xtasksInit() != XTASKS_SUCCESS)
 			return;
 
