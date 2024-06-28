@@ -44,7 +44,7 @@ ConfigCentral::ConfigCentral() :
 	// FPGA Devices
 	registerOption<integer_t>("devices.fpga.alignment", 16);
 	registerOption<integer_t>("devices.fpga.page_size", 0x8000);
-	registerOption<memory_t>("devices.fpga.requested_fpga_memory",0x200000000);
+	registerOption<memory_t>("devices.fpga.requested_fpga_memory",0x40000000);
 	registerOption<bool_t>("devices.fpga.reverse_offload", false);
 
 	registerOption<integer_t>("devices.fpga.streams", 16);

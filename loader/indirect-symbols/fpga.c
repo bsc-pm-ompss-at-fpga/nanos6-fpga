@@ -5,7 +5,7 @@
  */
 
 #include <config.h>
-#ifdef USE_FPGA
+#ifdef USE_FPGA // Defined in config.h
 #include "resolve.h"
 #include "api/nanos6/fpga_device.h"
 

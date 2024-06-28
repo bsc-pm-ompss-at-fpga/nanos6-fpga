@@ -8,7 +8,6 @@
 #define NANOS6_FPGA_DEVICE_H
 
 #include "major.h"
-#include <stdint.h>
 
 #pragma GCC visibility push(default)
 
@@ -51,5 +50,5 @@ nanos6_fpga_stat_t nanos6_fpga_memcpy_wideport_out(void* dst, const unsigned lon
 
 #pragma GCC visibility pop
 
-#endif /* NANOS6_FPGAC_DEVICE_H */
+#endif /* NANOS6_FPGA_DEVICE_H */
 

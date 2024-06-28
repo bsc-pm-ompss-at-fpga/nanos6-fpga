@@ -52,7 +52,9 @@ ConfigVariableSet<T>::ConfigVariableSet(const std::string &name) :
 template class ConfigVariable<int>;
 template class ConfigVariable<bool>;
 template class ConfigVariable<float>;
+#ifndef __arm__
 template class ConfigVariable<size_t>;
+#endif
 template class ConfigVariable<std::string>;
 template class ConfigVariable<unsigned int>;
 template class ConfigVariable<StringifiedMemorySize>;
@@ -60,6 +62,8 @@ template class ConfigVariable<StringifiedMemorySize>;
 template class ConfigVariableSet<int>;
 template class ConfigVariableSet<bool>;
 template class ConfigVariableSet<float>;
+#ifndef __arm__
 template class ConfigVariableSet<size_t>;
+#endif
 template class ConfigVariableSet<std::string>;
 template class ConfigVariableSet<unsigned int>;
