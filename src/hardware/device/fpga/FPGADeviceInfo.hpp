@@ -24,15 +24,21 @@ public:
 		// There are no FPGA tasks in the application
 		if (FPGAAccelerator::_device_subtype_map.size() == 0)
 			return;
-		if (xtasksInit() != XTASKS_SUCCESS)
-			return;
 
-		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			FatalErrorHandler::failIf(
-				xtasksInitHWIns(128) != XTASKS_SUCCESS,
-				"Xtasks: Can't init HW instrumentation"
-			);
-		}
+		FatalErrorHandler::failIf(
+			xtasksInit() != XTASKS_SUCCESS,
+			"Xtasks: Can't init"
+		);
+		xtasks_stat stat = xtasksInitHWIns(128);
+		FatalErrorHandler::failIf(
+			stat != XTASKS_SUCCESS && stat != XTASKS_ENOAV,
+			"Xtasks: Can't init HW instrumentation"
+		);
+		FatalErrorHandler::failIf(
+			ConfigVariable<std::string>("version.instrument").getValue() == "ovni" &&
+			stat == XTASKS_ENOAV,
+			"Xtasks: Running with ovni but bitstream does not have instrumentation support"
+		);
 		FatalErrorHandler::failIf(
 			xtasksGetNumDevices((int*)&_deviceCount) != XTASKS_SUCCESS,
 			"Xtasks: Can't get number of devices"
@@ -52,12 +58,7 @@ public:
 			assert(accelerator != nullptr);
 			delete (FPGAAccelerator *)accelerator;
 		}
-		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
-			FatalErrorHandler::failIf(
-				xtasksFiniHWIns() != XTASKS_SUCCESS,
-				"Xtasks: Can't finish HW instrumentation"
-			);
-		}
+		xtasksFiniHWIns();
 		xtasksFini();
 	}
 
