@@ -355,31 +355,32 @@ namespace Instrument {
 		{
 			int returnCode;
 			// Look for ovniemu emulator config variable
-			std::string config_file = Ovni::getEnvVar("XTASKS_CONFIG_FILE"); 
-		        // -x bitstream/reverse_print.xtasks.config  ovni	
+			std::string config_file = Ovni::getEnvVar("XTASKS_CONFIG_FILE");
+			std::string ovniemu_cmd;
+			// -x bitstream/reverse_print.xtasks.config  ovni
 
 			if (config_file!="")
 			{
-			   std::cout << "Xtasks config file detected "<< config_file <<" " << std::endl;
-			   std::string xtasks_info = "-x "+ config_file;
-			   std::string ovniemu_cmd = "ovniemu " + xtasks_info + " ovni";
-	                   returnCode = system(ovniemu_cmd.c_str());
+				std::cout << "Xtasks config file detected "<< config_file <<" " << std::endl;
+				std::string xtasks_info = "-x "+ config_file;
+				ovniemu_cmd = "ovniemu " + xtasks_info + " ovni";
+				returnCode = system(ovniemu_cmd.c_str());
 			}
 			else
 			{
-			   std::cout << "Xtasks config file not detected "<< std::endl;
-			   std::string ovniemu_cmd = "ovniemu ovni";
-	                   returnCode = system(ovniemu_cmd.c_str());
+				std::cout << "Xtasks config file not detected "<< std::endl;
+				ovniemu_cmd = "ovniemu ovni";
+				returnCode = system(ovniemu_cmd.c_str());
 			}
-	                // checking if the command was executed successfully
-                	if (returnCode == 0) {
-                	    std::cout << "Command ovniemu executed successfully." << std::endl;
-                	}
-                	else {
-                            std::cout << "Command ovniemu execution failed or returned "
-                				"non-zero: " << returnCode << std::endl;
-                	}
-
+			returnCode = system(ovniemu_cmd.c_str());
+			// checking if the command was executed successfully
+			if (returnCode == 0) {
+				std::cout << "Command ovniemu executed successfully" << std::endl;
+			}
+			FatalErrorHandler::failIf(
+				returnCode != 0,
+				"Command ovniemu execution failed or returned non-zero ", returnCode
+			);
 		}
 
 		static void genBursts()
