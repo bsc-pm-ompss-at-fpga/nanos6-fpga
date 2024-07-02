@@ -1,7 +1,6 @@
 #include "FPGAReverseOffload.hpp"
 #include "system/SpawnFunction.hpp"
 #include "system/BlockingAPI.hpp"
-#include "tasks/Task.hpp"
 #include <libxtasks.h>
 #include <assert.h>
 #include <vector>
@@ -116,5 +115,4 @@ void FPGAReverseOffload::serviceLoop() {
 		if (!foundTask)
 			BlockingAPI::waitForUs(_pollingPeriodUs);
 	}
-//	Instrument::stopFPGAInstrumentation();
 }

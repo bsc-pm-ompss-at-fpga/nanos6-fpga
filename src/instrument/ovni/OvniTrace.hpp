@@ -7,7 +7,7 @@
 #ifndef OVNI_TRACE_HPP
 #define OVNI_TRACE_HPP
 
-#include <cassert> 
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <ovni.h>

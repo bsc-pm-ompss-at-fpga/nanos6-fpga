@@ -8,14 +8,12 @@
 #include "../directory/DeviceDirectory.hpp"
 #include "hardware/places/ComputePlace.hpp"
 #include "hardware/places/MemoryPlace.hpp"
-#include "libxtasks.h"
 #include "scheduling/Scheduler.hpp"
 #include "system/BlockingAPI.hpp"
 #include "InstrumentFPGAEvents.hpp"
 
 #include <DataAccessRegistration.hpp>
 #include <DataAccessRegistrationImplementation.hpp>
-#include <memory>
 #include "lowlevel/FatalErrorHandler.hpp"
 
 

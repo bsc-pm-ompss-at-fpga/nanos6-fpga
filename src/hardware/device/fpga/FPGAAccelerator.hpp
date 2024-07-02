@@ -11,7 +11,6 @@
 #include "support/config/ConfigVariable.hpp"
 
 #include "hardware/device/Accelerator.hpp"
-#include "support/config/toml/string.hpp"
 #include "tasks/Task.hpp"
 #include "memory/allocator/devices/FPGAPinnedAllocator.hpp"
 #include "FPGAReverseOffload.hpp"
