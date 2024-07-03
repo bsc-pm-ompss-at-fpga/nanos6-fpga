@@ -12,7 +12,6 @@
 #include <cstdlib>
 #include <ovni.h>
 #include <string>
-#include <iostream>
 
 #include "lowlevel/CompatSyscalls.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
@@ -211,6 +210,7 @@ namespace Instrument {
 		{
 			if (1 > _level)
 				return;
+
 			struct ovni_ev ev;
 			uint32_t eventId   = 6660; // Reverse Offload task
 			uint64_t time      = ovni_clock_now();
