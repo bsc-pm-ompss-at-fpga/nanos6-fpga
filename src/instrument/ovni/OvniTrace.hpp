@@ -14,7 +14,6 @@
 #include <string>
 #include <iostream>
 
-
 #include "lowlevel/CompatSyscalls.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 #include "support/config/ConfigVariable.hpp"
@@ -246,12 +245,6 @@ namespace Instrument {
 			}
 		}
 
-		static std::string getEnvVar( std::string const & key )
-                {
-                    char * val = getenv( key.c_str() );
-                    return val == NULL ? std::string("") : std::string(val);
-                }
-
 		// Generic ovni events
 		ALIAS_TRACEPOINT(1, burst, "OB.")
 		ALIAS_TRACEPOINT(1, threadPause, "OHp")
@@ -348,34 +341,6 @@ namespace Instrument {
 		static void procFini()
 		{
 			ovni_proc_fini();
-		}
-
-
-		static void procParaver()
-		{
-			// Look for ovniemu emulator config variable
-			std::string config_file = Ovni::getEnvVar("XTASKS_CONFIG_FILE");
-			std::string ovniemu_cmd;
-
-			if (config_file!="")
-			{
-				std::cout << "Xtasks config file detected " << config_file << " " << std::endl;
-				ovniemu_cmd = "ovniemu -x " + config_file + " ovni";
-			}
-			else
-			{
-				std::cout << "Xtasks config file not detected "<< std::endl;
-				ovniemu_cmd = "ovniemu ovni";
-			}
-			int returnCode = system(ovniemu_cmd.c_str());
-			// checking if the command was executed successfully
-			if (returnCode == 0) {
-				std::cout << "Command ovniemu executed successfully" << std::endl;
-			}
-			FatalErrorHandler::failIf(
-				returnCode != 0,
-				"Command ovniemu execution failed or returned non-zero ", returnCode
-			);
 		}
 
 		static void genBursts()

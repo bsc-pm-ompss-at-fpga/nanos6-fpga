@@ -16,7 +16,6 @@
 #include <DataAccessRegistrationImplementation.hpp>
 #include "lowlevel/FatalErrorHandler.hpp"
 
-
 std::unordered_map<const nanos6_task_implementation_info_t*, uint64_t> FPGAAccelerator::_device_subtype_map;
 
 FPGAAccelerator::FPGAAccelerator(int fpgaDeviceIndex) :

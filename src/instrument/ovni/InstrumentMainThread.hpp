@@ -34,7 +34,6 @@ namespace Instrument {
 		Ovni::threadTypeEnd('M');
 		Ovni::threadEnd();
 		Ovni::procFini();
-		Ovni::procParaver();
 	}
 
 }
