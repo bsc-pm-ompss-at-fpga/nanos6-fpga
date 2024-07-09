@@ -15,13 +15,13 @@ namespace Instrument {
 	inline void startFPGAInstrumentationNewThread() {
 		ovni_thread_init(gettid());
 		ovni_thread_require("xtasks", "1.0.0");
+		Ovni::threadExecute(-1, -1, 0);
 	}
 	inline void startFPGAInstrumentation() {
 		ovni_thread_require("xtasks", "1.0.0");
 	}
 	inline void stopFPGAInstrumentation() {
-		ovni_flush();
-		ovni_thread_free();
+		Ovni::threadEnd();
 	}
 	inline void emitFPGAEvent(uint64_t value, uint32_t eventId, uint32_t eventType, uint64_t utime) {
 		Ovni::fpgaEvent(value, eventId, eventType, utime);

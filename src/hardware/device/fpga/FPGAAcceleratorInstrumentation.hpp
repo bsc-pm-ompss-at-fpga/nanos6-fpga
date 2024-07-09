@@ -9,7 +9,7 @@
 
 #include <libxtasks.h>
 #include <atomic>
-#include <thread>
+#include <pthread.h>
 
 class FPGAAcceleratorInstrumentation
 {
@@ -27,7 +27,7 @@ private:
     std::atomic<bool> _stopService;
     std::atomic<bool> _finishedService;
     HandleWithInfo handle;
-    std::thread serviceThread;
+    pthread_t serviceThread;
 
 public:
 
@@ -35,11 +35,11 @@ public:
         _stopService(false), _finishedService(false)
     {}    
 
-    void initializeService();
+    void initializeService(int cpu);
     void shutdownService();
     void serviceLoop();
 
-    static void serviceFunction(void *data);
+    static void *serviceFunction(void *data);
     static void serviceCompleted(void *data);
 
     void setHandle(HandleWithInfo &handleWithInfo) {handle = handleWithInfo;}

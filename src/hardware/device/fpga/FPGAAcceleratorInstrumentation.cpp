@@ -2,13 +2,14 @@
 #include "InstrumentFPGAEvents.hpp"
 #include "lowlevel/FatalErrorHandler.hpp"
 
-void FPGAAcceleratorInstrumentation::serviceFunction(void *data)
+void *FPGAAcceleratorInstrumentation::serviceFunction(void *data)
 {
     FPGAAcceleratorInstrumentation *acceleratorInstrumentation = (FPGAAcceleratorInstrumentation*)data;
     assert(acceleratorInstrumentation != nullptr);
 
     // Execute the service loop
     acceleratorInstrumentation->serviceLoop();
+    return NULL;
 }
 
 void FPGAAcceleratorInstrumentation::serviceCompleted(void *data)
@@ -21,7 +22,7 @@ void FPGAAcceleratorInstrumentation::serviceCompleted(void *data)
     acceleratorInstrumentation->_finishedService = true;
 }
 
-void FPGAAcceleratorInstrumentation::initializeService() {
+void FPGAAcceleratorInstrumentation::initializeService(int cpu) {
     // Spawn service function
     // The spawn function creates a task and sends it to the nanos6 scheduler.
     // This means we can't control which thread executes the service and may be difficult to 
@@ -34,13 +35,23 @@ void FPGAAcceleratorInstrumentation::initializeService() {
                 serviceCompleted, this,
                 "FPGA accelerator instrumentation service", false
                 );*/
-    serviceThread = std::thread(serviceFunction, this);
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(cpu, &set);
+    pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &set);
+    int ret = pthread_create(&serviceThread, &attr, serviceFunction, this);
+    FatalErrorHandler::failIf(
+        ret != 0,
+        "Error while creating FPGA instrumentation thread"
+    );
 }
 
 void FPGAAcceleratorInstrumentation::shutdownService() {
     _stopService = true;
     while (!_finishedService);
-    serviceThread.join();
+    pthread_join(serviceThread, NULL);
 }
 
 void FPGAAcceleratorInstrumentation::serviceLoop() {

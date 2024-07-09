@@ -81,7 +81,7 @@ public:
 		}
 		if (ConfigVariable<std::string>("version.instrument").getValue() == "ovni") {
 			for (unsigned int i = 0; i < accCount; ++i)
-				acceleratorInstrumentationServices[i].initializeService();
+				acceleratorInstrumentationServices[i].initializeService(i); //assign each accelerator instrumentation thread to a different CPU
 		}
 	}
 
