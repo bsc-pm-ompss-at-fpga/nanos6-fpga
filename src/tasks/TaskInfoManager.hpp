@@ -127,6 +127,12 @@ public:
 				subtype |= 0x100000000llu;
 				FPGAAccelerator::_device_subtype_map[taskInfo->implementations] = subtype;
 			}
+#if USE_DISTRIBUTED
+			else if (taskInfo->implementations[0].device_type_id == nanos6_broadcaster_device) {
+				subtype |= 0x100000000llu;
+				FPGAAccelerator::_device_subtype_map[taskInfo->implementations] = subtype;
+			}
+#endif
 			else {
 				subtype |= 0x200000000llu;
 				FPGAReverseOffload::_reverseMap[subtype] = taskInfo;

@@ -51,6 +51,7 @@ ConfigCentral::ConfigCentral() :
 	registerOption<bool_t>("devices.fpga.polling.pinned", true);
 	registerOption<string_t>("devices.fpga.mem_sync_type", "sync");
 	registerOption<integer_t>("devices.fpga.polling.period_us", 1000);
+	registerOption<bool_t>("devices.fpga.enable_services", true);
 
 	// DLB
 	registerOption<bool_t>("dlb.enabled", false);

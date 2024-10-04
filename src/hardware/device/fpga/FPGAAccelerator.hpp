@@ -44,7 +44,7 @@ private:
 
 	std::unordered_map<uint64_t, _fpgaAccel> _inner_accelerators;
 
-	void submitDevice(const DeviceEnvironment& deviceEnvironment) const override;
+	void submitDevice(const DeviceEnvironment &deviceEnvironment, const void* args, const nanos6_task_info_t* taskInfo, const nanos6_address_translation_entry_t* translationTable) const override;
 	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const override;
 	inline void generateDeviceEvironment(DeviceEnvironment&, const nanos6_task_implementation_info_t*) override;
 

@@ -12,6 +12,7 @@ BroadcasterAccelerator::BroadcasterAccelerator(const std::vector<Accelerator*>& 
 				1,
 				ConfigVariable<size_t>("devices.fpga.polling.period_us"),
 				ConfigVariable<bool>("devices.fpga.polling.pinned")),
+	_clusterStopService(false), _clusterFinishedService(false),
 	cluster(_cluster),
 	deviceEnvironments(_cluster.size()),
 	acceleratorStreams(_cluster.size())
@@ -19,7 +20,7 @@ BroadcasterAccelerator::BroadcasterAccelerator(const std::vector<Accelerator*>& 
 
 }
 
-void BroadcasterAccelerator::mapSymbol(const void *symbol, size_t size)
+void BroadcasterAccelerator::mapSymbol(const void *symbol, uint64_t size)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
 	translationVector.resize(cluster.size());
@@ -42,11 +43,11 @@ void BroadcasterAccelerator::unmapSymbol(const void *symbol)
 	translationTable.erase(it);
 }
 
-void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
+void BroadcasterAccelerator::memcpyToAll(const void *symbol, uint64_t size, uint64_t srcOffset, uint64_t dstOffset)
 {
 	const std::vector<void*>& translationVector = translationTable[symbol];
+	AcceleratorStream stream;
 	for (int i = 0; i < (int)cluster.size(); ++i) {
-		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
 		stream.addOperation(
 			dev->copy_in(
@@ -56,22 +57,15 @@ void BroadcasterAccelerator::memcpyToAll(const void *symbol, size_t size, size_t
 			)
 		);
 	}
-
-	bool anyOngoing;
-	do {
-		anyOngoing = false;
-		for (AcceleratorStream& stream : acceleratorStreams) {
-			stream.streamServiceLoop();
-			if (!anyOngoing)
-				anyOngoing = stream.streamPendingExecutors();
-		}
-	} while (anyOngoing);
+	while (stream.streamPendingExecutors()) {
+		stream.streamServiceLoop();
+	}
 }
 
-void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
+void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, uint64_t size, uint64_t srcOffset, uint64_t dstOffset)
 {
 	const std::vector<void*>& translationVector = translationTable[symbol];
-	AcceleratorStream& stream = acceleratorStreams[devId];
+	AcceleratorStream stream;
 	Accelerator* dev = cluster[devId];
 	stream.addOperation(
 		dev->copy_in(
@@ -85,10 +79,10 @@ void BroadcasterAccelerator::memcpyToDevice(int devId, const void *symbol, size_
 	}
 }
 
-void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t size, size_t srcOffset, size_t dstOffset)
+void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, uint64_t size, uint64_t srcOffset, uint64_t dstOffset)
 {
 	const std::vector<void*>& translationVector = translationTable[symbol];
-	AcceleratorStream& stream = acceleratorStreams[devId];
+	AcceleratorStream stream;
 	Accelerator* dev = cluster[devId];
 	stream.addOperation(
 		dev->copy_out(
@@ -102,13 +96,13 @@ void BroadcasterAccelerator::memcpyFromDevice(int devId, void *symbol, size_t si
 	}
 }
 
-void BroadcasterAccelerator::scatter(const void *symbol, size_t size, size_t sendOffset, size_t recvOffset)
+void BroadcasterAccelerator::scatter(const void *symbol, uint64_t size, uint64_t sendOffset, uint64_t recvOffset)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
+	std::vector<AcceleratorStream> streams(cluster.size());
 	for (int i = 0; i < (int)cluster.size(); ++i) {
-		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
-		stream.addOperation(
+		streams[i].addOperation(
 			dev->copy_in(
 				(void*)((uintptr_t)translationVector[i] + recvOffset),
 				(void*)((uintptr_t)symbol + sendOffset + size*i),
@@ -116,25 +110,23 @@ void BroadcasterAccelerator::scatter(const void *symbol, size_t size, size_t sen
 			)
 		);
 	}
-
 	bool anyOngoing;
 	do {
 		anyOngoing = false;
-		for (AcceleratorStream& stream : acceleratorStreams) {
+		for (AcceleratorStream& stream : streams) {
 			stream.streamServiceLoop();
-			if (!anyOngoing)
-				anyOngoing = stream.streamPendingExecutors();
+			anyOngoing |= stream.streamPendingExecutors();
 		}
 	} while (anyOngoing);
 }
 
-void BroadcasterAccelerator::gather(void *symbol, size_t size, size_t sendOffset, size_t recvOffset)
+void BroadcasterAccelerator::gather(void *symbol, uint64_t size, uint64_t sendOffset, uint64_t recvOffset)
 {
 	std::vector<void*>& translationVector = translationTable[symbol];
+	std::vector<AcceleratorStream> streams(cluster.size());
 	for (int i = 0; i < (int)cluster.size(); ++i) {
-		AcceleratorStream& stream = acceleratorStreams[i];
 		Accelerator* dev = cluster[i];
-		stream.addOperation(
+		streams[i].addOperation(
 			dev->copy_out(
 				(void*)((uintptr_t)symbol + recvOffset + size*i),
 				(void*)((uintptr_t)translationVector[i] + sendOffset),
@@ -142,14 +134,71 @@ void BroadcasterAccelerator::gather(void *symbol, size_t size, size_t sendOffset
 			)
 		);
 	}
-
 	bool anyOngoing;
 	do {
 		anyOngoing = false;
-		for (AcceleratorStream& stream : acceleratorStreams) {
+		for (AcceleratorStream& stream : streams) {
 			stream.streamServiceLoop();
-			if (!anyOngoing)
-				anyOngoing = stream.streamPendingExecutors();
+			anyOngoing |= stream.streamPendingExecutors();
+		}
+	} while (anyOngoing);
+}
+
+void BroadcasterAccelerator::scatterv(const void* symbol, const uint64_t *sizes, const uint64_t *sendOffsets, const uint64_t *recvOffsets)
+{
+	std::vector<void*>& translationVector = translationTable[symbol];
+	std::vector<AcceleratorStream> streams(cluster.size());
+	for (int i = 0; i < (int)cluster.size(); ++i) {
+		Accelerator* dev = cluster[i];
+		streams[i].addOperation(
+			dev->copy_in(
+				(void*)((uintptr_t)translationVector[i] + recvOffsets[i]),
+				(void*)((uintptr_t)symbol + sendOffsets[i]),
+				sizes[i], nullptr
+			)
+		);
+	}
+	bool anyOngoing;
+	do {
+		anyOngoing = false;
+		for (AcceleratorStream& stream : streams) {
+			stream.streamServiceLoop();
+			anyOngoing |= stream.streamPendingExecutors();
+		}
+	} while (anyOngoing);
+}
+
+void BroadcasterAccelerator::memcpyVector(void* symbol, int vectorLen, nanos6_dist_memcpy_info_t* v, nanos6_dist_copy_dir_t dir)
+{
+	std::vector<void*>& translationVector = translationTable[symbol];
+	std::vector<AcceleratorStream> streams(cluster.size());
+	for (int i = 0; i < vectorLen; ++i) {
+		const nanos6_dist_memcpy_info_t& info = v[i];
+		Accelerator* dev = cluster[info.devId];
+		if (dir == NANOS6_DIST_COPY_TO) {
+			streams[info.devId].addOperation(
+				dev->copy_in(
+					(void*)((uintptr_t)translationVector[info.devId] + info.recvOffset),
+					(void*)((uintptr_t)symbol + info.sendOffset),
+					info.size, nullptr
+				)
+			);
+		} else {
+			streams[info.devId].addOperation(
+				dev->copy_out(
+					(void*)((uintptr_t)symbol + info.recvOffset),
+					(void*)((uintptr_t)translationVector[info.devId] + info.sendOffset),
+					info.size, nullptr
+				)
+			);
+		}
+	}
+	bool anyOngoing;
+	do {
+		anyOngoing = false;
+		for (AcceleratorStream& stream : streams) {
+			stream.streamServiceLoop();
+			anyOngoing |= stream.streamPendingExecutors();
 		}
 	} while (anyOngoing);
 }
@@ -209,7 +258,8 @@ void BroadcasterAccelerator::callBody(Task *task) {
 			const std::vector<DistributedSymbol>& distSymbolInfo = task->getDistSymbolInfo();
 			std::vector<nanos6_address_translation_entry_t> translation_table(distSymbolInfo.size());
 			std::vector<const std::vector<void*>*> device_addresses(distSymbolInfo.size());
-			char *argsBlock = new char[task->getArgsBlockSize()];
+			const void *argsBlock = task->getArgsBlock();
+			nanos6_task_info_t *taskInfo = task->getTaskInfo();
 
 			for (int i = 0; i < (int)distSymbolInfo.size(); ++i) {
 				const DistributedSymbol& sym = distSymbolInfo[i];
@@ -224,22 +274,18 @@ void BroadcasterAccelerator::callBody(Task *task) {
 					translation_table[j].device_address = (size_t)device_addresses[j]->at(i);
 				}
 				dev->generateDeviceEvironment(deviceEnvironments[i], task->getImplementations());
-				memcpy(argsBlock, task->getArgsBlock(), task->getArgsBlockSize());
-				task->getTaskInfo()->implementations[0].run(argsBlock, &deviceEnvironments[i], translation_table.data());
+				dev->submitDevice(deviceEnvironments[i], argsBlock, taskInfo, translation_table.data());
 				acceleratorStreams[i].addOperation(
 					[&, dev, i]() -> std::function<bool(void)> {
-						dev->submitDevice(deviceEnvironments[i]);
 						return dev->getDeviceSubmissionFinished(deviceEnvironments[i]);
 					});
 			}
 
-			delete[] argsBlock;
 			return [&] () -> bool {
 				bool anyOngoing = false;
 				for (AcceleratorStream& stream : acceleratorStreams) {
 					stream.streamServiceLoop();
-					if (!anyOngoing)
-					anyOngoing = stream.streamPendingExecutors();
+					anyOngoing |= stream.streamPendingExecutors();
 				}
 				return !anyOngoing;
 			};
@@ -335,3 +381,4 @@ std::function<std::function<bool(void)>()> BroadcasterAccelerator::copy_between(
 	assert(false);
 	return [] { return [] { return true; }; };
 }
+

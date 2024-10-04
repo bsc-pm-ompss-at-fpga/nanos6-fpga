@@ -16,7 +16,7 @@ public:
 		Accelerator(0, nanos6_host_device, 0, 0, 0)
 	{}
 
-	void submitDevice(const DeviceEnvironment&) const override {}
+	void submitDevice(const DeviceEnvironment&, const void*, const nanos6_task_info_t*, const nanos6_address_translation_entry_t*) const override {}
 	std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment&) const override {return []() -> bool{return true;};}
 	void generateDeviceEvironment(DeviceEnvironment&, const nanos6_task_implementation_info_t*) override {}
 

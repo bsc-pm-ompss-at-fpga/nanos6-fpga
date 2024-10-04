@@ -15,9 +15,8 @@
 #include <libxtasks.h>
 
 class BroadcasterDeviceInfo : public DeviceInfo {
-
 public:
-    BroadcasterDeviceInfo(std::vector<Accelerator*>& cluster)
+	BroadcasterDeviceInfo(std::vector<Accelerator*>& cluster)
 	{
 		if (cluster.size() == 0)
 		{
@@ -26,16 +25,18 @@ public:
 			return;
 		}
 		_deviceCount = 1;
-        _accelerators.resize(1);
-        _accelerators[0] = new BroadcasterAccelerator(cluster);
+		_accelerators.resize(1);
+		_accelerators[0] = new BroadcasterAccelerator(cluster);
 		_deviceInitialized = true;
 	}
 
-    ~BroadcasterDeviceInfo()
+	~BroadcasterDeviceInfo()
 	{
 		if (_deviceInitialized)
 			delete _accelerators[0];
 	}
+
+public:
 
 	inline void initializeDeviceServices() override
 	{
@@ -54,9 +55,9 @@ public:
 		return _deviceCount;
 	}
 
-    inline ComputePlace *getComputePlace([[maybe_unused]] int handler) const override
+	inline ComputePlace *getComputePlace([[maybe_unused]] int handler) const override
 	{
-        return _accelerators[0]->getComputePlace();
+		return _accelerators[0]->getComputePlace();
 	}
 
 	inline size_t getMemoryPlaceCount() const override
@@ -64,10 +65,11 @@ public:
 		return _deviceCount;
 	}
 
-    inline MemoryPlace *getMemoryPlace([[maybe_unused]] int handler) const override
+	inline MemoryPlace *getMemoryPlace([[maybe_unused]] int handler) const override
 	{
-        return _accelerators[0]->getMemoryPlace();
-    }
+		return _accelerators[0]->getMemoryPlace();
+	}
 };
 
 #endif // BROADCASTER_DEVICE_INFO_HPP
+

@@ -64,17 +64,21 @@ public:
 
 	inline void initializeDeviceServices() override
 	{
-		for (Accelerator *accelerator : _accelerators) {
-			assert(accelerator != nullptr);
-			((FPGAAccelerator *)accelerator)->initializeService();
+		if (ConfigVariable<bool>("devices.fpga.enable_services")) {
+			for (Accelerator *accelerator : _accelerators) {
+				assert(accelerator != nullptr);
+				((FPGAAccelerator *)accelerator)->initializeService();
+			}
 		}
 	}
 
 	inline void shutdownDeviceServices() override
 	{
-		for (Accelerator *accelerator : _accelerators) {
-			assert(accelerator != nullptr);
-			((FPGAAccelerator *)accelerator)->shutdownService();
+		if (ConfigVariable<bool>("devices.fpga.enable_services")) {
+			for (Accelerator *accelerator : _accelerators) {
+				assert(accelerator != nullptr);
+				((FPGAAccelerator *)accelerator)->shutdownService();
+			}
 		}
 	}
 

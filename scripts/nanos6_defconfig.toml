@@ -169,6 +169,9 @@ __require_FPGA
 		mem_sync_type = "sync"
 		page_size = 0x8000
 		requested_fpga_memory = 0x40000000
+		# Enable FPGA device service threads. It is useful to disable them when using the broadcaster, because in that case the 
+		# FPGAs are handled by the broadcaster device service and the FPGA services are not used.
+		enable_services = true
 		# Maximum number of FPGA tasks running at the same time
 		streams = 16
 		[devices.fpga.polling]

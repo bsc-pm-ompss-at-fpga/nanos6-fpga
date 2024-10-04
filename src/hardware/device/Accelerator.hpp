@@ -139,7 +139,7 @@ public:
 
 	inline static void setCurrentTask(Task* task){ _currentTask = task;}
 
-	virtual void submitDevice(const DeviceEnvironment& deviceEnvironment) const = 0;
+	virtual void submitDevice(const DeviceEnvironment &deviceEnvironment, const void* args, const nanos6_task_info_t* taskInfo, const nanos6_address_translation_entry_t* translationTable) const = 0;
 	virtual std::function<bool()> getDeviceSubmissionFinished(const DeviceEnvironment& deviceEnvironment) const = 0;
 	virtual inline void generateDeviceEvironment(DeviceEnvironment& env, const nanos6_task_implementation_info_t* task_implementation) = 0;
 

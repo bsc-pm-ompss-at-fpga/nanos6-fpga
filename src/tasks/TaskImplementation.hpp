@@ -46,7 +46,7 @@ inline Task::Task(
 	_schedulingHint(NO_HINT),
 	_NUMAHint((uint64_t)-1),
 	_symbolInfo(std::max(taskInfo!=nullptr?taskInfo->num_symbols:1,1)),
-	_distSymbolInfo(_symbolInfo.size()),
+	_distSymbolInfo(taskInfo!=nullptr ? taskInfo->num_symbols : 0),
 	_ignoreDirectory(false),
 	_accel_affinity(-1),
 	_thread(nullptr),

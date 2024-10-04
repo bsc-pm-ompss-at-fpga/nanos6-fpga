@@ -110,7 +110,24 @@ void FPGAAccelerator::postRunTask(Task *)
 {
 }
 
-void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment) const {
+void FPGAAccelerator::submitDevice(const DeviceEnvironment &deviceEnvironment, const void* args, const nanos6_task_info_t* taskInfo, const nanos6_address_translation_entry_t* translationTable) const {
+	int numArgs = taskInfo->num_args;
+	int numSymbols = taskInfo->num_symbols;
+	xtasks_arg_val fpga_args[16]; //Current max supported number of arguments
+	assert (numArgs <= 16);
+	memset(fpga_args, 0, sizeof(fpga_args));
+	for (int i = 0; i < numArgs; ++i) {
+		assert (taskInfo->sizeof_table[i] <= (int)sizeof(xtasks_arg_val));
+		char* p = (char*)args + taskInfo->offset_table[i];
+		memcpy(fpga_args + i, p, taskInfo->sizeof_table[i]);
+	}
+	for (int i = 0; i < numSymbols; ++i) {
+		int arg = taskInfo->arg_idx_table[i];
+		uint64_t host_addr = translationTable[i].local_address;
+		uint64_t fpga_addr = translationTable[i].device_address;
+		fpga_args[arg] = fpga_args[arg] - host_addr + fpga_addr;
+	}
+	xtasksAddArgs(numArgs, 0xFF, fpga_args, deviceEnvironment.fpga.taskHandle);
 	FatalErrorHandler::failIf(
 		xtasksSubmitTask(deviceEnvironment.fpga.taskHandle) != XTASKS_SUCCESS,
 		"Xtasks: Submit Task failed"
@@ -122,7 +139,7 @@ inline std::function<bool()> FPGAAccelerator::getDeviceSubmissionFinished(const 
 		xtasks_task_handle hand;
 		xtasks_task_id tid;
 		xtasks_stat stat;
-		while((stat = xtasksTryGetFinishedTask(&hand, &tid)) == XTASKS_SUCCESS)
+		while((stat = xtasksTryGetFinishedTaskDev(_deviceHandler, &hand, &tid)) == XTASKS_SUCCESS)
 		{
 			xtasksDeleteTask(&hand);
 			nanos6_fpga_device_environment_t* env = (nanos6_fpga_device_environment_t*) tid;
@@ -202,8 +219,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 		return [=]() -> std::function<bool(void)>
 		{
 
-			bool* copy_finished_flag = new bool;
-			*copy_finished_flag=false;
+			std::atomic<bool>* copy_finished_flag = new std::atomic<bool>(false);
 			auto do_copy = [](void* t)
 			{
 				std::function<void()>* fn = (std::function<void()>*) t;
@@ -211,14 +227,14 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_in(void *dst, v
 				delete fn;
 			};
 
-			auto copy  = new std::function<void()>([=](){_allocator.memcpy(dst,src,size,XTASKS_HOST_TO_ACC);});
+			auto copy = new std::function<void()>([=](){_allocator.memcpy(dst, src, size, XTASKS_HOST_TO_ACC);});
 
-			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
+			auto finish_copy = [](void* flag){std::atomic<bool>* ff = (std::atomic<bool>*) flag; ff->store(true, std::memory_order_relaxed);};
 
-			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag,"CopyInFPGA", false);
+			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag, "CopyInFPGA", false);
 			return [=]() -> bool
 			{
-				if(*copy_finished_flag)
+				if (copy_finished_flag->load(std::memory_order_relaxed))
 				{
 					delete copy_finished_flag;
 					return true;
@@ -258,8 +274,7 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 		return [=]() -> std::function<bool(void)>
 		{
 
-			bool* copy_finished_flag = new bool;
-			*copy_finished_flag=false;
+			std::atomic<bool>* copy_finished_flag = new std::atomic<bool>(false);
 			auto do_copy = [](void* t)
 			{
 				std::function<void()>* fn = (std::function<void()>*) t;
@@ -267,14 +282,14 @@ std::function<std::function<bool(void)>()> FPGAAccelerator::copy_out(void *dst, 
 				delete fn;
 			};
 
-			auto copy  = new std::function<void()>([=](){_allocator.memcpy(dst,src,size,XTASKS_ACC_TO_HOST);});
+			auto copy = new std::function<void()>([=](){_allocator.memcpy(dst, src, size, XTASKS_ACC_TO_HOST);});
 
-			auto finish_copy = [](void* flag){ bool* ff = (bool*) flag; *ff=true;};
+			auto finish_copy = [](void* flag){std::atomic<bool>* ff = (std::atomic<bool>*) flag; ff->store(true, std::memory_order_relaxed);};
 
-			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag,"CopyInFPGA", false);
+			SpawnFunction::spawnFunction(do_copy, (void*) copy, finish_copy, (void*) copy_finished_flag, "CopyOutFPGA", false);
 			return [=]() -> bool
 			{
-				if(*copy_finished_flag)
+				if (copy_finished_flag->load(std::memory_order_relaxed))
 				{
 					delete copy_finished_flag;
 					return true;
