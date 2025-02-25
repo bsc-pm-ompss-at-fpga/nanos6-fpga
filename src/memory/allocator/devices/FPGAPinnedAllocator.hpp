@@ -19,9 +19,22 @@ class FPGAPinnedAllocator: public SimpleAllocator
    FPGAPinnedAllocator(int deviceId) : align(ConfigVariable<size_t>("devices.fpga.alignment").getValue())
    {
       const size_t userRequestedSize = ConfigVariable<size_t>("devices.fpga.requested_fpga_memory").getValue();
-      size_t size = userRequestedSize > 0 ? userRequestedSize :512*1024*1024; 
+      size_t size = userRequestedSize > 0 ? userRequestedSize : 512*1024*1024;
+      uint32_t memorySize = 0;
+      xtasks_stat status;
 
-      xtasks_stat status = xtasksMalloc(deviceId, size, &_handle);
+      // Get the device memory size from xtasks
+      status = xtasksGetMemorySize(deviceId, &memorySize);
+      // ENOSYS means we are trying to request the memory from a remote node, which is not supported yet
+      if (status == XTASKS_ENOSYS) {
+         // As a workaround, assume that all FPGAs in the cluster have the same amount of memory.
+         // Also, assume that deviceId 0 is an FPGA attached to the node running nanos.
+         status = xtasksGetMemorySize(0, &memorySize);
+         FatalErrorHandler::failIf(status != XTASKS_SUCCESS, "Xtasks: Device 0 is not attached to this node, can't get the board memory size");
+      }
+      if (memorySize != 0) size = (size_t)memorySize*1024*1024*1024;
+
+      status = xtasksMalloc(deviceId, size, &_handle);
       if (status != XTASKS_SUCCESS) 
       {
          // Before fail, try to allocate less memory
@@ -33,8 +46,8 @@ class FPGAPinnedAllocator: public SimpleAllocator
 
          FatalErrorHandler::failIf(status != XTASKS_SUCCESS, "Xtasks: failed to allocate memory");
 
-         FatalErrorHandler::warnIf(userRequestedSize > 0,
-            "Could not allocate requested amount of FPGA device memory (",userRequestedSize," bytes). Only " , size , " bytes have been allocated.");
+         FatalErrorHandler::warnIf(memorySize != 0 || userRequestedSize > 0,
+            "Could not allocate requested amount of FPGA device memory (",(memorySize != 0 ? (size_t)memorySize*1024*1024*1024 : userRequestedSize)," bytes). Only " , size , " bytes have been allocated.");
       }
       _allocated_memory = size;
 
