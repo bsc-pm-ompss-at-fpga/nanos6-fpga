@@ -40,12 +40,18 @@ void FPGAAcceleratorInstrumentation::initializeService(int cpu) {
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(cpu, &set);
-    pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &set);
-    int ret = pthread_create(&serviceThread, &attr, serviceFunction, this);
+    int ret = pthread_attr_setaffinity_np(&attr, sizeof(cpu_set_t), &set);
+    // If there are not enough CPUs, reset to default attributes and don't pin the thread.
+    if (ret == EINVAL) {
+        pthread_attr_destroy(&attr);
+        pthread_attr_init(&attr);
+    }
+    ret = pthread_create(&serviceThread, &attr, serviceFunction, this);
     FatalErrorHandler::failIf(
         ret != 0,
         "Error while creating FPGA instrumentation thread"
     );
+    pthread_attr_destroy(&attr);
 }
 
 void FPGAAcceleratorInstrumentation::shutdownService() {
